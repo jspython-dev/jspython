@@ -1,0 +1,9 @@
+/src
+/node_modules
+.gitignore
+index.html
+rollup.config.js
+rollup.config.dev.js
+jest.config.js
+*.tgz
+*.ts
