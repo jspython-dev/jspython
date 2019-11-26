@@ -7,7 +7,7 @@ const input = 'src/interpreter.ts';
 
 export default [{
   input,
-  output: { file: pkg.main, name: 'JSPython', format: 'umd', sourcemap: true, compact: true, globals: {'json5': 'JSON5'} },
+  output: { file: pkg.main, name: 'jspython', format: 'umd', sourcemap: true, compact: true, globals: {'json5': 'JSON5'} },
   external: [
     'json5'
   ],
@@ -18,7 +18,7 @@ export default [{
     }),
     copy({
       targets: [
-        { src: 'src/assets', dest: 'lib' }
+        { src: 'src/assets', dest: 'dist' }
       ]
     }),
     uglify()

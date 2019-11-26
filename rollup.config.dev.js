@@ -6,8 +6,8 @@ export default {
 
   input: 'src/interpreter.ts',
   output: {
-    name: 'JSPython',
-    file: 'lib/jspython.js',
+    name: 'jspython',
+    file: 'dist/jspython.js',
     format: 'umd',
     sourcemap: true,
     globals: {'json5': 'JSON5'}
@@ -20,7 +20,7 @@ export default {
       abortOnError: false
     }),
     serve({contentBase: '', open: true}),
-    livereload('lib')
+    livereload('dist')
   ],
   watch: {
     exclude: ['node_modules/**'],

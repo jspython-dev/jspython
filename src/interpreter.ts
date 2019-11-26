@@ -40,13 +40,13 @@ interface Completion {
     caption?: string;
 }
 
-type PackageLoader = (packages: PackageToImport[]) => object;
+export type PackageLoader = (packages: PackageToImport[]) => object;
 
 export function jsPython(): Interpreter {
     return Interpreter.create();
 }
 
-class Interpreter {
+export class Interpreter {
     private readonly initialScope: { [index: string]: any } = { ...INITIAL_SCOPE };
 
     private globalScope: { [index: string]: any } = {};

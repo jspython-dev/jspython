@@ -8,11 +8,11 @@
     "evaluator",
     "parser"
   ],
-  "main": "lib/jspython.umd.js",
-  "module": "lib/jspython.esm.js",
-  "typings": "lib/interpreter.d.ts",
+  "main": "dist/jspython.umd.js",
+  "module": "dist/jspython.esm.js",
+  "typings": "dist/interpreter.d.ts",
   "files": [
-    "lib"
+    "dist"
   ],
   "scripts": {
     "test": "jest",
