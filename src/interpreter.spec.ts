@@ -1140,6 +1140,15 @@ describe('Interpreter', () => {
     `)).toBe('3,5,7,9,11,13,15,17,19,21')
   })
 
+  it('for with variable what contains in', async () => {
+    expect(await e.evaluate(`      
+    x = []
+    for link in [1,2,3]:
+      x.push(link)
+    x.join(",")
+  `)).toBe('1,2,3')
+  })
+
   it('for - continue', async () => {
     expect(await e.evaluate(`      
     x = []
@@ -1189,6 +1198,18 @@ describe('Interpreter', () => {
       x.push(i)
     x.join(",")
   `)).toBe('0,1,2,3,4,5,6,7,8,9')
+  })
+
+  it('Recursive function - pow', async () => {
+    expect(await e.evaluate(`
+    def power(base, exponent):
+      if exponent == 0:
+        return 1
+      else
+        return base * power(base, exponent - 1)
+
+    power(2, 3)
+    `)).toBe(Math.pow(2, 3))
   })
 
   it('for with myRange function call', async () => {

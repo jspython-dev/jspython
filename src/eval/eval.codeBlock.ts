@@ -124,7 +124,7 @@ export class EvalCodeBlock {
                     context.breakCalled = context.continueCalled = false
                     currentIndex += whileBlockLines.length;
                 } else if (instruction.trim().startsWith('for ') && instruction.indexOf(':') > 0) {
-                    const forTokens = instruction.replace('for ', '').replace(':', '').trim().split('in');
+                    const forTokens = instruction.replace('for ', '').replace(':', '').trim().split(' in ');
                     if (forTokens.length !== 2) {
                         throw Error('Incorrect for in: expression.')
                     }
@@ -236,7 +236,7 @@ export class EvalCodeBlock {
                     context.breakCalled = context.continueCalled = false
                     currentIndex += whileBlockLines.length;
                 } else if (instruction.trim().startsWith('for ') && instruction.indexOf(':') > 0) {
-                    const forTokens = instruction.replace('for ', '').replace(':', '').trim().split('in');
+                    const forTokens = instruction.replace('for ', '').replace(':', '').trim().split(' in ');
                     if (forTokens.length !== 2) {
                         throw Error('Incorrect for in: expression.')
                     }
