@@ -181,7 +181,7 @@ export class Tokenizer {
  * @private
  */
 function getImportPackage(line: string): PackageToImport {
-  const importRe = /^import\s+([\w,\-]+)(\s+as\s+(\w+)){0,1}/;
+  const importRe = /^import\s+([\w-]+)(\s+as\s+(\w+)){0,1}/;
   const res = line.match(importRe);
     if (res && res.length === 4) {
       return {
@@ -199,7 +199,7 @@ function getImportPackage(line: string): PackageToImport {
  * @private
  */
 function getFromPacakage(line: string): PackageToImport {
-  const fromRe = /^from\s+(\w+)\s+import\s+([\w+,\s+]{1,})/;
+  const fromRe = /^from\s+([\w-]+)\s+import\s+([\w+,\s+]{1,})/;
   const res = line.match(fromRe);
   if (res && res.length === 3) {
     return {

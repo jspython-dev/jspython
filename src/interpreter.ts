@@ -44,7 +44,7 @@ interface Completion {
     caption?: string;
 }
 
-export type PackageLoader = (packages: PackageToImport[]) => object;
+export type PackageLoader = (packageName: string) => any;
 
 export function jsPython(): Interpreter {
     return Interpreter.create();
@@ -103,7 +103,8 @@ export class Interpreter {
         });
 
         if (importLines.length && this.packageLoader) {
-            this.assignGlobalContext(this.packageLoader(Tokenizer.getPackagesList(importLines)));
+            const libraries = this.packageResolver(Tokenizer.getPackagesList(importLines));
+            context = {...context, ...libraries};
         }
 
         this.globalScope = {
@@ -177,6 +178,29 @@ export class Interpreter {
                 .map(p => toAutoCompletion(varsScope, p))
                 .filter(a => a) as Completion[];
         }
+    }
+
+    private packageResolver(packages: PackageToImport[]): object {
+      if (!this.packageLoader) {
+          throw Error('Package loader not provided.');
+      }
+      const libraries: any = {};
+      packages.forEach(({ name, as, properties }: PackageToImport) => {
+          const lib = this.packageLoader && this.packageLoader(name);
+          if (properties?.length) {
+              properties.forEach((prop) => {
+                  libraries[prop.as || prop.name] = lib[prop.name];
+              })
+          } else if (as) {
+              libraries[as] = lib;
+          } else {
+              libraries[name] = lib;
+          }
+          if (as) {
+              libraries[as] = lib;
+          }
+      });
+      return libraries;
     }
 
 }
