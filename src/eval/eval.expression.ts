@@ -104,42 +104,49 @@ function invokeFunction(func: AnyFunc, fps: any[]): any {
     }
 }
 
-function resolveVariable(context: BlockContext, token: string, parentObject: any = null): any {
-
-    function getValue(obj: any, propName: string): any {
-        if (propName[propName.length - 1] !== ']') {
-            return obj[propName];
-        } else {
-            const openInd = propName.indexOf('[');
-            if (openInd <= 0) {
-                throw Error(`Missing '[' for ${propName}`);
-            }
-
-            // ToDo: resolve two dimentional arrays
-            // ToDo: allow indexes notations e.g. t["myprop"]
-
-            obj = obj[propName.substring(0, openInd)]; // array
-            const arrIndex = parseInt(propName.substring(openInd + 1, propName.indexOf(']', openInd)), 10);
-            return obj[arrIndex];
-        }
-    }
-
-    if (parentObject) {
-        const value = getValue(parentObject, token);
-        return (value !== undefined) ? value : null
-
-    } else {
-        const value = getValue(context.blockScope, token);
-        if (value === undefined) {
-            throw Error(`Undefined property '${token}'`);
-        }
-        return value;
-    }
-}
-
 export class EvalExpression {
     private codeBlockEvaluator: CodeBloEvaluatorFunc = (f, c, ...args) => { };
 
+    private resolveVariable(context: BlockContext, token: string, parentObject: any = null): any {
+       
+        const getValue = (obj: any, propName: string): any => {
+            if (propName[propName.length - 1] !== ']') {
+                return obj[propName];
+            } else {
+                const openInd = propName.indexOf('[');
+                if (openInd <= 0) {
+                    throw Error(`Missing '[' for ${propName}`);
+                }
+    
+                // ToDo: resolve two dimentional arrays   
+                obj = obj[propName.substring(0, openInd)]; // array
+    
+                const ind = propName.substring(openInd + 1, propName.indexOf(']', openInd));
+                const arrIndex = parseInt(ind, 10);
+                if (!isNaN(arrIndex)) {
+                    return obj[arrIndex];
+                } else {
+                    const tokens = this.splitParameterToken(ind);
+                    const pName = this.evalExpression(context, tokens)
+                    return obj[pName];
+                }
+    
+            }
+        }
+    
+        if (parentObject) {
+            const value = getValue(parentObject, token);
+            return (value !== undefined) ? value : null
+    
+        } else {
+            const value = getValue(context.blockScope, token);
+            if (value === undefined) {
+                throw Error(`Undefined property '${token}'`);
+            }
+            return value;
+        }
+    }
+    
     private resolveToken(context: BlockContext, token: string, parentObject: any = null): any {
         const num = parseFloat(token);
         if (!isNaN(num)) {
@@ -159,7 +166,7 @@ export class EvalExpression {
             } else if (isFunctionCall(token)) {
                 result = this.evalFunction(context, token, parentObject);
             } else {
-                result = resolveVariable(context, token, parentObject);
+                result = this.resolveVariable(context, token, parentObject);
             }
 
         } else {
@@ -172,7 +179,7 @@ export class EvalExpression {
                     if (lastItem(previousToken) === '?') {
                         continue;
                     }
-    
+
                     throw Error(`Token '${tokenParts[i - 1]}' is null. Can't resolve '${subToken}'. Please use '?.' conditional operators`);
                 }
 
@@ -201,7 +208,7 @@ export class EvalExpression {
             } else if (isFunctionCall(token)) {
                 result = await this.evalFunctionAsync(context, token, parentObject);
             } else {
-                result = resolveVariable(context, token, parentObject);
+                result = this.resolveVariable(context, token, parentObject);
             }
         } else {
             result = await this.resolveTokenAsync(context, tokenParts[0].trim());
@@ -246,7 +253,7 @@ export class EvalExpression {
             }
 
             const lastDot = name.lastIndexOf('.');
-            const callingObject = resolveVariable(context, name.substring(0, lastDot), parentObject);
+            const callingObject = this.resolveVariable(context, name.substring(0, lastDot), parentObject);
             const fName = name.substring(lastDot + 1);
             const f = callingObject[fName];
 

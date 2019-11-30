@@ -1351,8 +1351,8 @@ describe('Interpreter', () => {
       x.tt_51      
       `
     )).toBe(33)
-
   })
+
   it('Set dynamic property in func', async () => {
     expect(await e.evaluate(
       `
@@ -1374,6 +1374,48 @@ describe('Interpreter', () => {
         x[p + i + 1] = 33
         x.tt_51
 
+      foo()
+      `
+    )).toBe(33)
+  })
+
+  it('get dynamic property', async () => {
+    expect(await e.evaluate(
+      `
+      x = {p1:33}
+      x["p1"]
+      `      
+    )).toBe(33)
+
+    expect(await e.evaluate(
+      `
+      x = {p1:33}
+      p = "p"
+      i = 1
+      x[p + 1]
+      `
+    )).toBe(33)
+  })
+
+  it('get dynamic property in func', async () => {
+    expect(await e.evaluate(
+      `
+      def foo():
+        x = {p1:33}
+        x["p1"]
+      
+      foo()
+      `      
+    )).toBe(33)
+
+    expect(await e.evaluate(
+      `
+      def foo():
+        x = {p1:33}
+        p = "p"
+        i = 1
+        x[p + 1]
+      
       foo()
       `
     )).toBe(33)
