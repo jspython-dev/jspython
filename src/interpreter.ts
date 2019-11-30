@@ -1,7 +1,7 @@
 import { Tokenizer, CodeLine, PackageToImport } from './tokenizer';
 import {
     BlockContext, AnyFunc,
-    EvalCodeBlock, EvalInstruction, EvalExpression, getLineIndent, sliceBlock
+    EvalCodeBlock, EvalInstruction, EvalExpression, getLineIndent, sliceBlock, parseDatetimeOrNull
 } from './eval/index';
 
 export { PackageToImport } from './tokenizer';
@@ -18,17 +18,16 @@ function range(start: number, stop: number = NaN, step: number = 1): number[] {
     }
     return arr;
 }
-// methods like: AND, OR are temporary until we have () support
-// setPropertValue, getPropertValue should be replaced with native way e.g. obj[name] = 22
+
 const INITIAL_SCOPE = {
-    dateTime: (d: number | string | any = null) => d ? new Date(d) : new Date(),
+    dateTime: (str: number | string | any = null) => (str && str.length)
+        ? parseDatetimeOrNull(str) || new Date() : new Date(),
     range: range,
     print: (...args: any[]) => { console.log(...args); return args.length > 0 ? args[0] : null; },
     isNull: (v: any, defValue: any = null): boolean | any => defValue === null ? v === null : v || defValue,
+
     AND: (...args: boolean[]): boolean => !(args || []).filter(r => !r).length,
     OR: (...args: boolean[]): boolean => !!(args || []).filter(r => r).length,
-    setPropertValue: (obj: any, propName: string, value: any | null) => obj[propName] = value,
-    getPropertValue: (obj: any, propName: string): any | null => obj[propName],
     deleteProperty: (obj: any, propName: string): boolean => delete obj[propName],
     Math: Math,
     Object: Object,
