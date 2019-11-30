@@ -1018,7 +1018,7 @@ describe('Interpreter', () => {
     x = 5
     if x == 5:
       x = x + 10
-    else
+    else:
       x = x + 100
     x    
     `)).toBe(15)
@@ -1027,7 +1027,7 @@ describe('Interpreter', () => {
     x = 15
     if x == 5:
       x = x + 10
-    else
+    else:
       x = x + 100
     x    
     `)).toBe(115)
@@ -1038,7 +1038,7 @@ describe('Interpreter', () => {
       def func1(y):
         if y == 5:
           y = y + 10
-        else
+        else:
           y = y + 100
         y
       func1(5)  
@@ -1048,7 +1048,7 @@ describe('Interpreter', () => {
       def func1(y):
         if y == 5:
           y = y + 10
-        else
+        else:
           y = y + 100
         y
       func1(10)  
@@ -1205,7 +1205,7 @@ describe('Interpreter', () => {
     def power(base, exponent):
       if exponent == 0:
         return 1
-      else
+      else:
         return base * power(base, exponent - 1)
 
     power(2, 3)
@@ -1283,6 +1283,100 @@ describe('Interpreter', () => {
     x = {prop1: 25}
     x?.prop1
     `)).toBe(25)
+  })
+
+  it('Set indexed array', async () => {
+    expect(await e.evaluate(
+      `
+      x = [1,2,3,5]
+      x[2] = 11
+      x[2]
+      `
+    )).toBe(11)
+  })
+
+  it('Set indexed array with prop', async () => {
+    expect(await e.evaluate(
+      `
+      x = [1,2,3,5]
+      x[2] = {}
+      x[2].tt = 11
+      x[2].tt
+      `
+    )).toBe(11)
+  })
+
+  it('Set indexed array in func', async () => {
+    expect(await e.evaluate(
+      `
+      def foo():
+        x = [1,2,3,5]
+        x[2] = 11
+        x[2]
+      
+      foo()
+      `
+    )).toBe(11)
+  })
+
+  it('Set indexed array with prop in func', async () => {
+    expect(await e.evaluate(
+      `
+      def foo():
+        x = [1,2,3,5]
+        x[2] = {}
+        x[2].tt = 11
+        x[2].tt
+      
+      foo()
+      `
+    )).toBe(11)
+  })
+
+  it('Set dynamic property', async () => {
+    expect(await e.evaluate(
+      `
+      x = {}
+      x["t123"] = 33
+      x.t123      
+      `      
+    )).toBe(33)
+
+    expect(await e.evaluate(
+      `
+      x = {}
+      p = "tt_"
+      i = 5
+      x[p + i + 1] = 33
+      x.tt_51      
+      `
+    )).toBe(33)
+
+  })
+  it('Set dynamic property in func', async () => {
+    expect(await e.evaluate(
+      `
+      def foo():
+        x = {}
+        x["t123"] = 33
+        x.t123
+      
+      foo()
+      `      
+    )).toBe(33)
+
+    expect(await e.evaluate(
+      `
+      def foo():
+        x = {}
+        p = "tt_"
+        i = 5
+        x[p + i + 1] = 33
+        x.tt_51
+
+      foo()
+      `
+    )).toBe(33)
   })
 
 

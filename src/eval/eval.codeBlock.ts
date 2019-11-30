@@ -101,7 +101,7 @@ export class EvalCodeBlock {
 
                     // else logic
                     if (currentIndex + 1 < instuctionLines.length
-                        && instuctionLines[currentIndex + 1].line.trim() === 'else') {
+                        && instuctionLines[currentIndex + 1].line.trim() === 'else:') {
                         currentIndex++; // pass else
                         const elseBlockLines = sliceBlock(instuctionLines, currentIndex + 1);
 
@@ -213,7 +213,7 @@ export class EvalCodeBlock {
 
                     // else logic
                     if (currentIndex + 1 < instuctionLines.length
-                        && instuctionLines[currentIndex + 1].line.trim() === 'else') {
+                        && instuctionLines[currentIndex + 1].line.trim() === 'else:') {
                         currentIndex++; // pass else
                         const elseBlockLines = sliceBlock(instuctionLines, currentIndex + 1);
 
