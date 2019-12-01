@@ -1,5 +1,5 @@
 {
-  "name": "@jspython-dev/jspython",
+  "name": "jspython-interpreter",
   "version": "0.0.3",
   "description": "JSPython is a javascript implementation of Python language that runs within web browser or NodeJS environment",
   "keywords": [
