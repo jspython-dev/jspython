@@ -1,5 +1,4 @@
 import { Tokenizer, CodeLine } from "../tokenizer";
-import json5 from "json5";
 import { AnyFunc, BlockContext, OPERATIONS, FuncInfo, lastItem } from "./common";
 
 type CodeBloEvaluatorFunc = (funcInfo: FuncInfo, context: BlockContext, ...args: any[]) => any
@@ -23,12 +22,74 @@ function isValue(t: string): boolean {
         || (t[0] === '{' && t[t.length - 1] === '}');
 }
 
+function jsonParse(json: string): any {
+    const result: any = json[0] === '{' ? {} : [];
+
+    function trimFirstAndLastItem(s: string): string {
+        return s.substring(1, s.length - 1);
+    }
+
+    function resolveEndValue(str : string) : any {
+        const num = parseFloat(str);
+        return isNaN(num)? 
+            trimFirstAndLastItem(str) 
+            :
+            num;
+    }
+
+    function parseJsonItems(innerJson: string, parentObj: any) {
+        const items = Tokenizer.splitAll(innerJson, [',']).map(s => s.trim());
+
+        for (const item of items) {
+
+            if (Array.isArray(parentObj)) {
+                // handle array
+                if (item[0] === '{') {
+                    const newItem = {}
+                    parseJsonItems(trimFirstAndLastItem(item), newItem)
+                    parentObj.push(newItem)
+                } else if (item[0] === '['){
+                    const newItem = {}
+                    parseJsonItems(trimFirstAndLastItem(item), newItem)
+                    parentObj.push(newItem)
+                } else {
+                    parentObj.push(resolveEndValue(item));
+                }
+
+            } else {
+                // handle normal item
+                const sepInd = item.indexOf(':');
+                if (sepInd <= 0) {
+                    throw Error('Error in parsing JSON.');
+                }
+
+                const key = item.substring(0, sepInd).trim()
+                const strValue = item.substring(sepInd + 1).trim()
+
+                if (strValue[0] === '{') {
+                    parentObj[key] = {};
+                    parseJsonItems(trimFirstAndLastItem(strValue), parentObj[key])
+                } else if (strValue[0] === '[') {
+                    parentObj[key] = [];
+                    parseJsonItems(trimFirstAndLastItem(strValue), parentObj[key])
+                } else {
+                    parentObj[key] = resolveEndValue(strValue);
+                }
+            }
+        }
+    };
+
+    parseJsonItems(trimFirstAndLastItem(json), result);
+
+    return result;
+}
+
 function resolveValue(token: string): any {
     const lowerToken = token.toLowerCase();
     if (token[0] === '"' && token[token.length - 1] === '"') {
         return token.substring(1, token.length - 1);
     } else if ((token[0] === '[' && token[token.length - 1] === ']') || (token[0] === '{' && token[token.length - 1] === '}')) {
-        return json5.parse(token);
+        return jsonParse(token);
     } else if (lowerToken === 'true' || lowerToken === 'false') {
         return lowerToken === 'true';
     } else if (lowerToken === 'null' || lowerToken === 'none') {
@@ -108,7 +169,7 @@ export class EvalExpression {
     private codeBlockEvaluator: CodeBloEvaluatorFunc = (f, c, ...args) => { };
 
     private resolveVariable(context: BlockContext, token: string, parentObject: any = null): any {
-       
+
         const getValue = (obj: any, propName: string): any => {
             if (propName[propName.length - 1] !== ']') {
                 return obj[propName];
@@ -117,10 +178,10 @@ export class EvalExpression {
                 if (openInd <= 0) {
                     throw Error(`Missing '[' for ${propName}`);
                 }
-    
+
                 // ToDo: resolve two dimentional arrays   
                 obj = obj[propName.substring(0, openInd)]; // array
-    
+
                 const ind = propName.substring(openInd + 1, propName.indexOf(']', openInd));
                 const arrIndex = parseInt(ind, 10);
                 if (!isNaN(arrIndex)) {
@@ -130,14 +191,14 @@ export class EvalExpression {
                     const pName = this.evalExpression(context, tokens)
                     return obj[pName];
                 }
-    
+
             }
         }
-    
+
         if (parentObject) {
             const value = getValue(parentObject, token);
             return (value !== undefined) ? value : null
-    
+
         } else {
             const value = getValue(context.blockScope, token);
             if (value === undefined) {
@@ -146,7 +207,7 @@ export class EvalExpression {
             return value;
         }
     }
-    
+
     private resolveToken(context: BlockContext, token: string, parentObject: any = null): any {
         const num = parseFloat(token);
         if (!isNaN(num)) {

@@ -70,7 +70,7 @@ describe('Interpreter', () => {
       .toBe(100);
 
     expect(await e.evaluate([
-      'x = {"prop1": 55}',
+      'x = {prop1: 55}',
       '45 + x.prop1'
     ].join('\n')))
       .toBe(100);
@@ -78,7 +78,7 @@ describe('Interpreter', () => {
 
   it('Complex objects instructions => accessing array', async () => {
     expect(await e.evaluate([
-      'x = {"prop1": [55, 65]}',
+      'x = {prop1: [55, 65]}',
       '45 + x.prop1[1]'
     ].join('\n')))
       .toBe(110);
@@ -352,7 +352,7 @@ describe('Interpreter', () => {
 
   it('print two objects', async () => {
     // same problem as code below
-    const x = await e.evaluate('print({"x":88, "y":"test"}, {"x": "99", "y": "test 99"})');
+    const x = await e.evaluate('print({x:88, y:"test"}, {x: "99", y: "test 99"})');
     expect(x.x)
       .toBe(88);
 
@@ -360,7 +360,7 @@ describe('Interpreter', () => {
     expect(x5.x)
       .toBe(88);
 
-    const x2 = await e.evaluate('print([{"x": 88, "y" : "test"}, {},{}], {"x": "99", "y": "test 99"})');
+    const x2 = await e.evaluate('print([{x: 88, y : "test"}, {},{}], {x: "99", y: "test 99"})');
     expect(x2[0].x)
       .toBe(88);
 
@@ -375,27 +375,13 @@ describe('Interpreter', () => {
       await e.evaluate(
         [
           'x = {',
-          '  "x" : 88,',
-          '  "y" : "test"',
+          '  x : 88,',
+          '  y : "test"',
           '  }',
           'x.x + 2'
         ].join('\n'))
     )
       .toBe(90);
-
-    // json5
-    expect(
-      await e.evaluate(
-        [
-          'x = {',
-          '  x : 88,',
-          '  y : "test"',
-          '}',
-          'x.x + 2'
-        ].join('\n'))
-    )
-      .toBe(90);
-
   });
 
   it('return ', async () => {

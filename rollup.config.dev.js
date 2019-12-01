@@ -10,11 +10,9 @@ export default {
     file: 'dist/jspython.js',
     format: 'umd',
     sourcemap: true,
-    globals: {'json5': 'JSON5'}
+    globals: {}
   },
-  external: [
-    'json5'
-  ],
+  external: [],
   plugins: [
     typescript({
       abortOnError: false

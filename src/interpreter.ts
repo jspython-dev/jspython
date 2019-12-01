@@ -25,7 +25,6 @@ const INITIAL_SCOPE = {
     range: range,
     print: (...args: any[]) => { console.log(...args); return args.length > 0 ? args[0] : null; },
     isNull: (v: any, defValue: any = null): boolean | any => defValue === null ? v === null : v || defValue,
-
     AND: (...args: boolean[]): boolean => !(args || []).filter(r => !r).length,
     OR: (...args: boolean[]): boolean => !!(args || []).filter(r => r).length,
     deleteProperty: (obj: any, propName: string): boolean => delete obj[propName],
