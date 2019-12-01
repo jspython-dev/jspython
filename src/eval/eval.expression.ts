@@ -22,85 +22,6 @@ function isValue(t: string): boolean {
         || (t[0] === '{' && t[t.length - 1] === '}');
 }
 
-function jsonParse(json: string): any {
-    const result: any = json[0] === '{' ? {} : [];
-
-    function trimFirstAndLastItem(s: string): string {
-        return s.substring(1, s.length - 1);
-    }
-
-    function resolveEndValue(str : string) : any {
-        const num = parseFloat(str);
-        return isNaN(num)? 
-            trimFirstAndLastItem(str) 
-            :
-            num;
-    }
-
-    function parseJsonItems(innerJson: string, parentObj: any) {
-        const items = Tokenizer.splitAll(innerJson, [',']).map(s => s.trim());
-
-        for (const item of items) {
-
-            if (Array.isArray(parentObj)) {
-                // handle array
-                if (item[0] === '{') {
-                    const newItem = {}
-                    parseJsonItems(trimFirstAndLastItem(item), newItem)
-                    parentObj.push(newItem)
-                } else if (item[0] === '['){
-                    const newItem = {}
-                    parseJsonItems(trimFirstAndLastItem(item), newItem)
-                    parentObj.push(newItem)
-                } else {
-                    parentObj.push(resolveEndValue(item));
-                }
-
-            } else {
-                // handle normal item
-                const sepInd = item.indexOf(':');
-                if (sepInd <= 0) {
-                    throw Error('Error in parsing JSON.');
-                }
-
-                const key = item.substring(0, sepInd).trim()
-                const strValue = item.substring(sepInd + 1).trim()
-
-                if (strValue[0] === '{') {
-                    parentObj[key] = {};
-                    parseJsonItems(trimFirstAndLastItem(strValue), parentObj[key])
-                } else if (strValue[0] === '[') {
-                    parentObj[key] = [];
-                    parseJsonItems(trimFirstAndLastItem(strValue), parentObj[key])
-                } else {
-                    parentObj[key] = resolveEndValue(strValue);
-                }
-            }
-        }
-    };
-
-    parseJsonItems(trimFirstAndLastItem(json), result);
-
-    return result;
-}
-
-function resolveValue(token: string): any {
-    const lowerToken = token.toLowerCase();
-    if (token[0] === '"' && token[token.length - 1] === '"') {
-        return token.substring(1, token.length - 1);
-    } else if ((token[0] === '[' && token[token.length - 1] === ']') || (token[0] === '{' && token[token.length - 1] === '}')) {
-        return jsonParse(token);
-    } else if (lowerToken === 'true' || lowerToken === 'false') {
-        return lowerToken === 'true';
-    } else if (lowerToken === 'null' || lowerToken === 'none') {
-        return null;
-    } else {
-        const numValue = Number(token);
-        if (isNaN(numValue)) { throw Error(`Can't resolve a number value token '${token}' `); }
-        return numValue;
-    }
-};
-
 async function invokeFunctionAsync(func: AnyFunc, fps: any[]): Promise<any> {
     if (fps.length === 0) { return await func(); }
     if (fps.length === 1) { return await func(fps[0]); }
@@ -168,6 +89,156 @@ function invokeFunction(func: AnyFunc, fps: any[]): any {
 export class EvalExpression {
     private codeBlockEvaluator: CodeBloEvaluatorFunc = (f, c, ...args) => { };
 
+    private jsonParse(context: BlockContext, json: string): any {
+        const result: any = json[0] === '{' ? {} : [];
+    
+        function trimFirstAndLastItem(s: string): string {
+            return s.substring(1, s.length - 1);
+        }
+    
+        const resolveEndValue = (str : string) : any => {
+            const tokens = this.splitParameterToken(str);
+            return this.evalExpression(context, tokens)
+        }
+    
+        function parseJsonItems(innerJson: string, parentObj: any) {
+            const items = Tokenizer.splitAll(innerJson, [',']).map(s => s.trim());
+    
+            for (const item of items) {
+    
+                if (Array.isArray(parentObj)) {
+                    // handle array
+                    if (item[0] === '{') {
+                        const newItem = {}
+                        parseJsonItems(trimFirstAndLastItem(item), newItem)
+                        parentObj.push(newItem)
+                    } else if (item[0] === '['){
+                        const newItem = {}
+                        parseJsonItems(trimFirstAndLastItem(item), newItem)
+                        parentObj.push(newItem)
+                    } else {
+                        parentObj.push(resolveEndValue(item));
+                    }
+                } else {
+                    // handle normal item
+                    const sepInd = item.indexOf(':');
+                    if (sepInd <= 0) {
+                        throw Error('Error in parsing JSON.');
+                    }
+    
+                    const key = item.substring(0, sepInd).trim()
+                    const strValue = item.substring(sepInd + 1).trim()
+    
+                    if (strValue[0] === '{') {
+                        parentObj[key] = {};
+                        parseJsonItems(trimFirstAndLastItem(strValue), parentObj[key])
+                    } else if (strValue[0] === '[') {
+                        parentObj[key] = [];
+                        parseJsonItems(trimFirstAndLastItem(strValue), parentObj[key])
+                    } else {
+                        parentObj[key] = resolveEndValue(strValue);
+                    }
+                }
+            }
+        };
+    
+        parseJsonItems(trimFirstAndLastItem(json), result);
+    
+        return result;
+    }
+
+    private async jsonParseAsync(context: BlockContext, json: string): Promise<any> {
+        const result: any = json[0] === '{' ? {} : [];
+    
+        function trimFirstAndLastItem(s: string): string {
+            return s.substring(1, s.length - 1);
+        }
+    
+        const resolveEndValue = async (str : string) : Promise<any> => {
+            const tokens = this.splitParameterToken(str);
+            return await this.evalExpressionAsync(context, tokens)
+        }
+    
+        async function parseJsonItemsAsync(innerJson: string, parentObj: any): Promise<void> {
+            const items = Tokenizer.splitAll(innerJson, [',']).map(s => s.trim());
+    
+            for (const item of items) {
+    
+                if (Array.isArray(parentObj)) {
+                    // handle array
+                    if (item[0] === '{') {
+                        const newItem = {}
+                        await parseJsonItemsAsync(trimFirstAndLastItem(item), newItem)
+                        parentObj.push(newItem)
+                    } else if (item[0] === '['){
+                        const newItem = {}
+                        await parseJsonItemsAsync(trimFirstAndLastItem(item), newItem)
+                        parentObj.push(newItem)
+                    } else {
+                        parentObj.push(await resolveEndValue(item));
+                    }
+                } else {
+                    // handle normal item
+                    const sepInd = item.indexOf(':');
+                    if (sepInd <= 0) {
+                        throw Error('Error in parsing JSON.');
+                    }
+    
+                    const key = item.substring(0, sepInd).trim()
+                    const strValue = item.substring(sepInd + 1).trim()
+    
+                    if (strValue[0] === '{') {
+                        parentObj[key] = {};
+                        await parseJsonItemsAsync(trimFirstAndLastItem(strValue), parentObj[key])
+                    } else if (strValue[0] === '[') {
+                        parentObj[key] = [];
+                        await parseJsonItemsAsync(trimFirstAndLastItem(strValue), parentObj[key])
+                    } else {
+                        parentObj[key] = await resolveEndValue(strValue);
+                    }
+                }
+            }
+        };
+    
+        await parseJsonItemsAsync(trimFirstAndLastItem(json), result);
+    
+        return result;
+    }
+    
+    private resolveValue(context: BlockContext, token: string): any {
+        const lowerToken = token.toLowerCase();
+        if (token[0] === '"' && token[token.length - 1] === '"') {
+            return token.substring(1, token.length - 1);
+        } else if ((token[0] === '[' && token[token.length - 1] === ']') || (token[0] === '{' && token[token.length - 1] === '}')) {
+            return this.jsonParse(context, token);
+        } else if (lowerToken === 'true' || lowerToken === 'false') {
+            return lowerToken === 'true';
+        } else if (lowerToken === 'null' || lowerToken === 'none') {
+            return null;
+        } else {
+            const numValue = Number(token);
+            if (isNaN(numValue)) { throw Error(`Can't resolve a number value token '${token}' `); }
+            return numValue;
+        }
+    }
+
+    private async resolveValueAsync(context: BlockContext, token: string): Promise<any> {
+        const lowerToken = token.toLowerCase();
+        if (token[0] === '"' && token[token.length - 1] === '"') {
+            return token.substring(1, token.length - 1);
+        } else if ((token[0] === '[' && token[token.length - 1] === ']') || (token[0] === '{' && token[token.length - 1] === '}')) {
+            return await this.jsonParseAsync(context, token);
+        } else if (lowerToken === 'true' || lowerToken === 'false') {
+            return lowerToken === 'true';
+        } else if (lowerToken === 'null' || lowerToken === 'none') {
+            return null;
+        } else {
+            const numValue = Number(token);
+            if (isNaN(numValue)) { throw Error(`Can't resolve a number value token '${token}' `); }
+            return numValue;
+        }
+    }
+
     private resolveVariable(context: BlockContext, token: string, parentObject: any = null): any {
 
         const getValue = (obj: any, propName: string): any => {
@@ -223,7 +294,7 @@ export class EvalExpression {
             }
 
             if (isValue(token)) {
-                result = resolveValue(token);
+                result = this.resolveValue(context, token);
             } else if (isFunctionCall(token)) {
                 result = this.evalFunction(context, token, parentObject);
             } else {
@@ -265,7 +336,7 @@ export class EvalExpression {
                 token = token.substring(0, token.length - 1);
             }
             if (isValue(token)) {
-                result = resolveValue(token);
+                result = await this.resolveValueAsync(context, token);
             } else if (isFunctionCall(token)) {
                 result = await this.evalFunctionAsync(context, token, parentObject);
             } else {

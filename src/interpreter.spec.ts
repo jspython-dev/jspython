@@ -1407,5 +1407,54 @@ describe('Interpreter', () => {
     )).toBe(33)
   })
 
+  it('JSON resolve values', async () => {
+    expect(await e.evaluate(
+      `
+        p = "t"
+        x = {
+          p1: p + "_" + 2
+        }
+        x.p1
+      `      
+    )).toBe("t_2")
+
+    expect(await e.evaluate(
+      `
+        p = "t"
+        x = {
+          p1: p + "_" + 2,
+          p2: "some value"
+        }
+        x.p1
+      `      
+    )).toBe("t_2")
+
+  })
+
+  it('JSON resolve values - with promise', async () => {
+    expect(await e.evaluate(
+      `
+        p = "t"
+        x = {
+          p1: p + "_" + 2 + returnsPromise(10)
+        }
+        x.p1
+      `      
+    )).toBe("t_210")
+
+    expect(await e.evaluate(
+      `
+        p = "t"
+        x = {
+          p1: p + "_" + 2 + returnsPromise(10),
+          p2: "some value"
+        }
+        x.p1
+      `      
+    )).toBe("t_210")
+
+  })
+
+
 
 });
