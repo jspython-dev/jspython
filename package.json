@@ -1,6 +1,6 @@
 {
   "name": "jspython-interpreter",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "JSPython is a javascript implementation of Python language that runs within web browser or NodeJS environment",
   "keywords": [
     "python",
@@ -18,7 +18,8 @@
     "test": "jest",
     "test:dev": "jest --watch",
     "test:dev:debug": "node --inspect-brk node_modules/.bin/jest --runInBand --watch",
-    "build": "npx rollup -c && npm pack",
+    "build": "npx rollup -c",
+    "build:publish": "npx rollup -c && npm publish",
     "dev": "npx rollup --config rollup.config.dev.js --watch"
   },
   "repository": {

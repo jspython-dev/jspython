@@ -20,6 +20,9 @@ function range(start: number, stop: number = NaN, step: number = 1): number[] {
 }
 
 const INITIAL_SCOPE = {
+    jsPython(): string {
+        return ["JSPython v0.1.0", "(c) FalconSoft Ltd"].join('\n')
+    },
     dateTime: (str: number | string | any = null) => (str && str.length)
         ? parseDatetimeOrNull(str) || new Date() : new Date(),
     range: range,
@@ -102,7 +105,7 @@ export class Interpreter {
 
         if (importLines.length && this.packageLoader) {
             const libraries = this.packageResolver(Tokenizer.getPackagesList(importLines));
-            context = {...context, ...libraries};
+            context = { ...context, ...libraries };
         }
 
         this.globalScope = {
@@ -179,26 +182,26 @@ export class Interpreter {
     }
 
     private packageResolver(packages: PackageToImport[]): object {
-      if (!this.packageLoader) {
-          throw Error('Package loader not provided.');
-      }
-      const libraries: any = {};
-      packages.forEach(({ name, as, properties }: PackageToImport) => {
-          const lib = this.packageLoader && this.packageLoader(name);
-          if (properties?.length) {
-              properties.forEach((prop) => {
-                  libraries[prop.as || prop.name] = lib[prop.name];
-              })
-          } else if (as) {
-              libraries[as] = lib;
-          } else {
-              libraries[name] = lib;
-          }
-          if (as) {
-              libraries[as] = lib;
-          }
-      });
-      return libraries;
+        if (!this.packageLoader) {
+            throw Error('Package loader not provided.');
+        }
+        const libraries: any = {};
+        packages.forEach(({ name, as, properties }: PackageToImport) => {
+            const lib = this.packageLoader && this.packageLoader(name);
+            if (properties?.length) {
+                properties.forEach((prop) => {
+                    libraries[prop.as || prop.name] = lib[prop.name];
+                })
+            } else if (as) {
+                libraries[as] = lib;
+            } else {
+                libraries[name] = lib;
+            }
+            if (as) {
+                libraries[as] = lib;
+            }
+        });
+        return libraries;
     }
 
 }

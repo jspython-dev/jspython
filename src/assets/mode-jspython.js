@@ -7,7 +7,7 @@ var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var PythonHighlightRules = function() {
 
     var keywords = (
-        "async|def|if|return|and|or|while|for|in|break|continue|else"
+        "async|def|if|return|and|or|while|for|in|break|continue|else|from|import"
     );
 
     var builtinConstants = (

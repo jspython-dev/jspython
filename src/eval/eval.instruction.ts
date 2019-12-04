@@ -21,7 +21,7 @@ export class EvalInstruction {
                 }
                 obj = obj[pathParts[i]];
             } else {
-                const n = propName.substring(openBr + 1, propName.length - openBr)
+                const n = propName.substring(openBr + 1, propName.length - 1)
                 const pName = propName.substring(0, openBr)
                 const ind = parseInt(n);
                 if (!isNaN(ind)) {
@@ -45,7 +45,7 @@ export class EvalInstruction {
         if (openBr < 0) {
             obj[propName] = value;
         } else {
-            const n = propName.substring(openBr + 1, propName.length - openBr)
+            const n = propName.substring(openBr + 1, propName.length - 1)
             const pName = propName.substring(0, openBr)
             const ind = parseInt(n);
             if (!isNaN(ind)) {
@@ -72,7 +72,7 @@ export class EvalInstruction {
                 }
                 obj = obj[pathParts[i]];
             } else {
-                const n = propName.substring(openBr + 1, propName.length - openBr)
+                const n = propName.substring(openBr + 1, propName.length - 1)
                 const pName = propName.substring(0, openBr)
                 const ind = parseInt(n);
                 if (!isNaN(ind)) {
@@ -96,7 +96,7 @@ export class EvalInstruction {
         if (openBr < 0) {
             obj[propName] = value;
         } else {
-            const n = propName.substring(openBr + 1, propName.length - openBr)
+            const n = propName.substring(openBr + 1, propName.length - 1)
             const pName = propName.substring(0, openBr)
             const ind = parseInt(n);
             if (!isNaN(ind)) {
