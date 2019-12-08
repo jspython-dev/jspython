@@ -2,8 +2,6 @@
 JSPython is a javascript implementation of Python language that runs within web browser or NodeJS environment. It does not transpile/compile your code into JavaScript, instead, it provides an interactive interpreter that reads Python code and carries out their instructions. With JSPython you should be able to safely use or interact any JavaScript libraries or API with a nice Python language.
 
 ```py
-import Math
-
 arr = [4, 9, 16]
 
 def sqrt(a):
@@ -87,9 +85,6 @@ Run JS Python from your Javascript App or web page.
 ```
 Also, you can provide entire JS Object or even a library.
 
-### Examples
-
-
 ### License
-A permissive (BSD 3-Clause License)[https://github.com/jspython-dev/jspython/blob/master/LICENSE] what allows you to use it in your open source as well as commercial products.
+A permissive [BSD 3-Clause License](https://github.com/jspython-dev/jspython/blob/master/LICENSE) (c) FalconSoft Ltd.
 
