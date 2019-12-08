@@ -21,15 +21,13 @@ function range(start: number, stop: number = NaN, step: number = 1): number[] {
 
 const INITIAL_SCOPE = {
     jsPython(): string {
-        return ["JSPython v0.1.0", "(c) FalconSoft Ltd"].join('\n')
+        return ["JSPython v0.1.1", "(c) FalconSoft Ltd"].join('\n')
     },
     dateTime: (str: number | string | any = null) => (str && str.length)
         ? parseDatetimeOrNull(str) || new Date() : new Date(),
     range: range,
     print: (...args: any[]) => { console.log(...args); return args.length > 0 ? args[0] : null; },
     isNull: (v: any, defValue: any = null): boolean | any => defValue === null ? v === null : v || defValue,
-    AND: (...args: boolean[]): boolean => !(args || []).filter(r => !r).length,
-    OR: (...args: boolean[]): boolean => !!(args || []).filter(r => r).length,
     deleteProperty: (obj: any, propName: string): boolean => delete obj[propName],
     Math: Math,
     Object: Object,

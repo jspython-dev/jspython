@@ -947,28 +947,6 @@ describe('Interpreter', () => {
     ).toBe("4,9");
   })
 
-  it('AND function', async () => {
-    expect(await e.evaluate('AND(2 == 2, 3 == 3)'))
-      .toBe(true)
-    expect(await e.evaluate('AND(AND(2 == 2, 3 == 3), 7 == 7)'))
-      .toBe(true)
-    expect(await e.evaluate('AND(2 != 2, 3 == 3)'))
-      .toBe(false)
-    expect(await e.evaluate('AND(AND(2 == 2, 3 != 3), 7 == 7)'))
-      .toBe(false)
-  })
-
-  it('OR function', async () => {
-    expect(await e.evaluate('OR(2 == 2, 3 != 3)'))
-      .toBe(true)
-    expect(await e.evaluate('OR(OR(2 != 2, 3 == 3), 7 == 7)'))
-      .toBe(true)
-    expect(await e.evaluate('OR(2 != 2, 3 != 3)'))
-      .toBe(false)
-    expect(await e.evaluate('OR(OR(2 != 2, 3 != 3), 7 != 7)'))
-      .toBe(false)
-  })
-
   it('and operator', async () => {
     expect(await e.evaluate('2 == 2 and 3 == 3)')).toBe(true)
     expect(await e.evaluate('2 == 2 and 3 == 3 and 5 == 5)')).toBe(true)
@@ -985,19 +963,6 @@ describe('Interpreter', () => {
     expect(await e.evaluate('2 == 2 or 3 != 3 or 5 != 5)')).toBe(true)
     expect(await e.evaluate('2 == 2 or 3 == 3 and 5 != 5)')).toBe(true)
   })
-
-  it('logical operations with functions call', async () => {
-    expect(await e.evaluate('AND(2 == 2, 3 == 3) and 5 == 5')).toBe(true)
-    expect(await e.evaluate('AND(2 == 2, 3 == 3) and AND(2 == 2, 3 == 3)')).toBe(true)
-    expect(await e.evaluate('AND(2 == 2, 3 != 3) or AND(2 == 2, 3 == 3)')).toBe(true)
-    expect(await e.evaluate('AND(2 == 2, 3 == 3) or failIfCalled()',
-      { failIfCalled: () => { throw Error('Error if called') } })
-    ).toBe(true)
-    expect(await e.evaluate('AND(2 != 2, 3 == 3) and failIfCalled()',
-      { failIfCalled: () => { throw Error('Error if called') } })
-    ).toBe(false)
-  })
-
 
   it('(if) - else', async () => {
     expect(await e.evaluate(`
@@ -1455,6 +1420,14 @@ describe('Interpreter', () => {
 
   })
 
+  it('subset of dynamic', async () => {
+    expect(await e.evaluate(`
+issue = {}
+pp = {ss: "22"}
+issue["dd"  + pp.ss] = 55
+issue["dd22"]
+    `)).toBe(55);
+  });
 
 
 });

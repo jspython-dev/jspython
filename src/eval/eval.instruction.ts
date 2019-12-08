@@ -7,7 +7,7 @@ export class EvalInstruction {
     constructor(public evalExpressions: EvalExpression) { }
 
     private setVarValue(targetPath: string, value: any, context: BlockContext): void {
-        const pathParts = targetPath.split('.');
+        const pathParts = Tokenizer.splitAll(targetPath, ['.']);
 
         let obj: { [index: string]: any } = context.blockScope;
         for (let i = 0; i < pathParts.length - 1; i++) {
@@ -58,7 +58,7 @@ export class EvalInstruction {
     }
 
     private async setVarValueAsync(targetPath: string, value: any, context: BlockContext): Promise<void> {
-        const pathParts = targetPath.split('.');
+        const pathParts = Tokenizer.splitAll(targetPath, ['.']);
 
         let obj: { [index: string]: any } = context.blockScope;
         for (let i = 0; i < pathParts.length - 1; i++) {
