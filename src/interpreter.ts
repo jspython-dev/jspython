@@ -124,17 +124,12 @@ export class Interpreter {
             .setBlockRunnerFn((f, c, ...a) => codeEvaluator.invokePScriptFunction(f, c, ...a))
 
         try {
+            const retValue = await codeEvaluator.evalCodeBlockAsync(instuctionLines, blockContext);
+
             if (!entryFunctionName || !entryFunctionName.length) {
-                return await codeEvaluator.evalCodeBlockAsync(instuctionLines, blockContext);
+                return retValue;
             } else {
-                const startIndex = instuctionLines
-                    .findIndex(i => i.line.startsWith(`def ${entryFunctionName}(`) && i.line[i.line.length - 1] === ':');
-
-                if (startIndex >= 0) {
-                    const funcCodeLines = sliceBlock(instuctionLines, startIndex + 1);
-
-                    return await codeEvaluator.evalCodeBlockAsync(funcCodeLines, blockContext);
-                } else { return null; }
+                return await blockContext.blockScope[entryFunctionName]()
             }
         } catch (error) {
             throw error;

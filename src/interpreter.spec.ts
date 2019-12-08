@@ -219,6 +219,7 @@ describe('Interpreter', () => {
   });
 
 
+
   it('set context variable (both ways)', async () => {
     const cxt = {
       obj: {
@@ -247,6 +248,19 @@ describe('Interpreter', () => {
     expect(
       await e.evaluate('add(obj.newObject.value3, obj.value2, obj.value1)', cxt)
     ).toBe(75);
+  });
+
+  it('entry function calling another function', async () => {
+    expect(
+      await Interpreter.create()
+        .evaluate(
+          `
+      def func2():
+        2 + 3
+            
+      def func1():
+        2 + 3 + func2()
+        `, null, 'func1')).toBe(10);
   });
 
   it('call a function from context', async () => {
@@ -286,6 +300,18 @@ describe('Interpreter', () => {
       'func1(10)'
     ].join('\n'));
     expect(res).toBe(10);
+  });
+
+  it('Function with promises and entry function', async () => {
+    expect(
+      await e.evaluate(`
+      async def func2(p1):
+        returnsPromise(p1)
+      
+      async def func1():
+        5 + func2(5)
+      `, null, 'func1'
+      )).toBe(10);
   });
 
   it('Function with promises 2', async () => {
@@ -1230,7 +1256,7 @@ describe('Interpreter', () => {
 
   it('null props', async () => {
     expect(await e.evaluate(
-    `
+      `
     x = {prop1: 25}
     x?.prop1
     `)).toBe(25)
@@ -1290,7 +1316,7 @@ describe('Interpreter', () => {
       x = {}
       x["t123"] = 33
       x.t123      
-      `      
+      `
     )).toBe(33)
 
     expect(await e.evaluate(
@@ -1313,7 +1339,7 @@ describe('Interpreter', () => {
         x.t123
       
       foo()
-      `      
+      `
     )).toBe(33)
 
     expect(await e.evaluate(
@@ -1335,7 +1361,7 @@ describe('Interpreter', () => {
       `
       x = {p1:33}
       x["p1"]
-      `      
+      `
     )).toBe(33)
 
     expect(await e.evaluate(
@@ -1356,7 +1382,7 @@ describe('Interpreter', () => {
         x["p1"]
       
       foo()
-      `      
+      `
     )).toBe(33)
 
     expect(await e.evaluate(
@@ -1380,7 +1406,7 @@ describe('Interpreter', () => {
           p1: p + "_" + 2
         }
         x.p1
-      `      
+      `
     )).toBe("t_2")
 
     expect(await e.evaluate(
@@ -1391,7 +1417,7 @@ describe('Interpreter', () => {
           p2: "some value"
         }
         x.p1
-      `      
+      `
     )).toBe("t_2")
 
   })
@@ -1404,7 +1430,7 @@ describe('Interpreter', () => {
           p1: p + "_" + 2 + returnsPromise(10)
         }
         x.p1
-      `      
+      `
     )).toBe("t_210")
 
     expect(await e.evaluate(
@@ -1415,7 +1441,7 @@ describe('Interpreter', () => {
           p2: "some value"
         }
         x.p1
-      `      
+      `
     )).toBe("t_210")
 
   })
