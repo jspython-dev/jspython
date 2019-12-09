@@ -8,8 +8,8 @@
     "evaluator",
     "parser"
   ],
-  "main": "dist/jspython.umd.js",
-  "module": "dist/jspython.esm.js",
+  "main": "dist/jspython-interpreter.min.js",
+  "module": "dist/jspython-interpreter.esm.js",
   "typings": "dist/interpreter.d.ts",
   "files": [
     "dist"

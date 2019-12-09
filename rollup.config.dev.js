@@ -7,7 +7,7 @@ export default {
   input: 'src/interpreter.ts',
   output: {
     name: 'jspython',
-    file: 'dist/jspython.js',
+    file: 'dist/jspython-interpreter.js',
     format: 'umd',
     sourcemap: true,
     globals: {}
