@@ -1,6 +1,6 @@
 {
   "name": "jspython-interpreter",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "JSPython is a javascript implementation of Python language that runs within web browser or NodeJS environment",
   "keywords": [
     "python",
@@ -29,7 +29,7 @@
   "author": {
     "name": "Pavlo Paska - ppaska@falconsoft-ltd.com"
   },
-  "license": "MIT",
+  "license": "BSD 3-Clause",
   "bugs": {
     "url": "https://github.com/jspython-dev/jspython/issues"
   },

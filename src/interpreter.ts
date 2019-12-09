@@ -21,7 +21,7 @@ function range(start: number, stop: number = NaN, step: number = 1): number[] {
 
 const INITIAL_SCOPE = {
     jsPython(): string {
-        return ["JSPython v0.1.1", "(c) FalconSoft Ltd"].join('\n')
+        return ["JSPython v0.1.2", "(c) FalconSoft Ltd"].join('\n')
     },
     dateTime: (str: number | string | any = null) => (str && str.length)
         ? parseDatetimeOrNull(str) || new Date() : new Date(),

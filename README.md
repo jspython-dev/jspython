@@ -29,7 +29,7 @@ Our aim here is to provide a SAFE Python experience to Javascript or NodeJS user
 
   * **Syntax and code flow** Same as Python, In `JSPython` we use indentation to indicate a block of code. All flow features like `if - else`, `for`, `while` loops - along with `break` and `continue`
 
-  * **Objects, Arrays** `JSPython` allows you to work with JavaScript objects and arrays and you should be able to invoke their methods and properties as normal. So, all methods including prototype functions `push()`, `pop()`, `splice()` and [any more](ttps://www.w3schools.com/js/js_array_methods.asp) will work out of box.
+  * **Objects, Arrays** `JSPython` allows you to work with JavaScript objects and arrays and you should be able to invoke their methods and properties as normal. So, all methods including prototype functions `push()`, `pop()`, `splice()` and [any more](https://www.w3schools.com/js/js_array_methods.asp) will work out of box.
 
   * **JSON** JSPython allows you to work with JSON same way as you would in JavaScript or Python dictionaries
 
@@ -52,7 +52,7 @@ Although we haven't implemented all the features available in Python yet. But, w
 Zero install !
 The most simple way to get started, without anything to install, is to use the distribution available online through jsDelivr. You can choose the latest stable release :
 ```
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jspython-interpreter@0.1.1/dist/jspython.js">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jspython-interpreter@0.1.2/dist/jspython-interpreter.min.js">
 </script>
 ```
 
