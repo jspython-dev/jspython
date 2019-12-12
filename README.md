@@ -19,10 +19,12 @@ Interactive [Worksheet Systems JSPython editor](https://run.worksheet.systems/re
 
 ## Why would you use it?
 You can easily embed `JSPython` into your web app and your end users will benefit from a Python like scripting facility to:
-   * build data transformation and data analysis tasks
+   * to build data transformation and data analysis tasks
    * allow users to configure a JS objects at run-time
    * run a comprehensive testing scenarios
    * experiment with your JS Libraries or features.
+   * bring a SAFE run time script evaluation functions to your web app
+   * bring Python language to NodeJS environment
 
 ## Features
 Our aim here is to provide a SAFE Python experience to Javascript or NodeJS users at run-time. So far, we implement a core set of Python feature which should be OK to start coding.
