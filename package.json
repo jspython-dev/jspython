@@ -34,10 +34,13 @@
     "url": "https://github.com/jspython-dev/jspython/issues"
   },
   "homepage": "https://github.com/jspython-dev/jspython#readme",
-  "dependencies": {},
+  "dependencies": {
+    "@docusaurus/init": "^2.0.0-alpha.39"
+  },
   "devDependencies": {
     "@types/jest": "^24.0.22",
     "ace-builds": "^1.4.7",
+    "docusaurus-init": "^1.14.1",
     "jest": "^24.9.0",
     "rollup": "^1.26.3",
     "rollup-plugin-copy": "^3.1.0",
