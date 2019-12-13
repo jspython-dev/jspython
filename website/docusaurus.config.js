@@ -1,3 +1,5 @@
+const pkg = require('../package.json')
+
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
  *
@@ -8,10 +10,10 @@
 module.exports = {
   title: 'JSPython',
   tagline: 'The tagline of my site',
-  url: 'https://jspython.herokuapp.com/',
-  baseUrl: '/',
+  url: 'http://jspython-dev.github.io',
+  baseUrl: '/jspython/',
   favicon: 'img/favicon.ico',
-  organizationName: 'falconsoft', // Usually your GitHub org/user name.
+  organizationName: 'jspython-dev', // Usually your GitHub org/user name.
   projectName: 'jspython', // Usually your repo name.
   themeConfig: {
     navbar: {
@@ -22,7 +24,7 @@ module.exports = {
       },
       links: [
         {to: 'docs/readme', label: 'Docs', position: 'left'},
-        {to: 'editor', label: 'Editor'},
+        {to: 'playground', label: 'Playground'},
         {
           href: 'https://github.com/jspython-dev/jspython',
           label: 'GitHub',

@@ -1,21 +1,33 @@
 import React from 'react';
 import AceEditor from "react-ace";
 
-import "ace-builds/src-noconflict/mode-java";
+import '../../../src/assets/mode-jspython';
 import "ace-builds/src-noconflict/theme-github";
 
 class JSPythonEditor extends React.Component {
-  onChange(newValue) {
-    console.log("change", newValue);
-    console.log('this', this);
+  constructor(props) {
+    super(props);
+    this.state = {
+      value: this.props.value
+    }
+    this.onChange = this.onChange.bind(this)
   }
+  onChange(newValue) {
+    if (this.props.onChange) {
+      this.setState({value: newValue});
+      this.props.onChange(newValue);
+    }
+  }
+
   render() {
     return (
       <AceEditor
-        mode="java"
+        mode="python"
         theme="github"
+        height="100%"
+        width="100%"
+        value={this.state.value || this.props.value}
         onChange={this.onChange}
-        name="UNIQUE_ID_OF_DIV"
         editorProps={{ $blockScrolling: true }}
       />
     )

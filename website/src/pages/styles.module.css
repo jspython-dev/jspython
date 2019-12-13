@@ -40,3 +40,28 @@
   height: 200px;
   width: 200px;
 }
+
+.editorWrapper {
+  display: flex;
+  margin-top: 1rem;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.editorBlock {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 49%;
+}
+
+@media screen and (max-width: 760px) {
+  .editorWrapper {
+    flex-direction: column;
+
+  }
+
+  .editorBlock {
+    width: 100%;
+  }
+}
