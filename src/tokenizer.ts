@@ -6,12 +6,10 @@ export interface CodeLine {
 }
 
 export interface PackageToImport {
-  name: string;
-  properties?: {name: string, as?: string}[];
-  as?: string;
+    name: string;
+    properties?: { name: string, as?: string }[];
+    as?: string;
 }
-
-
 
 const WHITE_SPACES = [' ', '\n', '\t', '\r', '\0'];
 
@@ -90,12 +88,32 @@ export class Tokenizer {
          * @param chr
          */
         function iterateString(chr: string): void {
+            const getChar = (str: string, strIndex: number): string => (strIndex < str.length) ? str[strIndex] : '';
+            const isTripleQuoteFollowed = () => text[index] === stringChar && getChar(text, index + 1) === stringChar;
+            const isTripleQuoteStr = isTripleQuoteFollowed();
+
+            if (isTripleQuoteStr) {
+                appendToken(chr);
+                chr = nextChar();
+                appendToken(chr);
+                chr = nextChar();
+            }
+
             do {
                 appendToken(chr);
                 chr = nextChar();
 
                 if (chr === stringChar) {
-                    break;
+                    if (isTripleQuoteStr) {
+                        if (isTripleQuoteFollowed()) {
+                            nextChar(); nextChar()
+                            appendToken(`""`);
+                            break;
+                        }
+
+                    } else {
+                        break;
+                    }
                 }
             }
             while (index < text.length);
@@ -162,16 +180,16 @@ export class Tokenizer {
         return result;
     }
 
-    static getPackagesList(importLines: Array<CodeLine|string> = []): PackageToImport[] {
-      return importLines.map((codeLine) => {
-        const line = typeof codeLine === 'string' ? codeLine : codeLine.line;
-        if (line.startsWith('import')) {
-          return getImportPackage(line);
-        } else {
-          return getFromPacakage(line);
-        }
-      });
-  }
+    static getPackagesList(importLines: Array<CodeLine | string> = []): PackageToImport[] {
+        return importLines.map((codeLine) => {
+            const line = typeof codeLine === 'string' ? codeLine : codeLine.line;
+            if (line.startsWith('import')) {
+                return getImportPackage(line);
+            } else {
+                return getFromPacakage(line);
+            }
+        });
+    }
 
 }
 
@@ -181,16 +199,16 @@ export class Tokenizer {
  * @private
  */
 function getImportPackage(line: string): PackageToImport {
-  const importRe = /^import\s+([\w-]+)(\s+as\s+(\w+)){0,1}/;
-  const res = line.match(importRe);
+    const importRe = /^import\s+([\w-]+)(\s+as\s+(\w+)){0,1}/;
+    const res = line.match(importRe);
     if (res && res.length === 4) {
-      return {
-        name: res[1],
-        as: res[3]
-      }
+        return {
+            name: res[1],
+            as: res[3]
+        }
     } else {
-      throw Error(`Bad import for line: ${line}`);
-  }
+        throw Error(`Bad import for line: ${line}`);
+    }
 }
 
 /**
@@ -199,19 +217,19 @@ function getImportPackage(line: string): PackageToImport {
  * @private
  */
 function getFromPacakage(line: string): PackageToImport {
-  const fromRe = /^from\s+([\w-]+)\s+import\s+([\w+,\s+]{1,})/;
-  const res = line.match(fromRe);
-  if (res && res.length === 3) {
-    return {
-      name: res[1],
-      properties: res[2].split(',').map(propStr => {
-        const prop = propStr.split('as');
-        const name = prop[0].trim();
-        const as = prop.length > 1 ? prop[1].trim() : undefined;
-          return { name, as }
-        })
+    const fromRe = /^from\s+([\w-]+)\s+import\s+([\w+,\s+]{1,})/;
+    const res = line.match(fromRe);
+    if (res && res.length === 3) {
+        return {
+            name: res[1],
+            properties: res[2].split(',').map(propStr => {
+                const prop = propStr.split('as');
+                const name = prop[0].trim();
+                const as = prop.length > 1 ? prop[1].trim() : undefined;
+                return { name, as }
+            })
+        }
+    } else {
+        throw Error(`Bad import for line: ${line}`);
     }
-  } else {
-    throw Error(`Bad import for line: ${line}`);
-  }
 }

@@ -54,7 +54,7 @@ Although we haven't implemented all the features available in Python yet. But, w
 Zero install !
 The most simple way to get started, without anything to install, is to use the distribution available online through jsDelivr. You can choose the latest stable release :
 ```
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jspython-interpreter@0.1.2/dist/jspython-interpreter.min.js">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jspython-interpreter@0.1.3/dist/jspython-interpreter.min.js">
 </script>
 ```
 
