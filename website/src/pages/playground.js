@@ -3,6 +3,7 @@ import Layout from '@theme/Layout';
 import React from 'react';
 import styles from './styles.module.css';
 import { jsPython } from '../../../dist/jspython-interpreter.esm.js';
+import ExampleList from '../components/ExamplesList';
 
 const JSPythonEditor = dynamic(
   () => import('../components/JSPythonEditor.js'),
@@ -27,26 +28,32 @@ x
 class Playground extends React.Component {
   constructor(props) {
     super(props);
-    this.codeChange = this.codeChange.bind(this)
+    this.codeChange = this.codeChange.bind(this);
     this.interpreter = jsPython();
     this.state = {
       code: scripts,
       result: ''
     };
   }
+
   codeChange(code) {
     this.setState({code});
   }
-  run() {
-    this.interpreter.evaluate(this.state.code).then(res => {
-      console.log('res', res);
-      this.setState({result: JSON.stringify(res)})
-    })
+
+  async run() {
+    try {
+      const res = await this.interpreter.evaluate(this.state.code);
+      this.setState({result: JSON.stringify(res)});
+    } catch (e) {
+      this.setState({result: e.message})
+    }
   }
   render() {
     return (
       <Layout title={`JSPython editor`}
         description="JSPython editor">
+        <div className={styles.playgroundPage}>
+          <ExampleList selectCode={this.codeChange}></ExampleList>
           <div className="container mainContainer docsContainer"
             style={{display: 'flex', height: '100%'}}>
             <div className={styles.editorWrapper}>
@@ -56,7 +63,7 @@ class Playground extends React.Component {
                   <button className="button button--outline button--primary" onClick={this.run.bind(this)}
                     style={{float: "right", marginTop: '.5rem'}}>Run</button>
                 </div>
-                <JSPythonEditor ref="code" onChange={this.codeChange} value={scripts}></JSPythonEditor>
+                <JSPythonEditor ref="code" onChange={this.codeChange} value={this.state.code}></JSPythonEditor>
               </div>
               <div className={styles.editorBlock}>
                 <h1>Result</h1>
@@ -64,6 +71,7 @@ class Playground extends React.Component {
               </div>
             </div>
           </div>
+        </div>
       </Layout>
     );
   }

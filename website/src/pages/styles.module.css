@@ -43,9 +43,9 @@
 
 .editorWrapper {
   display: flex;
-  margin-top: 1rem;
   width: 100%;
   justify-content: space-between;
+  margin-top: 1rem;
 }
 
 .editorBlock {
@@ -53,6 +53,12 @@
   flex-direction: column;
   height: 100%;
   width: 49%;
+}
+
+.playgroundPage {
+  flex-direction: row;
+  display: flex;
+  height: 100%;
 }
 
 @media screen and (max-width: 760px) {
