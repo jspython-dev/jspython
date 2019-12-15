@@ -20,6 +20,32 @@ describe('Interpreter', () => {
     expect(r).toBe(88);
   });
 
+  it('Triple quote string as Comment', async () => {
+    const text = `
+    1
+    2 3 4
+    5    
+    `;
+    expect(await e.evaluate('""" 12345 """')).toBe(' 12345 ');
+    expect(await e.evaluate(`"""${text}"""`)).toBe(text);
+  });
+
+  it('Triple quote string as an expression', async () => {
+    const text = `
+    1
+    2 3 4
+    5    
+    `;
+    expect(await e.evaluate(`
+    str = """ 12345 """
+    str
+    `)).toBe(' 12345 ');
+    expect(await e.evaluate(`
+    str = """${text}"""
+    str
+    `)).toBe(text);
+  });
+
   it('print(add(33, 2))', async () => {
     expect(await e.evaluate('print(add(33, 2, 45))'))
       .toBe(80);

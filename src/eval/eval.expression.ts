@@ -14,12 +14,13 @@ function isFunctionCall(str: string): boolean {
 
 function isValue(t: string): boolean {
     const lowerToken = t.toLowerCase();
-    return (t[0] === '"' && t[t.length - 1] === '"')
+    const result = (t[0] === '"' && t[t.length - 1] === '"')
         || lowerToken === 'true' || lowerToken === 'false'
         || lowerToken === 'null' || lowerToken === 'none'
         || !isNaN(parseFloat(t))
         || (t[0] === '[' && t[t.length - 1] === ']')
         || (t[0] === '{' && t[t.length - 1] === '}');
+    return result;
 }
 
 async function invokeFunctionAsync(func: AnyFunc, fps: any[]): Promise<any> {
@@ -91,28 +92,28 @@ export class EvalExpression {
 
     private jsonParse(context: BlockContext, json: string): any {
         const result: any = json[0] === '{' ? {} : [];
-    
+
         function trimFirstAndLastItem(s: string): string {
             return s.substring(1, s.length - 1);
         }
-    
-        const resolveEndValue = (str : string) : any => {
+
+        const resolveEndValue = (str: string): any => {
             const tokens = this.splitParameterToken(str);
             return this.evalExpression(context, tokens)
         }
-    
+
         function parseJsonItems(innerJson: string, parentObj: any) {
             const items = Tokenizer.splitAll(innerJson, [',']).map(s => s.trim());
-    
+
             for (const item of items) {
-    
+
                 if (Array.isArray(parentObj)) {
                     // handle array
                     if (item[0] === '{') {
                         const newItem = {}
                         parseJsonItems(trimFirstAndLastItem(item), newItem)
                         parentObj.push(newItem)
-                    } else if (item[0] === '['){
+                    } else if (item[0] === '[') {
                         const newItem = {}
                         parseJsonItems(trimFirstAndLastItem(item), newItem)
                         parentObj.push(newItem)
@@ -125,10 +126,10 @@ export class EvalExpression {
                     if (sepInd <= 0) {
                         throw Error('Error in parsing JSON.');
                     }
-    
+
                     const key = item.substring(0, sepInd).trim()
                     const strValue = item.substring(sepInd + 1).trim()
-    
+
                     if (strValue[0] === '{') {
                         parentObj[key] = {};
                         parseJsonItems(trimFirstAndLastItem(strValue), parentObj[key])
@@ -141,36 +142,36 @@ export class EvalExpression {
                 }
             }
         };
-    
+
         parseJsonItems(trimFirstAndLastItem(json), result);
-    
+
         return result;
     }
 
     private async jsonParseAsync(context: BlockContext, json: string): Promise<any> {
         const result: any = json[0] === '{' ? {} : [];
-    
+
         function trimFirstAndLastItem(s: string): string {
             return s.substring(1, s.length - 1);
         }
-    
-        const resolveEndValue = async (str : string) : Promise<any> => {
+
+        const resolveEndValue = async (str: string): Promise<any> => {
             const tokens = this.splitParameterToken(str);
             return await this.evalExpressionAsync(context, tokens)
         }
-    
+
         async function parseJsonItemsAsync(innerJson: string, parentObj: any): Promise<void> {
             const items = Tokenizer.splitAll(innerJson, [',']).map(s => s.trim());
-    
+
             for (const item of items) {
-    
+
                 if (Array.isArray(parentObj)) {
                     // handle array
                     if (item[0] === '{') {
                         const newItem = {}
                         await parseJsonItemsAsync(trimFirstAndLastItem(item), newItem)
                         parentObj.push(newItem)
-                    } else if (item[0] === '['){
+                    } else if (item[0] === '[') {
                         const newItem = {}
                         await parseJsonItemsAsync(trimFirstAndLastItem(item), newItem)
                         parentObj.push(newItem)
@@ -183,10 +184,10 @@ export class EvalExpression {
                     if (sepInd <= 0) {
                         throw Error('Error in parsing JSON.');
                     }
-    
+
                     const key = item.substring(0, sepInd).trim()
                     const strValue = item.substring(sepInd + 1).trim()
-    
+
                     if (strValue[0] === '{') {
                         parentObj[key] = {};
                         await parseJsonItemsAsync(trimFirstAndLastItem(strValue), parentObj[key])
@@ -199,15 +200,18 @@ export class EvalExpression {
                 }
             }
         };
-    
+
         await parseJsonItemsAsync(trimFirstAndLastItem(json), result);
-    
+
         return result;
     }
-    
+
     private resolveValue(context: BlockContext, token: string): any {
         const lowerToken = token.toLowerCase();
-        if (token[0] === '"' && token[token.length - 1] === '"') {
+
+        if (token.startsWith('"""') && token.endsWith('"""')) {
+            return token.substring(3, token.length - 3);
+        } else if (token[0] === '"' && token[token.length - 1] === '"') {
             return token.substring(1, token.length - 1);
         } else if ((token[0] === '[' && token[token.length - 1] === ']') || (token[0] === '{' && token[token.length - 1] === '}')) {
             return this.jsonParse(context, token);
@@ -224,7 +228,9 @@ export class EvalExpression {
 
     private async resolveValueAsync(context: BlockContext, token: string): Promise<any> {
         const lowerToken = token.toLowerCase();
-        if (token[0] === '"' && token[token.length - 1] === '"') {
+        if (token.startsWith('"""') && token.endsWith('"""')) {
+            return token.substring(3, token.length - 3);
+        } else if (token[0] === '"' && token[token.length - 1] === '"') {
             return token.substring(1, token.length - 1);
         } else if ((token[0] === '[' && token[token.length - 1] === ']') || (token[0] === '{' && token[token.length - 1] === '}')) {
             return await this.jsonParseAsync(context, token);

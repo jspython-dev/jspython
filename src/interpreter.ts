@@ -1,7 +1,7 @@
 import { Tokenizer, CodeLine, PackageToImport } from './tokenizer';
 import {
     BlockContext, AnyFunc,
-    EvalCodeBlock, EvalInstruction, EvalExpression, getLineIndent, sliceBlock, parseDatetimeOrNull
+    EvalCodeBlock, EvalInstruction, EvalExpression, parseDatetimeOrNull
 } from './eval/index';
 
 export { PackageToImport } from './tokenizer';
@@ -21,7 +21,7 @@ function range(start: number, stop: number = NaN, step: number = 1): number[] {
 
 const INITIAL_SCOPE = {
     jsPython(): string {
-        return ["JSPython v0.1.2", "(c) FalconSoft Ltd"].join('\n')
+        return ["JSPython v0.1.3", "(c) FalconSoft Ltd"].join('\n')
     },
     dateTime: (str: number | string | any = null) => (str && str.length)
         ? parseDatetimeOrNull(str) || new Date() : new Date(),
