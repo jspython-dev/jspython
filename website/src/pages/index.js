@@ -15,32 +15,32 @@ import styles from './styles.module.css';
 
 const features = [
   {
-    title: <>Easy to Use</>,
+    title: <>In your Browser or NodeJS</>,
     imageUrl: 'img/undraw_docusaurus_mountain.svg',
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        JSPython is a javascript implementation of Python language with no dependencies.
+        So, you can freely run it on your browser or NodeJS
       </>
     ),
   },
   {
-    title: <>Focus on What Matters</>,
+    title: <>Entire JavaScript EcoSystem</>,
     imageUrl: 'img/undraw_docusaurus_tree.svg',
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Leverage a massive JavaScript eco system with Python scripting. 
+        You should be able to import and invoke any JS function with a Python syntax
       </>
     ),
   },
   {
-    title: <>Powered by React</>,
+    title: <>Rapid application development</>,
     imageUrl: 'img/undraw_docusaurus_react.svg',
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        The seamless interaction between Python and JavaScript allows developers to enjoy the best of two languages. 
+        And deliver solutions to the business much quicker and more reliably.
       </>
     ),
   },

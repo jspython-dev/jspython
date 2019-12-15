@@ -9,7 +9,7 @@ const pkg = require('../package.json')
 
 module.exports = {
   title: 'JSPython',
-  tagline: 'The tagline of my site',
+  tagline: 'Run your Python scripts in browser or NodeJS environment',
   url: 'http://jspython-dev.github.io',
   baseUrl: '/jspython/',
   favicon: 'img/favicon.ico',
@@ -34,12 +34,7 @@ module.exports = {
     },
     footer: {
       style: 'dark',
-      logo: {
-        alt: 'Facebook Open Source Logo',
-        src: 'https://docusaurus.io/img/oss_logo.png',
-        href: 'https://opensource.facebook.com/',
-      },
-      copyright: `Copyright © ${new Date().getFullYear()} Falconsoft, Inc. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} FalconSoft Ltd`,
     },
   },
   presets: [

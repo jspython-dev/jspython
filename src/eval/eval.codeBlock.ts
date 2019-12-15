@@ -86,7 +86,7 @@ export class EvalCodeBlock {
             }
 
             try {
-                const instruction = instuctionLines[currentIndex].line;
+                const instruction = instuctionLines[currentIndex].line.trim();
 
                 if (isIfStatement(instruction)) {
                     const ifCondition = this.instructions.evalInstruction(

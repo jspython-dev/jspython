@@ -12,12 +12,11 @@ const JSPythonEditor = dynamic(
 
 
 const scripts = `
-print("|------------------------------|")
-print("| Welcome My JSPython program! |")
-print("|------------------------------|")
+"""|------------------------------|"""
+"""| Welcome My JSPython program! |"""
+"""|------------------------------|"""
 x = [1, 2, 3, 4]
-x
-  .map((r, i) =>
+x.map((r, i) =>
     v = r * i
     return v
   )
@@ -37,15 +36,22 @@ class Playground extends React.Component {
   }
 
   codeChange(code) {
-    this.setState({code});
+    this.setState({ code });
   }
 
   async run() {
     try {
       const res = await this.interpreter.evaluate(this.state.code);
-      this.setState({result: JSON.stringify(res)});
+
+      if (res === null || res == undefined) {
+        this.setState({ result: '' });
+      } else if (['string', 'number', 'boolean'].indexOf(typeof res) >= 0 ) {
+        this.setState({ result: res.toString() });
+      } else {
+        this.setState({ result: JSON.stringify(res, null, 4) });
+      }
     } catch (e) {
-      this.setState({result: e.message})
+      this.setState({ result: e.message })
     }
   }
   render() {
@@ -55,13 +61,13 @@ class Playground extends React.Component {
         <div className={styles.playgroundPage}>
           <ExampleList selectCode={this.codeChange}></ExampleList>
           <div className="container mainContainer docsContainer"
-            style={{display: 'flex', height: '100%'}}>
+            style={{ display: 'flex', height: '100%' }}>
             <div className={styles.editorWrapper}>
               <div className={styles.editorBlock}>
                 <div>
-                  <h1 style={{display: 'inline-block'}}>Code</h1>
+                  <h1 style={{ display: 'inline-block' }}>Code</h1>
                   <button className="button button--outline button--primary" onClick={this.run.bind(this)}
-                    style={{float: "right", marginTop: '.5rem'}}>Run</button>
+                    style={{ float: "right", marginTop: '.5rem' }}>Run</button>
                 </div>
                 <JSPythonEditor ref="code" onChange={this.codeChange} value={this.state.code}></JSPythonEditor>
               </div>

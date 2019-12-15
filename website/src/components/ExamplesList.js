@@ -11,9 +11,11 @@ class ExampleList extends React.Component {
         list: [{
           name: 'Array',
           code: `
-          x = [1, 2, 3]
-          x.map(r => r * 2)
-          `
+# use JavaScript arrays
+x = [1, 2, 3]
+x.push(55)
+x.map(r => r * 2)
+`.trim()
         }, {
           name: 'Math',
           code: `Math.sqrt(4)`
@@ -23,18 +25,18 @@ class ExampleList extends React.Component {
         list: [{
           name: 'Object',
           code: `
-          x = {
-            prop: 1
-          }
-          x.prop
-          `
+x = {
+  prop: 1
+}
+x.prop
+`.trim()
         }, {
           name: 'String',
           code: `
-          s = "Test"
-          s2 = s + "2"
-          s2
-          `
+s = "Test"
+s2 = s + "2"
+s2
+`
         }]
       }]
     }
@@ -65,7 +67,7 @@ class ExampleList extends React.Component {
     return (
       <div className="docSidebarContainer_node_modules-@docusaurus-theme-classic-src-theme-DocPage-"
         style={styles}>
-        <h1 style={{display: 'inline-block', marginLeft: '1.25rem', marginBottom: '0.5rem'}}>Examples</h1>
+        <h1 style={{ display: 'inline-block', marginLeft: '1.25rem', marginBottom: '0.5rem' }}>Examples</h1>
         <div className="sidebar_node_modules-@docusaurus-theme-classic-src-theme-DocSidebar-">
           <div className="menu menu--responsive">
             <button aria-label="Open Menu" className="button button--secondary button--sm menu__button" type="button">
@@ -83,11 +85,12 @@ class ExampleList extends React.Component {
                     <ul className="menu__list">
                       {e.list.map((i, index2) => {
                         return (
-                        <li className="menu__list-item" key={`${index}:${index2}`}>
-                          <a aria-current="page" className={"menu__link " + (this.state.activeCode === i.name ? "menu__link--active" : "")}
-                          onClick={this.selectExample.bind(this, e.group, i)}>{i.name}</a>
-                        </li>
-                        )})
+                          <li className="menu__list-item" key={`${index}:${index2}`}>
+                            <a aria-current="page" className={"menu__link " + (this.state.activeCode === i.name ? "menu__link--active" : "")}
+                              onClick={this.selectExample.bind(this, e.group, i)}>{i.name}</a>
+                          </li>
+                        )
+                      })
                       }
                     </ul>
                   </li>

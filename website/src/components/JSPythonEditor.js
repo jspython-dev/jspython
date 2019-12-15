@@ -30,7 +30,6 @@ class JSPythonEditor extends React.Component {
     return (
       <AceEditor
         mode="python"
-        theme="github"
         height="100%"
         width="100%"
         value={this.state.value}

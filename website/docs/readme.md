@@ -1,7 +1,7 @@
 ---
 id: readme
-title: JSPython Guide
-sidebar_label: JSPython Guide
+title: JSPython
+sidebar_label: Introduction
 ---
 
 JSPython is a javascript implementation of Python language that runs within web browser or NodeJS environment. It does not transpile/compile your code into JavaScript, instead, it provides an interactive interpreter that reads Python code and carries out their instructions. With JSPython you should be able to safely use or interact any JavaScript libraries or API with a nice Python language.
