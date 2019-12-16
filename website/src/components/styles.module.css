@@ -1,0 +1,44 @@
+.examplesList {
+  border-right: 1px solid var(--ifm-contents-border-color);
+  box-sizing: border-box;
+  width: 300px;
+  padding-top: 1rem;
+  height: 100%;
+}
+
+.examplesList > h2 {
+  display: inline-block;
+  margin-left: 1rem;
+  margin-bottom: .5rem;
+}
+
+.mobileSelect {
+  margin-left: 1rem;
+  display: none;
+}
+
+.sidebarMenuCloseIcon {
+  display: inline-block;
+  height: 24px;
+  font-size: 1.5rem;
+  font-weight: var(--ifm-font-weight-bold);
+  line-height: .9;
+  width: 24px;
+  vertical-align: middle;
+}
+
+@media screen and (max-width: 760px) {
+  .examplesList {
+    height: 0;
+    /* width: 100%; */
+    padding-top: 0rem;
+  }
+
+  .mobileSelect {
+    display: none;
+  }
+
+  .examplesList > h2 {
+    display: none;
+  }
+}

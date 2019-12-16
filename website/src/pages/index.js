@@ -16,7 +16,7 @@ import styles from './styles.module.css';
 const features = [
   {
     title: <>In your Browser or NodeJS</>,
-    imageUrl: 'img/undraw_docusaurus_mountain.svg',
+    imageUrl: 'img/feature1.svg',
     description: (
       <>
         JSPython is a javascript implementation of Python language with no dependencies.
@@ -26,20 +26,20 @@ const features = [
   },
   {
     title: <>Entire JavaScript EcoSystem</>,
-    imageUrl: 'img/undraw_docusaurus_tree.svg',
+    imageUrl: 'img/feature2.svg',
     description: (
       <>
-        Leverage a massive JavaScript eco system with Python scripting. 
+        Leverage a massive JavaScript eco system with Python scripting.
         You should be able to import and invoke any JS function with a Python syntax
       </>
     ),
   },
   {
     title: <>Rapid application development</>,
-    imageUrl: 'img/undraw_docusaurus_react.svg',
+    imageUrl: 'img/feature3.svg',
     description: (
       <>
-        The seamless interaction between Python and JavaScript allows developers to enjoy the best of two languages. 
+        The seamless interaction between Python and JavaScript allows developers to enjoy the best of two languages.
         And deliver solutions to the business much quicker and more reliably.
       </>
     ),

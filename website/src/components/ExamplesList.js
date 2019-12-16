@@ -1,9 +1,11 @@
 import React from 'react';
+import styles from './styles.module.css';
 
 class ExampleList extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      mobileMenu: false,
       activeGroup: null,
       activeCode: null,
       examles: [{
@@ -57,24 +59,25 @@ s2
     }
   }
 
+  toggleMobileMenu() {
+    this.setState({
+      mobileMenu: !this.state.mobileMenu
+    });
+  }
+
   render() {
-    const styles = {
-      borderRight: '1px solid var(--ifm-contents-border-color)',
-      boxSizing: 'border-box',
-      width: '300px',
-      paddingTop: '1rem'
-    }
     return (
       <div className="docSidebarContainer_node_modules-@docusaurus-theme-classic-src-theme-DocPage-"
-        style={styles}>
-        <h1 style={{ display: 'inline-block', marginLeft: '1.25rem', marginBottom: '0.5rem' }}>Examples</h1>
-        <div className="sidebar_node_modules-@docusaurus-theme-classic-src-theme-DocSidebar-">
-          <div className="menu menu--responsive">
-            <button aria-label="Open Menu" className="button button--secondary button--sm menu__button" type="button">
-              <svg className="sidebarMenuIcon_node_modules-@docusaurus-theme-classic-src-theme-DocSidebar-" xmlns="http://www.w3.org/2000/svg" height="24" width="24" viewBox="0 0 32 32" role="img" focusable="false">
-                <title>Menu</title>
-                <path stroke="currentColor" strokeLinecap="round" strokeMiterlimit="10" strokeWidth="2" d="M4 7h22M4 15h22M4 23h22"></path>
-              </svg>
+        className={styles.examplesList}>
+        <h2>Examples</h2>
+        <div className="sidebar_node_modules-@docusaurus-theme-classic-src-theme-DocSidebar-" style={{ height: '100%' }}>
+          <div className={"menu menu--responsive" + (this.state.mobileMenu ? ' menu--show' : '')}>
+            <button aria-label="Open Menu" className="button button--secondary button--sm menu__button" onClick={this.toggleMobileMenu.bind(this)} type="button">
+              {
+                (this.state.mobileMenu ?
+                  <span className={styles.sidebarMenuCloseIcon}>x</span> :
+                  <svg className="sidebarMenuIcon_node_modules-@docusaurus-theme-classic-src-theme-DocSidebar-" xmlns="http://www.w3.org/2000/svg" height="24" width="24" viewBox="0 0 32 32" role="img" focusable="false"><title>Menu</title><path stroke="currentColor" strokeLinecap="round" strokeMiterlimit="10" strokeWidth="2" d="M4 7h22M4 15h22M4 23h22"></path></svg>)
+              }
             </button>
             <ul className="menu__list">
               {this.state.examles.map((e, index) => {

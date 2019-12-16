@@ -4,6 +4,8 @@ import React from 'react';
 import styles from './styles.module.css';
 import { jsPython } from '../../../dist/jspython-interpreter.esm.js';
 import ExampleList from '../components/ExamplesList';
+import 'ace-builds';
+import * as langTools from '../../../node_modules/ace-builds/src-min-noconflict/ext-language_tools';
 
 const JSPythonEditor = dynamic(
   () => import('../components/JSPythonEditor.js'),
@@ -33,10 +35,30 @@ class Playground extends React.Component {
       code: scripts,
       result: ''
     };
+    this.initEditorMode();
   }
 
   codeChange(code) {
     this.setState({ code });
+  }
+
+  formatJSON(format = true) {
+    console.log('this.state.result', this.state.result);
+    if (typeof this.state.result !== 'string') return;
+    try {
+      this.error = null;
+      if (format) {
+        this.setState({
+          result: JSON.stringify(JSON.parse(this.state.result), null, '\t')
+        });
+      } else {
+        this.setState({
+          result: JSON.stringify(JSON.parse(this.state.result))
+        });
+      }
+    } catch (e) {
+      this.error = e;
+    }
   }
 
   async run() {
@@ -60,26 +82,51 @@ class Playground extends React.Component {
         description="JSPython editor">
         <div className={styles.playgroundPage}>
           <ExampleList selectCode={this.codeChange}></ExampleList>
-          <div className="container mainContainer docsContainer"
-            style={{ display: 'flex', height: '100%' }}>
+          <div className={"container mainContainer docsContainer " + styles.playgroundContent}>
+            <div className={styles.playgroundPageHeader}>
+              <h1>JSPython playground</h1>
+              <p>Write custome code, use and edit examples</p>
+            </div>
             <div className={styles.editorWrapper}>
-              <div className={styles.editorBlock}>
+              <div className={styles.editorBlock} style={{ marginRight: '1rem'}}>
                 <div>
                   <h1 style={{ display: 'inline-block' }}>Code</h1>
-                  <button className="button button--outline button--primary" onClick={this.run.bind(this)}
-                    style={{ float: "right", marginTop: '.5rem' }}>Run</button>
+                  <button onClick={this.run.bind(this)}
+                    className={styles.runBtn + " button button--outline button--primary"}>Run</button>
                 </div>
                 <JSPythonEditor ref="code" onChange={this.codeChange} value={this.state.code}></JSPythonEditor>
               </div>
               <div className={styles.editorBlock}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <h1>Result</h1>
-                <JSPythonEditor value={this.state.result}></JSPythonEditor>
+                <div>
+                  <button className="runBtn_src-pages- button button--outline button--primary button--sm"
+                    onClick={this.formatJSON.bind(this, true)}>Format</button>
+                  <button className="runBtn_src-pages- button button--outline button--primary button--sm"
+                    style={{marginRight: '0.5rem'}}
+                    onClick={this.formatJSON.bind(this, false)}>Minify</button>
+                </div>
+                </div>
+                <JSPythonEditor format={true} value={this.state.result}></JSPythonEditor>
               </div>
             </div>
           </div>
         </div>
       </Layout>
     );
+  }
+
+  initEditorMode() {
+    const interpreterCompleter = {
+      getCompletions: (editor, session, pos, prefix, callback) => {
+        const line = editor.session.getLine(pos.row);
+        const regexp = `([\\w.]+).${prefix}`;
+        const res = line.match(new RegExp(regexp));
+        const wordList = this.interpreter.getAutocompletionList(res ? res[1] : null);
+        callback(null, wordList);
+      }
+    };
+    langTools.addCompleter(interpreterCompleter);
   }
 }
 

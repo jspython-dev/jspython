@@ -29,12 +29,19 @@ class JSPythonEditor extends React.Component {
   render() {
     return (
       <AceEditor
+        style={{border: '1px solid var(--ifm-contents-border-color)'}}
         mode="python"
         height="100%"
         width="100%"
+        theme="github"
         value={this.state.value}
         onChange={this.onChange}
         editorProps={{ $blockScrolling: true }}
+        setOptions={{
+          enableBasicAutocompletion: true,
+          enableSnippets: false,
+          enableLiveAutocompletion: true
+        }}
       />
     )
   }

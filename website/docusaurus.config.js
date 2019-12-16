@@ -11,7 +11,7 @@ module.exports = {
   title: 'JSPython',
   tagline: 'Run your Python scripts in browser or NodeJS environment',
   url: 'http://jspython-dev.github.io',
-  baseUrl: '/jspython/',
+  baseUrl: '/',
   favicon: 'img/favicon.ico',
   organizationName: 'jspython-dev', // Usually your GitHub org/user name.
   projectName: 'jspython', // Usually your repo name.
@@ -46,8 +46,8 @@ module.exports = {
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
-        },
-      },
+        }
+      }
     ],
   ],
 };
