@@ -85,7 +85,10 @@ class Playground extends React.Component {
           <div className={"container mainContainer docsContainer " + styles.playgroundContent}>
             <div className={styles.playgroundPageHeader}>
               <h1>JSPython playground</h1>
-              <p>Write custome code, use and edit examples</p>
+              <p>Write custom code, use and edit examples. For more advanced experience 
+                use <a href="https://run.worksheet.systems/rest-client/jspython-editor" target="_blank">Worksheets JSPython Editor</a>&nbsp;or&nbsp;
+                <a href="https://chrome.google.com/webstore/detail/worksheets-rest-client/bjaifffdmbokgicfacjmhdkdonpmbkbd">Chrome Extensions</a>
+                </p>
             </div>
             <div className={styles.editorWrapper}>
               <div className={styles.editorBlock} style={{ marginRight: '1rem'}}>

@@ -99,15 +99,15 @@
 
   .playgroundPage h1 {
     font-size: 1.5rem;
-    margin-bottom: 0;;
+    margin-bottom: 0;
   }
 
   .playgroundPageHeader {
-    padding-top: .5rem;
+    padding-top: .2rem;
   }
 
   .playgroundPageHeader > h1, p {
-    margin-bottom: .5rem;
+    margin-bottom: .2rem;
   }
 
   .runBtn {

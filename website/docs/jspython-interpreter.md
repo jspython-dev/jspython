@@ -1,7 +1,7 @@
 ---
 id: jspython-interpreter
 title: How to run JSPython interpreter
-sidebar_label: How to run JSPython interpreter
+sidebar_label: JSPython interpreter
 ---
 
 ## How to use JS Python Interpreter

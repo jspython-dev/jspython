@@ -9,35 +9,191 @@ class ExampleList extends React.Component {
       activeGroup: null,
       activeCode: null,
       examles: [{
-        group: 'Example group 1',
+        group: 'Basic',
         list: [{
-          name: 'Array',
+          name: 'Working with Objects',
           code: `
-# use JavaScript arrays
-x = [1, 2, 3]
-x.push(55)
-x.map(r => r * 2)
+# create object
+x = {}
+x.someProp = 55
+x1 = {prop: x}
+dateObj = {
+  currentYear: dateTime().getFullYear(),
+  currentMonth: dateTime().getMonth() + 1,
+  currentDate: dateTime().getDate(),
+  currentTime: dateTime()
+}
+
+# JavaScript Object works here very well
+x1.allKeys = Object.keys(dateObj)
+
+x1["dynamicObject_" + dateTime().getMinutes()] = "This is dynamic object"
+
+# merges two objects
+Object.assign(dateObj, x1)
+
+          `.trim()
+        },
+        {
+          name: 'Working with Arrays',
+          code: `
+nums = [1, 2, 3, 4, 5]
+
+""" All standard JavaScript functions work here """
+
+nums.push(6)
+nums.push(nums.pop() + 10)
+
+
+y = nums.map((r, i) =>
+        newItem = {
+            element: r,
+            index: i,
+            square: Math.pow(i, 2),
+            cube: Math.pow(i, 3)
+        }
+        return newItem
+    )     
+    .filter(r => r.cube > 5)
+return y
+          `.trim()
+        },
+        {
+          name: 'Working with Math',
+          code: `
+""" All JavaScript Math functionas are working fine here """
+{
+  sqrt: Math.sqrt(4),
+  floor: Math.floor(5.6),
+  ceil: Math.ceil(5.6),
+  min: Math.min(4, 2, 5, 8),
+  max: Math.max(4, 2, 5, 8)
+}          
+          `.trim()
+        },
+        {
+          name: 'Working with strings',
+          code: `
+text = """
+  You can call any 
+  JavaScript function
+  even with " or '
+"""
+s = text + "Test "
+s2 = s.replace("call", "invoke") + " 2 " + dateTime()
+s2.trim()
 `.trim()
-        }, {
-          name: 'Math',
-          code: `Math.sqrt(4)`
+        },
+        {
+          name: 'Working with dates',
+          code: `
+"""
+returns a number of dates from new year
+"""          
+today = dateTime() # now
+firstDate = dateTime(today.getFullYear() + "-01-01") # a first date of the current year
+diffTime = today - firstDate
+
+# number of days from the begining of year
+Math.ceil(diffTime / 86400000)
+`.trim()
         }]
       }, {
         group: 'Example group 2',
-        list: [{
-          name: 'Object',
+        list: [
+          {
+            name: 'Null Conditioning',
+            code: `
+
+
+myObj = {}
+
+# this feature is not available in a classic Python,
+# but it is very usefull and popular with other languages
+myObj?.property?.subProperty or "N/A"
+            `.trim()
+          },          
+          {
+          name: 'while loop',
           code: `
-x = {
-  prop: 1
-}
-x.prop
+i = 0
+a = [] # array
+while i < 6:
+  i = i + 1
+  
+  if i % 2 == 0:
+    continue
+  a.push(i * i)
+
+return a          
+          `.trim()
+        },
+        {
+          name: 'for loop',
+          code: `
+numbers = [2, 6, 8, 0, -1]
+result = []
+
+for x in numbers:
+  result.push(x * 2)
+
+# return only numbers greater than 5  
+result.filter(r => r > 5)
 `.trim()
-        }, {
-          name: 'String',
+        },
+        {
+          name: 'Functions',
           code: `
-s = "Test"
-s2 = s + "2"
-s2
+def add(a, b):
+  return a + b
+""" 
+It is optional to specify 'return'
+If no return specified, then it will return last statement
+"""
+def minus(a, b):
+  a - b
+
+# returns object what has two values
+{
+  name: "Examples",
+  add: add(2, 3),
+  substract: minus(10, 5)
+}
+`
+        },
+        {
+          name: 'Arrow functions',
+          code: `
+nums = range(20)
+
+"""
+Here is example of multi line and single line arrow functions
+"""
+y = nums
+  .map((r, i) =>
+    newItem = {
+        element: r,
+        index: i,
+        square: Math.pow(i, 2),
+        cube: Math.pow(i, 3)
+    }
+    return newItem
+  )     
+  .filter(r => r.cube > 5)
+
+return y          
+          `.trim()
+        },        
+        {
+          name: 'Recursive function',
+          code: `
+def power(base, exponent):
+  if exponent == 0:
+    return 1
+  else:
+    return base * power(base, exponent - 1)
+
+"5 ** 10 = " + power(5, 10) + " == " + Math.pow(5, 10)
 `
         }]
       }]

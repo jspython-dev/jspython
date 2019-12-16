@@ -188,3 +188,26 @@ JSPython interpreter includes only a few functions and objects. However, you can
   - *Object* - JavaScript's `Object` object along with [all functions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object).
   - *Array* - JavaScript's `Array` object along with [all functions](https://www.w3schools.com/jsref/jsref_obj_array.asp).
 
+## Importing libraries, functions
+
+You can import functions or objects from other libraries the same way as you would do it in Python. But, before, you would have to make sure your library is installed. When you are working server side (NodeJS) and running your JSPython scripts with `jspython-cli` then it is enough just to do npm install. But, a client side Web App external library has to be registered.
+
+As an example, we registered dataPipe library and is ready to be imported in our `Playground`
+
+```py
+"""
+Import dataPipe from datapipe-js
+"""
+from datapipe-js import dataPipe
+
+"""
+Here you would import same dataPipe but it will be accessible as a dp() function
+"""
+# from datapipe-js import dataPipe as dp
+
+"""
+or alternatively you can import * from library
+"""
+
+
+```
