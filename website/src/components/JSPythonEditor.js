@@ -1,16 +1,29 @@
 import React from 'react';
 import AceEditor from "react-ace";
-
 import '../../../src/assets/mode-jspython';
 import 'ace-builds/src-noconflict/theme-github';
+import 'ace-builds/src-noconflict/theme-tomorrow_night';
 
 class JSPythonEditor extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      value: this.props.value
+      value: this.props.value,
+      theme: this.theme
     }
-    this.onChange = this.onChange.bind(this)
+    this.onChange = this.onChange.bind(this);
+    document.querySelector('.navbar .react-toggle').addEventListener('click', () => {
+      setTimeout(() => {
+        this.setState({
+          theme: this.theme
+        })
+      });
+    });
+  }
+
+  get theme() {
+    const appTheme = document.querySelector('html').getAttribute('data-theme');
+    return appTheme === 'dark' ? 'tomorrow_night' : 'github'
   }
 
   onChange(newValue) {
@@ -33,7 +46,7 @@ class JSPythonEditor extends React.Component {
         mode="python"
         height="100%"
         width="100%"
-        theme="github"
+        theme={this.state.theme}
         value={this.state.value}
         onChange={this.onChange}
         editorProps={{ $blockScrolling: true }}

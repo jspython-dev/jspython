@@ -7,7 +7,7 @@ const input = 'src/interpreter.ts';
 
 export default [{
   input,
-  output: { file: pkg.main, name: 'jspython', format: 'umd', sourcemap: true, compact: true, globals: {} },
+  output: { file: pkg.main, name: 'jspython', format: 'umd', sourcemap: true, compact: true },
   external: [],
   treeshake: true,
   plugins: [
