@@ -1,17 +1,40 @@
 import dynamic from 'next/dynamic';
 import Layout from '@theme/Layout';
 import React from 'react';
-import styles from './styles.module.css';
 import { jsPython } from '../../../dist/jspython-interpreter.esm.js';
 import ExampleList from '../components/ExamplesList';
-import 'ace-builds';
-import * as langTools from '../../../node_modules/ace-builds/src-min-noconflict/ext-language_tools';
+import styles from './styles.module.css';
 
+const interpreter = jsPython();
+
+/**
+ * Load component dynamic due to server side rendering and ace editor's requirement of existing window object.
+ */
 const JSPythonEditor = dynamic(
-  () => import('../components/JSPythonEditor.js'),
+  () => import('../components/JSPythonEditor.js').then(async (component) => {
+    const langTools = await import('ace-builds/src-min-noconflict/ext-language_tools');
+    addInterpretersCompleter(langTools);
+    return component;
+  }),
   { ssr: false }
 )
 
+/**
+ * Adds interpreters language completer.
+ * @param {Object} langTools Ace editor language tools.
+ */
+function addInterpretersCompleter(langTools) {
+  const interpreterCompleter = {
+    getCompletions: (editor, session, pos, prefix, callback) => {
+      const line = editor.session.getLine(pos.row);
+      const regexp = `([\\w.]+).${prefix}`;
+      const res = line.match(new RegExp(regexp));
+      const wordList = interpreter.getAutocompletionList(res ? res[1] : null);
+      callback(null, wordList);
+    }
+  };
+  langTools.addCompleter(interpreterCompleter);
+}
 
 const scripts = `
 """|------------------------------|"""
@@ -30,12 +53,10 @@ class Playground extends React.Component {
   constructor(props) {
     super(props);
     this.codeChange = this.codeChange.bind(this);
-    this.interpreter = jsPython();
     this.state = {
       code: scripts,
       result: ''
     };
-    this.initEditorMode();
   }
 
   codeChange(code) {
@@ -43,17 +64,17 @@ class Playground extends React.Component {
   }
 
   formatJSON(format = true) {
-    console.log('this.state.result', this.state.result);
-    if (typeof this.state.result !== 'string') return;
+    const res = this.state.result;
+    if (typeof res !== 'string') return;
     try {
       this.error = null;
       if (format) {
         this.setState({
-          result: JSON.stringify(JSON.parse(this.state.result), null, '\t')
+          result: JSON.stringify(JSON.parse(res), null, '\t')
         });
       } else {
         this.setState({
-          result: JSON.stringify(JSON.parse(this.state.result))
+          result: JSON.stringify(JSON.parse(res))
         });
       }
     } catch (e) {
@@ -63,7 +84,7 @@ class Playground extends React.Component {
 
   async run() {
     try {
-      const res = await this.interpreter.evaluate(this.state.code);
+      const res = await interpreter.evaluate(this.state.code);
 
       if (res === null || res == undefined) {
         this.setState({ result: '' });
@@ -85,7 +106,7 @@ class Playground extends React.Component {
           <div className={"container mainContainer docsContainer " + styles.playgroundContent}>
             <div className={styles.playgroundPageHeader}>
               <h1>JSPython playground</h1>
-              <p>Write custom code, use and edit examples. For more advanced experience 
+              <p>Write custom code, use and edit examples. For more advanced experience
                 use <a href="https://run.worksheet.systems/rest-client/jspython-editor" target="_blank">Worksheets JSPython Editor</a>&nbsp;or&nbsp;
                 <a href="https://chrome.google.com/webstore/detail/worksheets-rest-client/bjaifffdmbokgicfacjmhdkdonpmbkbd">Chrome Extensions</a>
                 </p>
@@ -103,11 +124,11 @@ class Playground extends React.Component {
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <h1>Result</h1>
                 <div>
-                  <button className="runBtn_src-pages- button button--outline button--primary button--sm"
-                    onClick={this.formatJSON.bind(this, true)}>Format</button>
-                  <button className="runBtn_src-pages- button button--outline button--primary button--sm"
-                    style={{marginRight: '0.5rem'}}
+                  <button className="button button--outline button--primary button--sm"
+                    style={{marginRight: '.5rem'}}
                     onClick={this.formatJSON.bind(this, false)}>Minify</button>
+                  <button className="button button--outline button--primary button--sm"
+                    onClick={this.formatJSON.bind(this, true)}>Format</button>
                 </div>
                 </div>
                 <JSPythonEditor format={true} value={this.state.result}></JSPythonEditor>
@@ -117,19 +138,6 @@ class Playground extends React.Component {
         </div>
       </Layout>
     );
-  }
-
-  initEditorMode() {
-    const interpreterCompleter = {
-      getCompletions: (editor, session, pos, prefix, callback) => {
-        const line = editor.session.getLine(pos.row);
-        const regexp = `([\\w.]+).${prefix}`;
-        const res = line.match(new RegExp(regexp));
-        const wordList = this.interpreter.getAutocompletionList(res ? res[1] : null);
-        callback(null, wordList);
-      }
-    };
-    langTools.addCompleter(interpreterCompleter);
   }
 }
 
