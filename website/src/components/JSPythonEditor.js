@@ -12,13 +12,7 @@ class JSPythonEditor extends React.Component {
       theme: this.theme
     }
     this.onChange = this.onChange.bind(this);
-    document.querySelector('.navbar .react-toggle').addEventListener('click', () => {
-      setTimeout(() => {
-        this.setState({
-          theme: this.theme
-        })
-      });
-    });
+    this.initThemeToggle();
   }
 
   get theme() {
@@ -36,6 +30,44 @@ class JSPythonEditor extends React.Component {
   componentWillReceiveProps(nextProps) {
     if (nextProps.value !== this.state.value) {
       this.setState({ value: nextProps.value });
+    }
+  }
+
+  initThemeToggle() {
+    let timeout;
+    let timeout2;
+    const menuBtn = document.querySelector('.navbar__toggle');
+    let el;
+    if (window.innerWidth > 760) {
+      el = document.querySelector('.navbar .react-toggle');
+      el.addEventListener('click', handler.bind(this));
+    } else {
+      menuBtn.addEventListener('click', () => {
+        setTimeout(() => {
+          el = document.querySelector('.navbar .navbar-sidebar .react-toggle');
+          el.addEventListener('click', handler.bind(this));
+        });
+      })
+    }
+
+    function handler() {
+      if (timeout) { clearTimeout(timeout) }
+      if (timeout2) { clearTimeout(timeout2) }
+      timeout = setTimeout(() => {
+        this.setState({
+          theme: this.theme
+        });
+        timeout = null;
+      }, 1e1);
+      timeout2 = setTimeout(() => {
+        const t = this.theme;
+        if (t !== this.state.theme) {
+          this.setState({
+            theme: t
+          });
+        }
+        timeout2 = null;
+      }, 1e2);
     }
   }
 
