@@ -1,11 +1,10 @@
 import dynamic from 'next/dynamic';
 import Layout from '@theme/Layout';
 import React from 'react';
-import { jsPython } from '../../../dist/jspython-interpreter.esm.js';
 import ExampleList from '../components/ExamplesList';
 import styles from './styles.module.css';
 
-const interpreter = jsPython();
+const INTERPRETER_CDN_URL = 'https://cdn.jsdelivr.net/npm/jspython-interpreter/dist/jspython-interpreter.min.js'
 
 /**
  * Load component dynamic due to server side rendering and ace editor's requirement of existing window object.
@@ -13,7 +12,8 @@ const interpreter = jsPython();
 const JSPythonEditor = dynamic(
   () => import('../components/JSPythonEditor.js').then(async (component) => {
     const langTools = await import('ace-builds/src-min-noconflict/ext-language_tools');
-    addInterpretersCompleter(langTools);
+    const interp = await getInterpreter();
+    addInterpretersCompleter(langTools, interp);
     return component;
   }),
   { ssr: false }
@@ -23,7 +23,7 @@ const JSPythonEditor = dynamic(
  * Adds interpreters language completer.
  * @param {Object} langTools Ace editor language tools.
  */
-function addInterpretersCompleter(langTools) {
+function addInterpretersCompleter(langTools, interpreter) {
   const interpreterCompleter = {
     getCompletions: (editor, session, pos, prefix, callback) => {
       const line = editor.session.getLine(pos.row);
@@ -34,6 +34,31 @@ function addInterpretersCompleter(langTools) {
     }
   };
   langTools.addCompleter(interpreterCompleter);
+}
+
+/**
+ * @type {Interpreter}
+ * @private
+ */
+let interpreter = null;
+
+/**
+ * Get interpreter instance.
+ * @return {Promise<Interpreter>}
+ */
+function getInterpreter() {
+  if (interpreter) {
+    return Promise.resolve(interpreter);
+  }
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `${INTERPRETER_CDN_URL}?v=${Date.now()}`;
+    script.onload = () => {
+      interpreter = window.jspython.jsPython();
+      resolve(interpreter);
+    }
+    document.head.appendChild(script);
+  });
 }
 
 const scripts = `
@@ -84,6 +109,7 @@ class Playground extends React.Component {
 
   async run() {
     try {
+      const interpreter = await getInterpreter();
       const res = await interpreter.evaluate(this.state.code);
 
       if (res === null || res == undefined) {

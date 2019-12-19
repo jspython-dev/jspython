@@ -54,14 +54,10 @@
   flex-direction: column;
   height: 100%;
   width: 50%;
-  /* border: 1px solid var(--ifm-contents-border-color); */
-  /* padding: 1rem; */
-  /* paddingLeft: '1rem' */
 }
 
 .playgroundPage {
   flex-direction: row;
-  /* flex-wrap: wrap; */
   display: flex;
   height: 100%;
 }
@@ -74,7 +70,6 @@
 }
 
 .playgroundPageHeader {
-  /* flex-basis: 100%; */
   padding-top: 1rem;
   text-align: center;
 }
