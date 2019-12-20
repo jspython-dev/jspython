@@ -19,7 +19,7 @@ const features = [
     imageUrl: 'img/feature1.svg',
     description: (
       <>
-        JSPython is a javascript implementation of Python language with no dependencies.
+        JSPython is a JavaScript implementation of Python with no dependencies.
         So, you can freely run it on your browser or NodeJS
       </>
     ),
@@ -35,7 +35,7 @@ const features = [
     ),
   },
   {
-    title: <>Rapid application development</>,
+    title: <>Rapid Application Development</>,
     imageUrl: 'img/feature3.svg',
     description: (
       <>
@@ -66,8 +66,8 @@ function Home() {
   const {siteConfig = {}} = context;
   return (
     <Layout
-      title={`Hello from ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
+      title={`Welcome to ${siteConfig.title}`}
+      description="JSPython is a javascript implementation of Python that runs within web browser or NodeJS environment <head />">
       <header className={classnames('hero hero--primary', styles.heroBanner)}>
         <div className="container">
           <h1 className="hero__title">{siteConfig.title}</h1>

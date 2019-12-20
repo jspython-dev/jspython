@@ -1,13 +1,17 @@
 ---
 id: jspython-dev-guide
 title: JSPython Developer Guide
+description: A comprehensive JSPython developer guide
+keywords:
+  - JSPython
+  - Developer guide
 ---
 
-A core objective for JSPython is to bring Python language to the JavaScript infrastructure. So, any Python documentation should work within JSPython environment. We implemented any essential features in Python.
+A core objective for JSPython is to bring Python to the JavaScript infrastructure. So, any Python documentation should work within JSPython environment. We implemented most essential features in Python.
 
 ## Variables and object and arrays
 
-We do follow Python way of declaring and using variables. However, we create a JavaScript objects and running JavaScript engine lifecycle.
+We follow the Python way of declaring and using variables. However, we create JavaScript objects and run JavaScript engine lifecycles.
 
 Create new object
 
@@ -38,7 +42,7 @@ y = x.filter(r => r > 3).join(",")
 
 ## Working with dates
 
-We supply built-in function `dateTime([strDate])` that returns a JavaScript [`Date object`](https://www.w3schools.com/js/js_dates.asp). Along, with it, you can use any of their [date functions](https://www.w3schools.com/jsref/jsref_obj_date.asp).
+We supply built-in functions `dateTime([strDate])` that return JavaScript [`Date object`](https://www.w3schools.com/js/js_dates.asp). Along, with that, you can use any of their [date functions](https://www.w3schools.com/jsref/jsref_obj_date.asp).
 
 ```py
 today = dateTime() # now
@@ -51,7 +55,7 @@ Math.ceil(diffTime / 86400000)
 
 ## Functions
 
-Function can be defined with `def` and `async def` or it can be as anonymous arrow `=>` function. All type of functions can return a value by specifying `return` keyword or as a last statement in a code block. You can have nested functions as well.
+Functions can be defined with `def` and `async def` or with an arrow `=>`. All types of functions can return a value by specifying `return` keyword or as a last statement in a code block. You can have nested functions as well.
 
 ### Functions defines as `def func1():`
 

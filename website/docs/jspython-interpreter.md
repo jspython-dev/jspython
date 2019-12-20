@@ -2,6 +2,10 @@
 id: jspython-interpreter
 title: How to run JSPython interpreter
 sidebar_label: JSPython interpreter
+description: How to run JSPython interpreter guide
+keywords:
+  - Interpreter
+  - JSPython
 ---
 
 ## Install  JS Python Interpreter
