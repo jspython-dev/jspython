@@ -61,15 +61,19 @@ function getInterpreter() {
   });
 }
 
-const scripts = `
-"""|------------------------------|"""
-"""| Welcome My JSPython program! |"""
-"""|------------------------------|"""
+const scripts = `"""
+|------------------------------|
+| Welcome My JSPython program! |
+|------------------------------|
+"""
+
+def mapFunction(r, i):
+  v = r * i
+  return v
+
 x = [1, 2, 3, 4]
-x.map((r, i) =>
-    v = r * i
-    return v
-  )
+x
+  .map(mapFunction)
   .filter(r => r * r)
   .join(",")
 `;

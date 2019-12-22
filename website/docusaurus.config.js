@@ -10,11 +10,11 @@ const pkg = require('../package.json')
 module.exports = {
   title: 'JSPython',
   tagline: 'Run your Python scripts in browser or NodeJS environment',
-  url: 'http://jspython-dev.github.io',
+  url: 'https://jspython.dev',
   baseUrl: '/',
   favicon: 'img/favicon.ico',
-  organizationName: 'jspython-dev', // Usually your GitHub org/user name.
-  projectName: 'jspython', // Usually your repo name.
+  organizationName: 'FalconSoft Ltd', // Usually your GitHub org/user name.
+  projectName: 'JSPython', // Usually your repo name.
   themeConfig: {
     navbar: {
       title: 'JSPython',
