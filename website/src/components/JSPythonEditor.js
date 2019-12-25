@@ -1,6 +1,5 @@
 import React from 'react';
 import AceEditor from "react-ace";
-import '../../../src/assets/mode-jspython';
 import 'ace-builds/src-noconflict/theme-github';
 import 'ace-builds/src-noconflict/theme-tomorrow_night';
 

@@ -1,0 +1,86 @@
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ */
+
+.featureImage {
+  height: 200px;
+  width: 200px;
+}
+
+.editorWrapper {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  height: 100%;
+  padding-bottom: 1rem;
+}
+
+.editorBlock {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 50%;
+}
+
+.playgroundPage {
+  flex-direction: row;
+  display: flex;
+  height: 100%;
+}
+
+.playgroundContent {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  max-width: 100%;
+}
+
+.playgroundPageHeader {
+  padding-top: 1rem;
+  text-align: center;
+}
+
+.runBtn {
+  float: right;
+  margin-top: .5rem;
+}
+
+@media screen and (max-width: 760px) {
+  .editorWrapper {
+    flex-direction: column;
+  }
+
+  .editorBlock {
+    width: 100%;
+  }
+
+  .playgroundPage {
+    flex-wrap: wrap;
+  }
+
+  .playgroundPage h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0;
+  }
+
+  .playgroundPageHeader {
+    padding-top: .2rem;
+  }
+
+  .playgroundPageHeader > h1, p {
+    margin-bottom: .2rem;
+  }
+
+  .runBtn {
+    margin-top: 0;
+    margin-bottom: .25rem;
+  }
+}

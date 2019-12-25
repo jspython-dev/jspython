@@ -2,15 +2,19 @@ import dynamic from 'next/dynamic';
 import Layout from '@theme/Layout';
 import React from 'react';
 import ExampleList from '../components/ExamplesList';
-import styles from './styles.module.css';
+import styles from './playground.module.css';
 
-const INTERPRETER_CDN_URL = 'https://cdn.jsdelivr.net/npm/jspython-interpreter/dist/jspython-interpreter.min.js'
+const INTERPRETER_CDN_URL = 'https://cdn.jsdelivr.net/npm/jspython-interpreter/dist/jspython-interpreter.min.js';
+const JSPYTHON_MODE_URL = 'https://cdn.jsdelivr.net/npm/jspython-interpreter/dist/assets/mode-jspython.js';
+const ONLINE_EDITOR_URL = 'https://run.worksheet.systems/rest-client/jspython-editor';
+const EXTENSION_URL = 'https://chrome.google.com/webstore/detail/worksheets-rest-client/bjaifffdmbokgicfacjmhdkdonpmbkbd';
 
 /**
  * Load component dynamic due to server side rendering and ace editor's requirement of existing window object.
  */
 const JSPythonEditor = dynamic(
   () => import('../components/JSPythonEditor.js').then(async (component) => {
+    await loadScript(JSPYTHON_MODE_URL);
     const langTools = await import('ace-builds/src-min-noconflict/ext-language_tools');
     const interp = await getInterpreter();
     addInterpretersCompleter(langTools, interp);
@@ -18,6 +22,7 @@ const JSPythonEditor = dynamic(
   }),
   { ssr: false }
 )
+
 
 /**
  * Adds interpreters language completer.
@@ -50,12 +55,27 @@ function getInterpreter() {
   if (interpreter) {
     return Promise.resolve(interpreter);
   }
+  return loadScript(INTERPRETER_CDN_URL, () => {
+    interpreter = window.jspython.jsPython();
+    return interpreter;
+  });
+}
+
+/**
+ * Loads script.
+ * @param {string} url Url to load script
+ * @param {Function?} callback Onload callback
+ */
+function loadScript(url, callback) {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = `${INTERPRETER_CDN_URL}?v=${Date.now()}`;
+    script.src = `${url}?v=${Date.now()}`;
     script.onload = () => {
-      interpreter = window.jspython.jsPython();
-      resolve(interpreter);
+      if (typeof callback === 'function') {
+        resolve(callback());
+      } else {
+        resolve();
+      }
     }
     document.head.appendChild(script);
   });
@@ -137,8 +157,8 @@ class Playground extends React.Component {
             <div className={styles.playgroundPageHeader}>
               <h1>JSPython playground</h1>
               <p>Write custom code, use and edit examples. For more advanced experience
-                use <a href="https://run.worksheet.systems/rest-client/jspython-editor" target="_blank">Worksheets JSPython Editor</a>&nbsp;or&nbsp;
-                <a href="https://chrome.google.com/webstore/detail/worksheets-rest-client/bjaifffdmbokgicfacjmhdkdonpmbkbd">Chrome Extensions</a>
+                use <a href={ONLINE_EDITOR_URL} target="_blank">Worksheets JSPython Editor</a>&nbsp;or&nbsp;
+                <a href={EXTENSION_URL} target="_blank">Chrome Extensions</a>
                 </p>
             </div>
             <div className={styles.editorWrapper}>
