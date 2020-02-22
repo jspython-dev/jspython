@@ -110,7 +110,8 @@ export class EvalInstruction {
 
 
     private splitTokens(instruction: string): string[] {
-        instruction = (instruction.indexOf('#') < 0) ? instruction.trim() : instruction.substring(0, instruction.indexOf('#')).trim();
+        // this will correctly separate comment from the code
+        instruction = Tokenizer.splitAll(instruction.trim(), ['#'])[0];
         return Tokenizer.splitAll(instruction);
     }
 

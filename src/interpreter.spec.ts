@@ -474,6 +474,16 @@ describe('Interpreter', () => {
       .toBe(5);
   });
 
+  it('strings with # inside ', async () => {
+    expect(await e.evaluate('"2 + 3   # and some comment"'))
+      .toBe('2 + 3   # and some comment');
+  });
+
+  it('strings with # inside and function ', async () => {
+    expect(await e.evaluate('"1#2".split("#").length'))
+      .toBe(2);
+  });
+
   it('Calling a standard string functions', async () => {
     expect(await e.evaluate(['x = "test"', 'x.indexOf("s")'].join('\n')))
       .toBe(2);
