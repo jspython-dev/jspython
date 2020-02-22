@@ -272,14 +272,14 @@ export class EvalExpression {
             }
         }
 
-        if (parentObject) {
+        if (parentObject !== null && parentObject !== undefined) {
             const value = getValue(parentObject, token);
             return (value !== undefined) ? value : null
 
         } else {
             const value = getValue(context.blockScope, token);
             if (value === undefined) {
-                throw Error(`Undefined property '${token}'`);
+                throw Error(`Can't resolve property '${token}' of undefined object`);
             }
             return value;
         }
@@ -375,16 +375,16 @@ export class EvalExpression {
         token = token.trim();
         const findFunction = (name: string, obj: any = null): AnyFunc => {
             if (name.indexOf('.') < 0) {
-                if (!obj) {
+                if (obj === null || obj === undefined) {
                     const fn = context.blockScope[name];
                     if (typeof fn !== 'function') {
-                        throw Error(`Token '${name}' is not a valid function (1)`);
+                        throw Error(`Can't call '${name}' of null (1)`);
                     }
                     return fn; // all functions should be here and no 'bind' required
                 } else {
                     const ff = obj[name];
                     if (typeof ff !== 'function') {
-                        throw Error(`Token '${name}' is not a valid function (2)`);
+                        throw Error(`Can't call '${name}' of null (2)`);
                     }
                     return ff.bind(obj);
                 }

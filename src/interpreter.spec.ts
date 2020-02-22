@@ -1481,5 +1481,13 @@ issue["dd22"]
     `)).toBe(55);
   });
 
+  it('Empty string bug', async () => {
+    expect(await e.evaluate(`"".trim()`)).toBe("");
+  });
+
+  it('Empty string bug for function return', async () => {
+    expect(await e.evaluate(`"".trim().length`)).toBe(0);
+  });
+
 
 });

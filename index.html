@@ -28,8 +28,8 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
-      x = """issue  = {}"""
-      x</div>
+"".trim().length
+    </div>
     <button onclick="runInterpreter()">Run</button>
     <textarea id="result"></textarea>
   </div>
@@ -48,7 +48,7 @@
         const result = await jsPython()
           .addFunction('returnsPromise', a1 => new Promise((s, f) => { setTimeout(() => s(a1), 10) }))
           .addFunction('nullValue', () => { console.log(' ** invoked!!!'); return null })
-          .evaluate(scripts);
+          .evaluate(scripts, {str: "shdsd sd,sd d s ds d"});
         document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result) : result
         console.log('Result => ', result);
       } catch (err) {
