@@ -1,6 +1,6 @@
 {
   "name": "jspython-interpreter",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "JSPython is a javascript implementation of Python language that runs within web browser or NodeJS environment",
   "keywords": [
     "python",
