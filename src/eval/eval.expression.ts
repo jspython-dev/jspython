@@ -266,7 +266,10 @@ export class EvalExpression {
                 } else {
                     const tokens = this.splitParameterToken(ind);
                     const pName = this.evalExpression(context, tokens)
-                    return obj[pName];
+                    
+                    // if it is undefined means does not exists. So, we have to return null, but still gracely handle 0 (zero)
+                    const v = obj[pName]                    
+                    return v !== undefined? v : null;
                 }
 
             }
@@ -279,7 +282,7 @@ export class EvalExpression {
         } else {
             const value = getValue(context.blockScope, token);
             if (value === undefined) {
-                throw Error(`Can't resolve property '${token}' of undefined object`);
+                throw Error(`Unknown symbol '${token}'`);
             }
             return value;
         }

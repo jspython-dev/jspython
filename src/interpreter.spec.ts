@@ -1482,6 +1482,21 @@ describe('Interpreter', () => {
 
   })
 
+  it('should return NULL gracely', async () => {
+    expect(await e.evaluate(`
+        x = {}
+        x["prop1"]`)).toBe(null);
+    
+    // has to be 0
+    expect(await e.evaluate(`
+        x = {prop1: 0}
+        x["prop1"]`)).toBe(0);
+
+    expect(await e.evaluate(`
+        x = {prop1: null}
+        x["prop1"]`)).toBe(null);
+  });
+
   it('subset of dynamic', async () => {
     expect(await e.evaluate(`
 issue = {}
