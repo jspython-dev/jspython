@@ -127,13 +127,25 @@ export class EvalExpression {
                         throw Error('Error in parsing JSON.');
                     }
 
-                    const key = item.substring(0, sepInd).trim()
+                    let key = item.substring(0, sepInd).trim()
+                    // If keys are quoted, then remove quotes
+                    if(key[0] === '"' && key[key.length - 1] === '"') {
+                        key = trimFirstAndLastItem(key);
+                    }                    
                     const strValue = item.substring(sepInd + 1).trim()
 
                     if (strValue[0] === '{') {
+                        if(strValue[strValue.length - 1] !== '}') {
+                            throw Error(`Parsing JSON Error: No closing bracket for '${key}'`)
+                        }
+
                         parentObj[key] = {};
                         parseJsonItems(trimFirstAndLastItem(strValue), parentObj[key])
                     } else if (strValue[0] === '[') {
+                        if(strValue[strValue.length - 1] !== ']') {
+                            throw Error(`Parsing JSON Error: No closing bracket for '${key}'`)
+                        }
+
                         parentObj[key] = [];
                         parseJsonItems(trimFirstAndLastItem(strValue), parentObj[key])
                     } else {
@@ -185,13 +197,25 @@ export class EvalExpression {
                         throw Error('Error in parsing JSON.');
                     }
 
-                    const key = item.substring(0, sepInd).trim()
+                    let key = item.substring(0, sepInd).trim()
+
+                    // If keys are quoted, then remove quotes
+                    if(key[0] === '"' && key[key.length - 1] === '"') {
+                        key = trimFirstAndLastItem(key);
+                    }
+
                     const strValue = item.substring(sepInd + 1).trim()
 
                     if (strValue[0] === '{') {
+                        if(strValue[strValue.length - 1] !== '}') {
+                            throw Error(`Parsing JSON Error: No closing bracket for '${key}'`)
+                        }
                         parentObj[key] = {};
                         await parseJsonItemsAsync(trimFirstAndLastItem(strValue), parentObj[key])
                     } else if (strValue[0] === '[') {
+                        if(strValue[strValue.length - 1] !== ']') {
+                            throw Error(`Parsing JSON Error: No closing bracket for '${key}'`)
+                        }
                         parentObj[key] = [];
                         await parseJsonItemsAsync(trimFirstAndLastItem(strValue), parentObj[key])
                     } else {

@@ -1482,11 +1482,43 @@ describe('Interpreter', () => {
 
   })
 
+  it('JSON parsing error 1', async () => {
+    try {
+      await e.evaluate(
+        `
+    x = {
+      p1: {} 
+      p2: 5
+    }
+    x
+      `);
+      expect(1).toBe(0); // should not come here
+    } catch (error) {
+      expect(1).toBe(1);
+    }
+
+    try {
+      await e.evaluate(`x = { p1: {} p2: 5 }`);
+      expect(1).toBe(0); // should not come here
+    } catch (error) {
+      expect(1).toBe(1);
+    }
+
+  })
+
+  it('JSON parsing with a Quoted keys', async () => {
+      const o = await e.evaluate(`{"p1": 23, "x": [{"d" : 5}]}`);
+      expect(o.p1).toBe(23);
+      expect(o.x[0].d).toBe(5);
+  })
+
+  //
+
   it('should return NULL gracely', async () => {
     expect(await e.evaluate(`
         x = {}
         x["prop1"]`)).toBe(null);
-    
+
     // has to be 0
     expect(await e.evaluate(`
         x = {prop1: 0}
