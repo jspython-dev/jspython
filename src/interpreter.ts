@@ -21,7 +21,7 @@ function range(start: number, stop: number = NaN, step: number = 1): number[] {
 
 const INITIAL_SCOPE = {
     jsPython(): string {
-        return ["JSPython v0.1.4", "(c) FalconSoft Ltd"].join('\n')
+        return [`JSPython v0.1.8`, "(c) FalconSoft Ltd"].join('\n')
     },
     dateTime: (str: number | string | any = null) => (str && str.length)
         ? parseDatetimeOrNull(str) || new Date() : new Date(),
@@ -32,7 +32,9 @@ const INITIAL_SCOPE = {
     Math: Math,
     Object: Object,
     Array: Array,
-    JSON: JSON
+    JSON: JSON,
+    printExecutionContext: () => {}, // will be overriden at runtime
+    getExecutionContext: () => {} // will be overriden at runtime
 };
 
 interface Completion {
@@ -116,6 +118,10 @@ export class Interpreter {
             blockScope: { ...this.globalScope },
             currentLevel: ""
         } as BlockContext;
+
+        // Two runtime methods for debugging/tracing purpose ONLY!
+        blockContext.blockScope.printExecutionContext = () => console.log(blockContext.blockScope);
+        blockContext.blockScope.getExecutionContext = () => blockContext.blockScope;
 
         if (!instuctionLines?.length) { return null; }
 

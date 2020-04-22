@@ -138,6 +138,10 @@ export class Tokenizer {
 
             } while (index < text.length);
 
+            if(cc > 0) {
+                throw Error(`Closing symbol '${closeBlock}' is missing.`);
+            }
+
             appendToken(chr);
         }
 

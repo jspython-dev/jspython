@@ -106,6 +106,9 @@ export class EvalExpression {
             const items = Tokenizer.splitAll(innerJson, [',']).map(s => s.trim());
 
             for (const item of items) {
+                if(!item || !item.length) {
+                    throw Error('JSON Parsing error: Empty operation after comma');
+                }
 
                 if (Array.isArray(parentObj)) {
                     // handle array
@@ -114,7 +117,7 @@ export class EvalExpression {
                         parseJsonItems(trimFirstAndLastItem(item), newItem)
                         parentObj.push(newItem)
                     } else if (item[0] === '[') {
-                        const newItem = {}
+                        const newItem: any[] = [];
                         parseJsonItems(trimFirstAndLastItem(item), newItem)
                         parentObj.push(newItem)
                     } else {
@@ -177,14 +180,18 @@ export class EvalExpression {
 
             for (const item of items) {
 
+                if(!item || !item.length) {
+                    throw Error('JSON Parsing error: Empty operation after comma');
+                }
+
                 if (Array.isArray(parentObj)) {
                     // handle array
                     if (item[0] === '{') {
                         const newItem = {}
                         await parseJsonItemsAsync(trimFirstAndLastItem(item), newItem)
                         parentObj.push(newItem)
-                    } else if (item[0] === '[') {
-                        const newItem = {}
+                    } else if (item[0] === '[') {                                              
+                        const newItem: any[] = [];
                         await parseJsonItemsAsync(trimFirstAndLastItem(item), newItem)
                         parentObj.push(newItem)
                     } else {

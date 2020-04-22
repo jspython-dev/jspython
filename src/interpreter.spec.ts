@@ -1483,6 +1483,7 @@ describe('Interpreter', () => {
   })
 
   it('JSON parsing error 1', async () => {
+    let msg = ""
     try {
       await e.evaluate(
         `
@@ -1492,19 +1493,79 @@ describe('Interpreter', () => {
     }
     x
       `);
-      expect(1).toBe(0); // should not come here
+      msg = "NO ERROR"
     } catch (error) {
-      expect(1).toBe(1);
+      msg = "ERROR"
     }
+
+    expect(msg).toBe("ERROR");
+
+    msg = "";
 
     try {
       await e.evaluate(`x = { p1: {} p2: 5 }`);
-      expect(1).toBe(0); // should not come here
+      msg = "NO ERROR"
     } catch (error) {
-      expect(1).toBe(1);
+      msg = "ERROR"
     }
 
+    expect(msg).toBe("ERROR");    
   })
+
+  it('JSON parsing Array of arrays', async () => {
+    let o = await e.evaluate(`[["ss", "ss2", 5]]`);
+    expect(o.length).toBe(1);
+    expect(o[0][1]).toBe("ss2");
+    expect(o[0][2]).toBe(5);
+
+    o = await e.evaluate(`[
+        ["ss1", "ss21", 5],
+        ["ss2", "ss22", 6],
+        ["ss3", dateTime("2020-03-07"), 7],
+        []
+    ]`);
+    expect(o.length).toBe(4);
+    expect(o[0][1]).toBe("ss21");
+    expect(o[0][2]).toBe(5);
+
+    expect(o[1][1]).toBe("ss22");
+    expect(o[1][2]).toBe(6);
+
+    expect(o[2][1].toISOString()).toBe(new Date('2020-03-07').toISOString());
+    expect(o[3].length).toBe(0);
+  });
+
+  it('JSON parsing last comma error', async () => {
+    let x = ""
+    try {
+      await e.evaluate(`[[12, 42],`);
+      x = "NO ERROR"
+    } catch (error) {
+      x = "ERROR"
+    }
+
+    expect(x).toBe("ERROR");
+
+    x = ""
+    try {
+      await e.evaluate(`[
+        [12, 42],
+      ]`);
+      x = "NO ERROR"
+    } catch (error) {x = "ERROR" }
+    expect(x).toBe("ERROR");
+
+    x = ""
+    try {
+      await e.evaluate(`[
+        [12, 42]
+        [33, 77]
+      ]`);
+      x = "NO ERROR"
+    } catch (error) {x = "ERROR" }
+    expect(x).toBe("ERROR");
+
+  });
 
   it('JSON parsing with a Quoted keys', async () => {
       const o = await e.evaluate(`{"p1": 23, "x": [{"d" : 5}]}`);

@@ -28,9 +28,10 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
-x = [["sd"]]
-x
-</div>
+[
+  [12, 42]
+  [22, 88]
+]</div>
     <button onclick="runInterpreter()">Run</button>
     <textarea id="result"></textarea>
   </div>
@@ -50,7 +51,7 @@ x
           .addFunction('returnsPromise', a1 => new Promise((s, f) => { setTimeout(() => s(a1), 10) }))
           .addFunction('nullValue', () => { console.log(' ** invoked!!!'); return null })
           .evaluate(scripts, {str: "shdsd sd,sd d s ds d"});
-        document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result) : result
+        document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
         console.log('Result => ', result);
       } catch (err) {
         document.getElementById('result').value = err;
