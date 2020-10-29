@@ -46,6 +46,7 @@ interface Completion {
 }
 
 export type PackageLoader = (packageName: string) => any;
+export type FileLoader = (filePath: string) => Promise<any>;
 
 export function jsPython(): Interpreter {
     return Interpreter.create();
@@ -57,6 +58,7 @@ export class Interpreter {
     private globalScope: { [index: string]: any } = {};
 
     private packageLoader?: PackageLoader;
+    private fileLoader?: FileLoader;
 
     static create(): Interpreter {
         return new Interpreter();
@@ -69,6 +71,14 @@ export class Interpreter {
             throw Error('PackagesLoader');
         }
     }
+
+    registerFileLoader(loader: FileLoader) {
+      if (typeof loader === 'function') {
+          this.fileLoader = loader;
+      } else {
+          throw Error('FileLoader should be a function');
+      }
+  }
 
     addFunction(funcName: string, fn: AnyFunc): Interpreter {
         this.initialScope[funcName] = fn;
@@ -94,9 +104,12 @@ export class Interpreter {
 
         const instuctionLines: CodeLine[] = [];
         const importLines: CodeLine[] = [];
+        const importFilesLines: CodeLine[] = [];
 
         codeLines.forEach(codeLine => {
-            if (/^(import|from)\s+/.test(codeLine.line)) {
+            if (/^(import|from)\s+.*\.jspy/.test(codeLine.line)) {
+                importFilesLines.push(codeLine);
+            } else if (/^(import|from)\s+/.test(codeLine.line)) {
                 importLines.push(codeLine);
             } else {
                 instuctionLines.push(codeLine);
@@ -106,6 +119,11 @@ export class Interpreter {
         if (importLines.length && this.packageLoader) {
             const libraries = this.packageResolver(Tokenizer.getPackagesList(importLines));
             context = { ...context, ...libraries };
+        }
+
+        if (importFilesLines.length && this.fileLoader) {
+          const filesContent = await this.fileResolver(Tokenizer.getPackagesList(importFilesLines));
+          context = { ...context, ...filesContent };
         }
 
         this.globalScope = {
@@ -201,6 +219,40 @@ export class Interpreter {
             }
         });
         return libraries;
+    }
+
+    private async fileResolver(packages: PackageToImport[]): Promise<object> {
+        if (!this.fileLoader) {
+            throw Error('File loader not provided.');
+        }
+        const files: any = {};
+
+        // Generates files content map
+        const asyncPacks = packages.map(pack => new Promise(async (resolve, reject) => {
+            const { name, as, properties }: PackageToImport = pack;
+            if (!this.fileLoader) {
+                reject('File loader is not register');
+            }
+            const res = await (this.fileLoader as FileLoader)(name);
+
+            if (properties?.length) {
+                properties.forEach((prop) => {
+                    files[prop.as || prop.name] = res[prop.name];
+                })
+            } else if (as) {
+                files[as] = res;
+            } else {
+                const key = ((name as string || '').split('/').pop() as string).replace('.jspy', '');
+                files[key] = res;
+            }
+            if (as) {
+                files[as] = res;
+            }
+            resolve(res);
+        }))
+
+        await Promise.all(asyncPacks);
+        return files;
     }
 
 }
