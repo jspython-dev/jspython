@@ -107,7 +107,7 @@ export class Interpreter {
         const importFilesLines: CodeLine[] = [];
 
         codeLines.forEach(codeLine => {
-            if (/^(import|from)\s+.*\.jspy/.test(codeLine.line)) {
+            if (/^(import|from)\s+\//.test(codeLine.line)) {
                 importFilesLines.push(codeLine);
             } else if (/^(import|from)\s+/.test(codeLine.line)) {
                 importLines.push(codeLine);
@@ -242,7 +242,7 @@ export class Interpreter {
             } else if (as) {
                 files[as] = res;
             } else {
-                const key = ((name as string || '').split('/').pop() as string).replace('.jspy', '');
+                const key = ((name as string || '').split('/').pop() as string);
                 files[key] = res;
             }
             if (as) {
