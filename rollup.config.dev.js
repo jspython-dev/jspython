@@ -6,21 +6,19 @@ export default {
 
   input: 'src/interpreter.ts',
   output: {
-    name: 'JSPython',
-    file: 'lib/jspython.js',
+    name: 'jspython',
+    file: 'dist/jspython-interpreter.js',
     format: 'umd',
     sourcemap: true,
-    globals: {'json5': 'JSON5'}
+    globals: {}
   },
-  external: [
-    'json5'
-  ],
+  external: [],
   plugins: [
     typescript({
       abortOnError: false
     }),
     serve({contentBase: '', open: true}),
-    livereload('lib')
+    livereload('dist')
   ],
   watch: {
     exclude: ['node_modules/**'],

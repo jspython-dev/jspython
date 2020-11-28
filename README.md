@@ -2,8 +2,6 @@
 JSPython is a javascript implementation of Python language that runs within web browser or NodeJS environment. It does not transpile/compile your code into JavaScript, instead, it provides an interactive interpreter that reads Python code and carries out their instructions. With JSPython you should be able to safely use or interact any JavaScript libraries or API with a nice Python language.
 
 ```py
-import Math
-
 arr = [4, 9, 16]
 
 def sqrt(a):
@@ -21,19 +19,21 @@ Interactive [Worksheet Systems JSPython editor](https://run.worksheet.systems/re
 
 ## Why would you use it?
 You can easily embed `JSPython` into your web app and your end users will benefit from a Python like scripting facility to:
-   * build data transformation and data analysis tasks
+   * to build data transformation and data analysis tasks
    * allow users to configure a JS objects at run-time
    * run a comprehensive testing scenarios
    * experiment with your JS Libraries or features.
+   * bring a SAFE run time script evaluation functions to your web app
+   * bring Python language to NodeJS environment
 
 ## Features
 Our aim here is to provide a SAFE Python experience to Javascript or NodeJS users at run-time. So far, we implement a core set of Python feature which should be OK to start coding.
 
   * **Syntax and code flow** Same as Python, In `JSPython` we use indentation to indicate a block of code. All flow features like `if - else`, `for`, `while` loops - along with `break` and `continue`
 
-  * **Objects, Arrays** `JSPython` allows you to work with JavaScript objects and arrays and you should be able to invoke their methods and properties as normal. So, all methods including prototype functions `push()`, `pop()`, `splice()` and [any more](ttps://www.w3schools.com/js/js_array_methods.asp) will work out of box.
+  * **Objects, Arrays** `JSPython` allows you to work with JavaScript objects and arrays and you should be able to invoke their methods and properties as normal. So, all methods including prototype functions `push()`, `pop()`, `splice()` and [any more](https://www.w3schools.com/js/js_array_methods.asp) will work out of box.
 
-  * **JSON** JSPython interpreter recognises [json5](https://json5.org/) style format. So, you can assign your variable a valid JSON as
+  * **JSON** JSPython allows you to work with JSON same way as you would in JavaScript or Python dictionaries
 
   * **Functions** Functions def `def` `async def`, arrow functions `=>` - (including multiline arrow functions)
 
@@ -54,13 +54,13 @@ Although we haven't implemented all the features available in Python yet. But, w
 Zero install !
 The most simple way to get started, without anything to install, is to use the distribution available online through jsDelivr. You can choose the latest stable release :
 ```
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jspython@0.1.0/jspython.min.js">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jspython-interpreter/dist/jspython-interpreter.min.js">
 </script>
 ```
 
 Or local install
 ```
-npm install jspython
+npm install jspython-interpreter
 ```
 Run JS Python from your Javascript App or web page.
 ### Basic
@@ -87,4 +87,6 @@ Run JS Python from your Javascript App or web page.
 ```
 Also, you can provide entire JS Object or even a library.
 
+## License
+A permissive [BSD 3-Clause License](https://github.com/jspython-dev/jspython/blob/master/LICENSE) (c) FalconSoft Ltd.
 

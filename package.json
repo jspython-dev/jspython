@@ -1,6 +1,6 @@
 {
-  "name": "@jspython-dev/jspython",
-  "version": "0.0.1",
+  "name": "jspython-interpreter",
+  "version": "2.0.1",
   "description": "JSPython is a javascript implementation of Python language that runs within web browser or NodeJS environment",
   "keywords": [
     "python",
@@ -8,17 +8,18 @@
     "evaluator",
     "parser"
   ],
-  "main": "lib/jspython.umd.js",
-  "module": "lib/jspython.esm.js",
-  "typings": "lib/interpreter.d.ts",
+  "main": "dist/jspython-interpreter.min.js",
+  "module": "dist/jspython-interpreter.esm.js",
+  "typings": "dist/interpreter.d.ts",
   "files": [
-    "lib"
+    "dist"
   ],
   "scripts": {
     "test": "jest",
     "test:dev": "jest --watch",
     "test:dev:debug": "node --inspect-brk node_modules/.bin/jest --runInBand --watch",
-    "build": "npx rollup -c && npm pack",
+    "build": "npx rollup -c",
+    "build:publish": "npx rollup -c && npm publish",
     "dev": "npx rollup --config rollup.config.dev.js --watch"
   },
   "repository": {
@@ -28,27 +29,24 @@
   "author": {
     "name": "Pavlo Paska - ppaska@falconsoft-ltd.com"
   },
-  "license": "MIT",
+  "license": "BSD 3-Clause",
   "bugs": {
     "url": "https://github.com/jspython-dev/jspython/issues"
   },
-  "homepage": "https://github.com/jspython-dev/jspython#readme",
-  "dependencies": {
-    "@types/json5": "0.0.30",
-    "json5": "^2.1.1"
-  },
+  "homepage": "https://jspython.dev",
+  "dependencies": {},
   "devDependencies": {
-    "@types/jest": "^24.0.22",
-    "ace-builds": "^1.4.7",
-    "jest": "^24.9.0",
-    "rollup": "^1.26.3",
-    "rollup-plugin-copy": "^3.1.0",
-    "rollup-plugin-livereload": "^1.0.4",
-    "rollup-plugin-serve": "^1.0.1",
-    "rollup-plugin-typescript2": "^0.25.2",
-    "rollup-plugin-uglify": "^6.0.3",
-    "ts-jest": "^24.1.0",
-    "tslib": "^1.10.0",
-    "typescript": "^3.7.2"
+    "@types/jest": "^26.0.15",
+    "ace-builds": "^1.4.12",
+    "jest": "^26.6.3",
+    "rollup": "^2.33.3",
+    "rollup-plugin-copy": "^3.3.0",
+    "rollup-plugin-livereload": "^2.0.0",
+    "rollup-plugin-serve": "^1.1.0",
+    "rollup-plugin-typescript2": "^0.29.0",
+    "rollup-plugin-uglify": "^6.0.4",
+    "ts-jest": "^26.4.4",
+    "tslib": "^2.0.3",
+    "typescript": "^4.1.2"
   }
 }

@@ -2,10 +2,9 @@
 
 <head>
   <title>JSPython dev</title>
-  <script src="./node_modules/json5/dist/index.min.js"></script>
   <script src="./node_modules/ace-builds/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
-  <script src="./lib/jspython.js"></script>
-  <script src="./lib/assets/mode-jspython.js"></script>
+  <script src="./dist/jspython-interpreter.js"></script>
+  <script src="./dist/assets/mode-jspython.js"></script>
   <style>
     .container {
       height: 100%;
@@ -27,13 +26,12 @@
 
 <body>
   <div class="container">
-    <h4>PScript development console</h4>
+    <h4>JSPython development console</h4>
     <div id="editor">
-x = [1,2,3,4,5,6,7,8,9]
-x
-  .filter(i => i > 5)
-  .join(",")
-    </div>
+[
+  [12, 42]
+  [22, 88]
+]</div>
     <button onclick="runInterpreter()">Run</button>
     <textarea id="result"></textarea>
   </div>
@@ -43,17 +41,15 @@ x
     editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/python");
 
-    const jsPython = JSPython.jsPython;
+    const jsPython = jspython.jsPython;
 
     async function runInterpreter() {
 
       const scripts = editor.getValue();
       try {
         const result = await jsPython()
-          .addFunction('returnsPromise', a1 => new Promise((s, f) => { setTimeout(() => s(a1), 10) }))
-          .addFunction('nullValue', () => { console.log(' ** invoked!!!'); return null })
-          .evaluate(scripts);
-        document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result) : result
+          .evaluate(scripts, {str: "shdsd sd,sd d s ds d"});
+        document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
         console.log('Result => ', result);
       } catch (err) {
         document.getElementById('result').value = err;
