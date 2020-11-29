@@ -13,7 +13,8 @@
       margin: 10px auto;
     }
 
-    #editor,#result {
+    #editor,
+    #result {
       height: 40%;
       display: block;
       min-height: 20%;
@@ -27,11 +28,10 @@
 <body>
   <div class="container">
     <h4>JSPython development console</h4>
-    <div id="editor">
-[
-  [12, 42]
-  [22, 88]
-]</div>
+    <div id="editor">a = 1
+b = a+2*3
+    </div>
+    <button onclick="parse()">Parse</button>
     <button onclick="runInterpreter()">Run</button>
     <textarea id="result"></textarea>
   </div>
@@ -43,12 +43,13 @@
 
     const jsPython = jspython.jsPython;
 
-    async function runInterpreter() {
+    async function parse() {
 
       const scripts = editor.getValue();
       try {
         const result = await jsPython()
-          .evaluate(scripts, {str: "shdsd sd,sd d s ds d"});
+          .parse(scripts);
+
         document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
         console.log('Result => ', result);
       } catch (err) {
@@ -56,6 +57,22 @@
         console.error(err);
       }
     }
+
+    async function runInterpreter() {
+
+      const scripts = editor.getValue();
+      try {
+        const result = await jsPython()
+          .parse(scripts);
+
+        document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
+        console.log('Result => ', result);
+      } catch (err) {
+        document.getElementById('result').value = err;
+        console.error(err);
+      }
+    }
+
   </script>
 </body>
 

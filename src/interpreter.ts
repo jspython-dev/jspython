@@ -1,47 +1,33 @@
+import { Ast } from './common';
+import { Evaluator } from './evaluator';
+import { Parser } from './parser';
+import { Tokenizer } from './tokenizer';
 
-function range(start: number, stop: number = NaN, step: number = 1): number[] {
-    const arr: number[] = [];
-    const isStopNaN = isNaN(stop);
-    stop = isStopNaN ? start : stop;
-    start = isStopNaN ? 0 : start;
-    let i = start;
-    while (i < stop) {
-        arr.push(i);
-        i += step;
-    }
-    return arr;
-}
-
-const INITIAL_SCOPE = {
-    jsPython(): string {
-        return [`JSPython v2.0.1`, "(c) FalconSoft Ltd"].join('\n')
-    },
-    dateTime: (str: number | string | any = null) => (str && str.length)
-        ? new Date(str) || new Date() : new Date(),
-    range: range,
-    print: (...args: any[]) => { console.log(...args); return args.length > 0 ? args[0] : null; },
-    deleteProperty: (obj: any, propName: string): boolean => delete obj[propName],
-    Math: Math,
-    Object: Object,
-    Array: Array,
-    JSON: JSON,
-    printExecutionContext: () => {}, // will be overriden at runtime
-    getExecutionContext: () => {} // will be overriden at runtime
-};
 
 export function jsPython(): Interpreter {
     return Interpreter.create();
 }
 
 export class Interpreter {
+    private readonly evaluator: Evaluator;
+    constructor() {
+        this.evaluator = new Evaluator();
+    }
     static create(): Interpreter {
         return new Interpreter();
     }
 
-    async evaluate(script: string, context: object = {}, entryFunctionName: string = ''): Promise<any> {
-        if (!script || !script.length) { return null; }
+    parse(script: string): Ast {
+        const tokenizer = new Tokenizer();
+        const parser = new Parser();
+        const jspyAst = parser.parse(tokenizer.tokenize(script));
+        return jspyAst;
+    }
 
-        return -1;
+    async evaluate(codeOrAst: string | Ast, context: Record<string, unknown> = {}, entryFunctionName = ''): Promise<unknown> {
+        const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string) : codeOrAst as Ast;
+        const result = await this.evaluator.eval(ast)
+        return result;
     }
 
 

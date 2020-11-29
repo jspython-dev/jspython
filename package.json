@@ -20,7 +20,9 @@
     "test:dev:debug": "node --inspect-brk node_modules/.bin/jest --runInBand --watch",
     "build": "npx rollup -c",
     "build:publish": "npx rollup -c && npm publish",
-    "dev": "npx rollup --config rollup.config.dev.js --watch"
+    "dev": "npx rollup --config rollup.config.dev.js --watch",
+    "lint": "npx eslint . --ext .ts",
+    "lint-fix": "eslint . --ext .ts --fix"
   },
   "repository": {
     "type": "git",
@@ -37,7 +39,10 @@
   "dependencies": {},
   "devDependencies": {
     "@types/jest": "^26.0.15",
+    "@typescript-eslint/eslint-plugin": "^4.8.2",
+    "@typescript-eslint/parser": "^4.8.2",
     "ace-builds": "^1.4.12",
+    "eslint": "^7.14.0",
     "jest": "^26.6.3",
     "rollup": "^2.33.3",
     "rollup-plugin-copy": "^3.3.0",
