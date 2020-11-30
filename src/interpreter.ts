@@ -1,4 +1,4 @@
-import { Ast } from './common';
+import { Ast, Token } from './common';
 import { Evaluator } from './evaluator';
 import { Parser } from './parser';
 import { Tokenizer } from './tokenizer';
@@ -15,6 +15,11 @@ export class Interpreter {
     }
     static create(): Interpreter {
         return new Interpreter();
+    }
+
+    tokenize(script: string): Token[] {
+        const tokenizer = new Tokenizer();
+        return tokenizer.tokenize(script);
     }
 
     parse(script: string): Ast {

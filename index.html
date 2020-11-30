@@ -29,8 +29,9 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">a = 1
-b = a+2*3
+      b = a+2*3
     </div>
+    <button onclick="tokenize()">Tokenize</button>
     <button onclick="parse()">Parse</button>
     <button onclick="runInterpreter()">Run</button>
     <textarea id="result"></textarea>
@@ -42,6 +43,23 @@ b = a+2*3
     editor.session.setMode("ace/mode/python");
 
     const jsPython = jspython.jsPython;
+    function tokenize() {
+      tokenizer = (s) =>  console.log(`tokens => ${s}`, jsPython().tokenize(s))
+
+      tokenizer("x='hello' + ' ' + 'world'")
+
+      const scripts = editor.getValue();
+      try {
+        const result = jsPython()
+          .tokenize(scripts).map(t => t[0]);
+
+        document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
+        console.log('Result => ', result);
+      } catch (err) {
+        document.getElementById('result').value = err;
+        console.error(err);
+      }
+    }
 
     async function parse() {
 
