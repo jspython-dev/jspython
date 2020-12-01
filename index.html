@@ -28,8 +28,7 @@
 <body>
   <div class="container">
     <h4>JSPython development console</h4>
-    <div id="editor">a = 1
-      b = a+2*3
+    <div id="editor">x=3.14
     </div>
     <button onclick="tokenize()">Tokenize</button>
     <button onclick="parse()">Parse</button>
@@ -46,7 +45,7 @@
     function tokenize() {
       tokenizer = (s) =>  console.log(`tokens => ${s}`, jsPython().tokenize(s))
 
-      tokenizer("x='hello' + ' ' + 'world'")
+      // tokenizer("x='hello' + ' ' + 'world'")
 
       const scripts = editor.getValue();
       try {

@@ -2,9 +2,6 @@ import { Tokenizer } from "./tokenizer";
 
 describe('Tokenizer => ', () => {
 
-
-  beforeEach(() => {});
-
   it('a + b + 55', async () => {
     let tokens = new Tokenizer().tokenize("a + b + 55")
     expect(tokens.length).toBe(5);
@@ -71,23 +68,71 @@ describe('Tokenizer => ', () => {
   });
 
   it('x=""', async () => {
-    let tokens = new Tokenizer().tokenize('x=""')
+    const tokens = new Tokenizer().tokenize('x=""')
     expect(tokens.length).toBe(3);
     expect(tokens[2][0]).toBe('');
   });
 
   it('x="" # this is comment', async () => {
-    let tokens = new Tokenizer().tokenize('x="" # this is comment')
+    const tokens = new Tokenizer().tokenize('x="" # this is comment')
     expect(tokens.length).toBe(4);
     expect(tokens[3][0]).toBe(' this is comment');
   });
 
   it('x= # this is comment \n 5+6', async () => {
-    let tokens = new Tokenizer().tokenize('x= # this is comment \n 5+6')
+    const tokens = new Tokenizer().tokenize('x= # this is comment \n 5+6')
     expect(tokens.length).toBe(6);
     expect(tokens[4][0]).toBe('+');
   });
 
+  it('x = 3.14', async () => {
+    const tokens = new Tokenizer().tokenize('x = 3.14')
+    expect(tokens.length).toBe(3);
+    expect(tokens[0][0]).toBe('x');
+    expect(tokens[1][0]).toBe('=');
+    expect(tokens[2][0]).toBe(3.14);
+  });
 
+  it('x = 3.23*3.14', async () => {
+    const tokens = new Tokenizer().tokenize('x = 3.23*3.14')
+    expect(tokens.length).toBe(5);
+    expect(tokens[2][0]).toBe(3.23);
+    expect(tokens[3][0]).toBe('*');
+    expect(tokens[4][0]).toBe(3.14);
+  });
+
+/*
+  it('3 - -2', async () => {
+    let tokens = new Tokenizer().tokenize('3 - -2')
+    expect(tokens.length).toBe(3);
+    expect(tokens[0][0]).toBe('3');
+    expect(tokens[1][0]).toBe('-');
+    expect(tokens[2][0]).toBe('-2');
+  });
+
+  it('3-2', async () => {
+    let tokens = new Tokenizer().tokenize('3-2')
+    expect(tokens.length).toBe(3);
+    expect(tokens[0][0]).toBe('3');
+    expect(tokens[1][0]).toBe('-');
+    expect(tokens[2][0]).toBe('2');
+  });
+
+  it('-3+2', async () => {
+    let tokens = new Tokenizer().tokenize('-3+2')
+    expect(tokens.length).toBe(3);
+    expect(tokens[0][0]).toBe('-3');
+    expect(tokens[1][0]).toBe('+');
+    expect(tokens[2][0]).toBe('2');
+  });
+
+  it('-3.14+2', async () => {
+    let tokens = new Tokenizer().tokenize('-3.14+2')
+    expect(tokens.length).toBe(3);
+    expect(tokens[0][0]).toBe('-3.14');
+    expect(tokens[1][0]).toBe('+');
+    expect(tokens[2][0]).toBe('2');
+  });
+*/
   
 });
