@@ -101,6 +101,19 @@ describe('Tokenizer => ', () => {
     expect(tokens[4][0]).toBe(3.14);
   });
 
+  it('"""test 1"""', async () => {
+    const tokens = new Tokenizer().tokenize('"""test 1"""')
+    expect(tokens.length).toBe(1);
+    expect(tokens[0][0]).toBe('test 1');
+  });
+
+  it('x="""test 1"""+"d"', async () => {
+    const tokens = new Tokenizer().tokenize('x="""test 1"""+"d"')
+    expect(tokens.length).toBe(5);
+    expect(tokens[2][0]).toBe('test 1');
+    expect(tokens[4][0]).toBe('d');
+  });
+
 /*
   it('3 - -2', async () => {
     let tokens = new Tokenizer().tokenize('3 - -2')

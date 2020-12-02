@@ -13,8 +13,8 @@
       margin: 10px auto;
     }
 
-    #editor,
-    #result {
+    #editor,    
+    #resultEditor {
       height: 40%;
       display: block;
       min-height: 20%;
@@ -28,12 +28,14 @@
 <body>
   <div class="container">
     <h4>JSPython development console</h4>
-    <div id="editor">x=3.14
+    <div id="editor">x=3.1433
     </div>
     <button onclick="tokenize()">Tokenize</button>
     <button onclick="parse()">Parse</button>
     <button onclick="runInterpreter()">Run</button>
-    <textarea id="result"></textarea>
+    <div id="resultEditor">    </div>
+
+    <!-- <textarea id="result"></textarea> -->
   </div>
   <script>
 
@@ -41,6 +43,10 @@
     editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/python");
 
+    const resultEditor = ace.edit("resultEditor");
+    resultEditor.setTheme("ace/theme/monokai");
+    resultEditor.session.setMode("ace/mode/json");
+    
     const jsPython = jspython.jsPython;
     function tokenize() {
       tokenizer = (s) =>  console.log(`tokens => ${s}`, jsPython().tokenize(s))
@@ -50,13 +56,16 @@
       const scripts = editor.getValue();
       try {
         const result = jsPython()
-          .tokenize(scripts).map(t => t[0]);
+          .tokenize(scripts)
+          .map(t => `${t[1]} : '${t[0]}'`)
+          .join('\n');
 
-        document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
-        console.log('Result => ', result);
+        // document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
+        const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result;
+        resultEditor.getSession().setValue(data)
       } catch (err) {
-        document.getElementById('result').value = err;
         console.error(err);
+        document.getElementById('result').value = err;
       }
     }
 
@@ -70,8 +79,8 @@
         document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
         console.log('Result => ', result);
       } catch (err) {
-        document.getElementById('result').value = err;
         console.error(err);
+        document.getElementById('result').value = err;
       }
     }
 
@@ -85,8 +94,8 @@
         document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
         console.log('Result => ', result);
       } catch (err) {
-        document.getElementById('result').value = err;
         console.error(err);
+        document.getElementById('result').value = err;
       }
     }
 

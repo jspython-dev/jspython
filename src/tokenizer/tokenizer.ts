@@ -1,6 +1,7 @@
 import { Token, TokenTypes } from '../common';
 
 const SeparatorsMap: Record<string, string[]> = {
+    '\n': ['\n'],
     '=': ['=', '==', '=>'],
 
     '+': ['+', '++', '+='],
@@ -57,7 +58,7 @@ export class Tokenizer {
     }
     private processToken(strToken: string, tokens: Token[], allowEmptyString = false, type: TokenTypes | null = null): string {
         // ignore empty tokens
-        if (!strToken.length && !allowEmptyString) return "";
+        if (!strToken.length && !allowEmptyString || strToken === '\n') return "";
 
         const token = this.recognizeToken(strToken, type);
         tokens.push([token.value, Uint16Array.of(token.type as number, 0, 0, 0, 0)] as Token)
@@ -90,7 +91,7 @@ export class Tokenizer {
     }
 
     private isPartOfNumber(symbol: string, token: string, cursor: number): boolean {
-
+        // '-' needs to be handled e.g. -3; 2 + -2 etc
         // if(token.length == 0 && symbol === '-') {
         //     return true;
         // }
@@ -106,23 +107,21 @@ export class Tokenizer {
     tokenize(script: string): Token[] {
         if (!script || !script.length) { return []; }
 
+        script = script
+            .replace(new RegExp('\t', 'g'), '  ') // replace all tabs with 2 spaces
+            .replace(new RegExp('\r', 'g'), ''); // remove all \r symbols
+
         let cursor = 0;
         const tokens: Token[] = [];
         let tokenText = "";
-        let currentLine = 1;
-        let currentColumn = 1;
 
         do {
             const symbol = script[cursor]
-            currentColumn++;
-            if (symbol == '\n') {
-                currentLine++;
-                currentColumn = 1;
-                continue;
-            } else if (symbol == ' ' && tokenText.length !== 0) {
+
+            if (symbol == ' ' && tokenText.length !== 0) {
                 tokenText = this.processToken(tokenText, tokens);
                 continue;
-            } else if (SeparatorsMap[symbol] && !this.isPartOfNumber(symbol, tokenText, cursor)) {
+            } else if ((SeparatorsMap[symbol]) && !this.isPartOfNumber(symbol, tokenText, cursor)) {
                 // handle numbers with floating point e.g. 3.14
                 tokenText = this.processToken(tokenText, tokens);
                 tokenText = symbol;
@@ -152,9 +151,22 @@ export class Tokenizer {
                 // it should pass a failt to parser
                 tokenText = this.processToken(tokenText, tokens);
 
-                while (script[++cursor] !== q) {
-                    tokenText += script[cursor];
-                    if (cursor + 1 >= script.length) break;
+                // handle """ comment """"
+                if (script[cursor + 1] === q && script[cursor + 2] === q) {
+                    cursor += 2;
+                    while (true) {
+                        tokenText += script[++cursor];
+                        if (cursor + 3 >= script.length
+                            || (script[cursor + 1] === q && script[cursor + 2] === q && script[cursor + 3] === q)) {
+                            break;
+                        }
+                    }
+                    cursor += 3;
+                } else {
+                    while (script[++cursor] !== q) {
+                        tokenText += script[cursor];
+                        if (cursor + 1 >= script.length) break;
+                    }
                 }
                 tokenText = this.processToken(tokenText, tokens, true, TokenTypes.LiteralString);
             } else if (symbol != ' ') {
