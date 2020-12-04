@@ -13,7 +13,7 @@
       margin: 10px auto;
     }
 
-    #editor,    
+    #editor,
     #resultEditor {
       height: 40%;
       display: block;
@@ -28,12 +28,11 @@
 <body>
   <div class="container">
     <h4>JSPython development console</h4>
-    <div id="editor">x=3.1433
-    </div>
+    <div id="editor">1 + 2 * 3</div>
     <button onclick="tokenize()">Tokenize</button>
     <button onclick="parse()">Parse</button>
     <button onclick="runInterpreter()">Run</button>
-    <div id="resultEditor">    </div>
+    <div id="resultEditor"> </div>
 
     <!-- <textarea id="result"></textarea> -->
   </div>
@@ -46,10 +45,10 @@
     const resultEditor = ace.edit("resultEditor");
     resultEditor.setTheme("ace/theme/monokai");
     resultEditor.session.setMode("ace/mode/json");
-    
+
     const jsPython = jspython.jsPython;
     function tokenize() {
-      tokenizer = (s) =>  console.log(`tokens => ${s}`, jsPython().tokenize(s))
+      tokenizer = (s) => console.log(`tokens => ${s}`, jsPython().tokenize(s))
 
       // tokenizer("x='hello' + ' ' + 'world'")
 
@@ -60,7 +59,6 @@
           .map(t => `${t[1]} : '${t[0]}'`)
           .join('\n');
 
-        // document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result;
         resultEditor.getSession().setValue(data)
       } catch (err) {
@@ -76,8 +74,8 @@
         const result = await jsPython()
           .parse(scripts);
 
-        document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
-        console.log('Result => ', result);
+        const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result;
+        resultEditor.getSession().setValue(data)
       } catch (err) {
         console.error(err);
         document.getElementById('result').value = err;
@@ -91,8 +89,8 @@
         const result = await jsPython()
           .parse(scripts);
 
-        document.getElementById('result').value = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result
-        console.log('Result => ', result);
+        const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result;
+        resultEditor.getSession().setValue(data)
       } catch (err) {
         console.error(err);
         document.getElementById('result').value = err;

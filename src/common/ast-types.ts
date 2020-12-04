@@ -1,3 +1,5 @@
+import { OperationTypes, Operators } from "./operators";
+import { Token } from "./token-types";
 
 export abstract class AstNode {
     loc: Uint16Array | undefined = undefined;
@@ -6,7 +8,7 @@ export abstract class AstNode {
     ) { }
 }
 
-export class Assign extends AstNode {
+export class AssignNode extends AstNode {
     constructor(
         public target: AstNode,
         public source: AstNode) {
@@ -15,14 +17,20 @@ export class Assign extends AstNode {
 }
 
 export class ConstNode extends AstNode {
-    constructor(public value: number | string | boolean) {
+    public value: number | string | boolean | null;
+
+    constructor(token: Token) {
         super('const');
+        this.value = token[0];
+        //this.loc = token[1].subarray(1);
     }
 }
 
 export class SingleVarNode extends AstNode {
-    constructor(public name: string) {
+    public name: string;
+    constructor(token: Token) {
         super('singleVar');
+        this.name = token[0] as string
     }
 }
 
@@ -32,11 +40,10 @@ export class ChainVarVarNode extends AstNode {
     }
 }
 
-
-export class BinOp extends AstNode {
+export class BinOpNode extends AstNode {
     constructor(
         public left: AstNode,
-        public op: 'add' | 'sub' | 'mult' | 'div',
+        public op: Operators,
         public right: AstNode) {
         super('binOp');
     }
