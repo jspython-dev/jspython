@@ -28,7 +28,7 @@
 <body>
   <div class="container">
     <h4>JSPython development console</h4>
-    <div id="editor">1 + 2 * 3</div>
+    <div id="editor">1 + 2 + 3</div>
     <button onclick="tokenize()">Tokenize</button>
     <button onclick="parse()">Parse</button>
     <button onclick="runInterpreter()">Run</button>
@@ -87,9 +87,9 @@
       const scripts = editor.getValue();
       try {
         const result = await jsPython()
-          .parse(scripts);
+          .evaluate(scripts);
 
-        const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result;
+        const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : String(result);
         resultEditor.getSession().setValue(data)
       } catch (err) {
         console.error(err);

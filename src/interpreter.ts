@@ -35,5 +35,4 @@ export class Interpreter {
         return result;
     }
 
-
 }
