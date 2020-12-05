@@ -28,7 +28,7 @@
 <body>
   <div class="container">
     <h4>JSPython development console</h4>
-    <div id="editor">1 + 2 + 3</div>
+    <div id="editor">2+3-4</div>
     <button onclick="tokenize()">Tokenize</button>
     <button onclick="parse()">Parse</button>
     <button onclick="runInterpreter()">Run</button>
@@ -50,20 +50,18 @@
     function tokenize() {
       tokenizer = (s) => console.log(`tokens => ${s}`, jsPython().tokenize(s))
 
-      // tokenizer("x='hello' + ' ' + 'world'")
-
       const scripts = editor.getValue();
       try {
         const result = jsPython()
           .tokenize(scripts)
-          .map(t => `${t[1]} : '${t[0]}'`)
+          .map((t, i) => `${i} : '${t[0]}'`)
           .join('\n');
 
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result;
         resultEditor.getSession().setValue(data)
       } catch (err) {
         console.error(err);
-        document.getElementById('result').value = err;
+        resultEditor.getSession().setValue('Error:\n' + String(err))
       }
     }
 
@@ -78,7 +76,7 @@
         resultEditor.getSession().setValue(data)
       } catch (err) {
         console.error(err);
-        document.getElementById('result').value = err;
+        resultEditor.getSession().setValue('Error:\n' + String(err))
       }
     }
 
@@ -93,7 +91,7 @@
         resultEditor.getSession().setValue(data)
       } catch (err) {
         console.error(err);
-        document.getElementById('result').value = err;
+        resultEditor.getSession().setValue('Error:\n' + String(err))
       }
     }
 
