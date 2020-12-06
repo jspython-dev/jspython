@@ -4,7 +4,11 @@ import { Token } from "./token-types";
 export abstract class AstNode {
     loc: Uint16Array | undefined = undefined;
     constructor(
-        public type: 'assign' | 'binOp' | 'const' | 'singleVar' | 'chainingCalls' | 'funcCall' | 'funcDef' | 'if' | 'while' | 'try_catch'
+        public type:
+            'assign' | 'binOp' | 'const'
+            | 'getSingleVar' | 'setSingleVar' | 'chainingCalls'
+            | 'funcCall' | 'funcDef'
+            | 'if' | 'while' | 'tryCatch'
     ) { }
 }
 
@@ -26,10 +30,27 @@ export class ConstNode extends AstNode {
     }
 }
 
-export class SingleVarNode extends AstNode {
+export class SetSingleVarNode extends AstNode {
     public name: string;
     constructor(token: Token) {
-        super('singleVar');
+        super('setSingleVar');
+        this.name = token[0] as string
+    }
+}
+
+export class FunctionCallNode extends AstNode {
+    public name: string;
+    public paramNodes: AstNode[] | null = null;
+    constructor(tokens: Token[]) {
+        super('funcCall');
+        this.name = tokens[0][0] as string
+    }
+}
+
+export class GetSingleVarNode extends AstNode {
+    public name: string;
+    constructor(token: Token) {
+        super('getSingleVar');
         this.name = token[0] as string
     }
 }

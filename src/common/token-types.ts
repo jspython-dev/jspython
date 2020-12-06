@@ -25,3 +25,15 @@ export enum TokenTypes
  * tokenType
  */
 export type Token = [string | number | boolean | null, Uint16Array]
+
+export function getTokenType(token: Token): TokenTypes {
+    return token[1][0] as TokenTypes;
+}
+
+export function getTokenValue(token: Token): string | number | boolean | null {
+    return token[0];
+}
+
+export function getTokenLoc(token: Token): Uint16Array {
+    return token[1].subarray(1);
+}

@@ -24,14 +24,14 @@ describe('Parser => ', () => {
     expect((binOp.right as ConstNode).value).toBe(3);
   });
 
-  it('x=1+2', async () => {
-    let ast = new Parser().parse(new Tokenizer().tokenize("x=1+2"))
-    expect(ast.body.length).toBe(1);
-    expect(ast.body[0].type).toBe("assign");
-    const binOp = (ast.body[0] as AssignNode).source as BinOpNode
-    expect((binOp.left as ConstNode).value).toBe(1);
-    expect(binOp.op).toBe('+');
-    expect((binOp.right as ConstNode).value).toBe(2);
-  });
+  // it('x=1+2', async () => {
+  //   let ast = new Parser().parse(new Tokenizer().tokenize("x=1+2"))
+  //   expect(ast.body.length).toBe(1);
+  //   expect(ast.body[0].type).toBe("assign");
+  //   const binOp = (ast.body[0] as AssignNode).source as BinOpNode
+  //   expect((binOp.left as ConstNode).value).toBe(1);
+  //   expect(binOp.op).toBe('+');
+  //   expect((binOp.right as ConstNode).value).toBe(2);
+  // });
   
 });

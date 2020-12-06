@@ -29,9 +29,9 @@ export class Interpreter {
         return jspyAst;
     }
 
-    async evaluate(codeOrAst: string | Ast, context: Record<string, unknown> = {}, entryFunctionName = ''): Promise<unknown> {
+    async evaluate(codeOrAst: string | Ast, scope: Record<string, unknown> = {}, entryFunctionName = ''): Promise<unknown> {
         const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string) : codeOrAst as Ast;
-        const result = await this.evaluator.eval(ast)
+        const result = await this.evaluator.eval(ast, scope)
         return result;
     }
 
