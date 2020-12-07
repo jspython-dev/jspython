@@ -1,7 +1,7 @@
 import {
     BinOpNode, ConstNode, Ast, Token, ParserOptions, AstNode,
     OperatorsMap, OperationTypes, Operators, AssignNode,
-    TokenTypes, SetSingleVarNode, GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue
+    TokenTypes, SetSingleVarNode, GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral
 } from '../common';
 
 export class Parser {
@@ -24,7 +24,7 @@ export class Parser {
             const target = new SetSingleVarNode(tokens[0]);
             const source = this.createNode(tokens);
             node = new AssignNode(target, source);
-        } else {            
+        } else {
             node = this.createNode(tokens)
         }
 
@@ -61,10 +61,7 @@ export class Parser {
         if (tokens.length === 1) {
             const tokenType = getTokenType(firstToken);
 
-            if (tokenType === TokenTypes.LiteralString
-                || tokenType === TokenTypes.LiteralNumber
-                || tokenType === TokenTypes.LiteralBool
-                || tokenType === TokenTypes.LiteralNull) {
+            if (isTokenTypeLiteral(tokenType)) {
                 return new ConstNode(firstToken);
             } else if (tokenType === TokenTypes.Identifier) {
                 return new GetSingleVarNode(firstToken);
@@ -91,24 +88,43 @@ export class Parser {
         }
 
         var prevNode: AstNode | null;
+        var rightNode: AstNode | null = null;
         for (let i = 0; i < ops.length; i++) {
             const opIndex = ops[i];
             const op = getTokenValue(tokens[opIndex]) as Operators;
             const nextOpIndex = i + 1 < ops.length ? ops[i + 1] : null;
-            
-            // this code needs more revisions
-            // const nextOp = nextOpIndex !== null ? getTokenValue(tokens[nextOpIndex]) : null;
-            // if (nextOpIndex !== null && (nextOp === '*' || nextOp === '/')) {
-            //     const nextOpIndex2 = i + 2 < ops.length ? ops[i + 2] : null;
 
-            //     const left = prevNode || this.createNode(slice(tokens, opIndex + 1, nextOpIndex), prevNode);
-            //     const right = this.createNode(slice(tokens, nextOpIndex + 1, nextOpIndex2 || tokens.length));
-            //     prevNode = new BinOpNode(left, op, right);
-            // } else 
-            {
-                const left = prevNode || this.createNode(slice(tokens, 0, opIndex), prevNode);
-                const right = this.createNode(slice(tokens, opIndex + 1, nextOpIndex || tokens.length));
+            // this code needs more revisions
+            const nextOp = nextOpIndex !== null ? getTokenValue(tokens[nextOpIndex]) : null;
+            if (nextOpIndex !== null && (nextOp === '*' || nextOp === '/')) {
+                // do
+                // {
+                    const nextOpIndex2 = i + 2 < ops.length ? ops[i + 2] : null;
+
+                    const leftSlice2 = slice(tokens, opIndex + 1, nextOpIndex);
+                    const rightSlice2 = slice(tokens, nextOpIndex + 1, nextOpIndex2 || tokens.length);
+
+                    const left2 = this.createNode(leftSlice2, prevNode);
+                    const right2 = this.createNode(rightSlice2);
+                    rightNode = new BinOpNode(left2, nextOp, right2);
+
+                    if (prevNode === null){
+                        const leftSlice = prevNode ? [] : slice(tokens, 0, opIndex);
+                        prevNode = this.createNode(leftSlice, prevNode);
+                    }
+                    prevNode = new BinOpNode(prevNode, op, rightNode)
+                    i++;
+
+
+                // }
+                // while(op[i+2] !== )
+            } else {
+                const leftSlice = prevNode ? [] : slice(tokens, 0, opIndex);
+                const rightSlice = slice(tokens, opIndex + 1, nextOpIndex || tokens.length);
+                const left = prevNode || this.createNode(leftSlice, prevNode);
+                const right = this.createNode(rightSlice);
                 prevNode = new BinOpNode(left, op, right);
+
             }
         }
 

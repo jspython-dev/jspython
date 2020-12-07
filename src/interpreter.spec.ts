@@ -37,12 +37,23 @@ describe('Interpreter', () => {
     expect(await e.evaluate("2*(3+4)+5")).toBe(19);
   });
 
-  // it doesn't work yet
-  // it('1+2*3', async () => {
-  //   expect(await e.evaluate("1+2*3")).toBe(7);
-  //   expect(await e.evaluate("1+2*3+4")).toBe(11);
-  //   expect(await e.evaluate("1+2*3+4*5")).toBe(27);
-  // expect(await e.evaluate("2*(3+4)+5*6")).toBe(44);
-  // });
+  it('1+2*3', async () => {
+    expect(await e.evaluate("1 + 2 * 3")).toBe(1 + 2 * 3);
+    expect(await e.evaluate("1 + 2 * 3 + 4")).toBe(1 + 2 * 3 + 4);
+  });
+
+
+  it('2 * 3 + 4 * 5', async () => {
+    expect(await e.evaluate("(1 + 2) + (3 + 4) * (5*6)")).toBe((1 + 2) + (3 + 4) * (5 * 6));
+    expect(await e.evaluate("(1 + 2) + (3 + 4) * 5")).toBe((1 + 2) + (3 + 4) * 5);
+    expect(await e.evaluate("2*3+4*5")).toBe(2 * 3 + 4 * 5);
+    expect(await e.evaluate("2*(3+4)+5*6")).toBe(2 * (3 + 4) + 5 * 6);
+  });
+
+  // it doesn't work yet  
+  it('2 * 3 + 4 * 5', async () => {
+    // expect(await e.evaluate("1+2*1/4")).toBe(1 + 2 * 1 / 4)
+    //expect(await e.evaluate("12 * 5 – (5 * (32 + 4)) + 3")).toBe(12 * 5 –(5 * (32 + 4)) + 3);
+  });
 
 });

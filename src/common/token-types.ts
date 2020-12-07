@@ -1,5 +1,4 @@
-export enum TokenTypes
-{
+export enum TokenTypes {
     Identifier = 0,
     Keyword = 1,
     Separator = 2,
@@ -25,6 +24,13 @@ export enum TokenTypes
  * tokenType
  */
 export type Token = [string | number | boolean | null, Uint16Array]
+
+export function isTokenTypeLiteral(tokenType: TokenTypes): boolean {
+    return tokenType === TokenTypes.LiteralString
+        || tokenType === TokenTypes.LiteralNumber
+        || tokenType === TokenTypes.LiteralBool
+        || tokenType === TokenTypes.LiteralNull;
+}
 
 export function getTokenType(token: Token): TokenTypes {
     return token[1][0] as TokenTypes;
