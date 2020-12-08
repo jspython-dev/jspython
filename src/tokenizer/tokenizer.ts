@@ -29,6 +29,124 @@ const SeparatorsMap: Record<string, string[]> = {
 const Keywords: string[] = ["async", "def", "for", "while", "if", "return", "in"];
 
 export class Tokenizer {
+    private _startLine: number = 1
+    private _startColumn: number = 1
+    private _currentLine: number = 1
+    private _currentColumn: number = 1
+    private _tokenText = '';
+    private _cursor = 0;
+    private _script = "";
+
+    private get tokenText(): string {
+        return this._tokenText;
+    }
+    private set tokenText(value: string) {
+        if (!this._tokenText && value) {
+            this._startLine = this._currentLine;
+            this._startColumn = this._currentColumn;
+        }
+        this._tokenText = value;
+    }
+
+    /**
+     * Splits script code into a tokens
+     * @param script A jsPython text
+     */
+    tokenize(script: string): Token[] {
+        if (!script || !script.length) { return []; }
+
+        script = script
+            .replace(new RegExp('\t', 'g'), '  ') // replace all tabs with 2 spaces
+            .replace(new RegExp('\r', 'g'), ''); // remove all \r symbols
+        this._script = script;
+
+        this._cursor = 0;
+        this._startLine = 1;
+        this._startColumn = 1;
+        this._currentLine = 1;
+        this._currentColumn = 1;
+
+        const tokens: Token[] = [];
+
+        do {
+            const symbol = script[this._cursor];
+
+            if (symbol == ' ' && this.tokenText.length !== 0) {
+                this.tokenText = this.processToken(this.tokenText, tokens);
+                continue;
+            } else if ((SeparatorsMap[symbol]) && !this.isPartOfNumber(symbol, this.tokenText, this._cursor)) {
+                // handle numbers with floating point e.g. 3.14
+                this.tokenText = this.processToken(this.tokenText, tokens);
+                this.tokenText = symbol;
+
+                const sepsMap = SeparatorsMap[symbol];
+
+                if (sepsMap.length > 1) {
+                    // process longer operators
+                    while (sepsMap.includes(this.tokenText + script[this._cursor + 1])) {
+                        this.tokenText += script[this.incrementCursor()];
+                    }
+                }
+                this.tokenText = this.processToken(this.tokenText, tokens, false, TokenTypes.Operator);
+
+            } else if (symbol === '#') {
+
+                while (script[this.incrementCursor()] !== '\n') {
+                    this.tokenText += script[this._cursor];
+                    if (this._cursor + 1 >= script.length) break;
+                }
+                this.tokenText = this.processToken(this.tokenText, tokens, true, TokenTypes.Comment);
+
+            } else if (symbol === '"' || symbol === "'") {
+                // remember either it is single or double quote
+                const q = symbol;
+                // we are not expecting token to be added here.
+                // it should pass a failt to parser
+                this.tokenText = this.processToken(this.tokenText, tokens);
+
+                // handle """ comment """"
+                if (script[this._cursor + 1] === q && script[this._cursor + 2] === q) {
+                    this.incrementCursor(2);
+                    while (true) {
+                        this.tokenText += script[this.incrementCursor()];
+                        if (this._cursor + 3 >= script.length
+                            || (script[this._cursor + 1] === q && script[this._cursor + 2] === q && script[this._cursor + 3] === q)) {
+                            break;
+                        }
+                    }
+                    this.incrementCursor(3);
+                } else {
+                    while (script[this.incrementCursor()] !== q) {
+                        this.tokenText += script[this._cursor];
+                        if (this._cursor + 1 >= script.length) break;
+                    }
+                }
+                this.tokenText = this.processToken(this.tokenText, tokens, true, TokenTypes.LiteralString);
+            } else if (symbol != ' ') {
+                this.tokenText += symbol;
+            }
+        }
+        while (this.incrementCursor() < script.length)
+
+        this.processToken(this.tokenText, tokens);
+
+        return tokens;
+    }
+
+    private incrementCursor(count: number = 1): number {
+        for (let i = 0; i < count; i++) {
+            this._cursor = this._cursor + 1;
+            if (this._script[this._cursor] === '\n') {
+                this._currentLine++;
+                this._currentColumn = 0;
+            } else {
+                this._currentColumn++;
+            }
+        }
+
+        return this._cursor;
+    }
+
     private recognizeToken(tokenText: string, type: TokenTypes | null = null): { value: string | number | boolean | null, type: TokenTypes } {
 
         let value: string | number | boolean | null = tokenText;
@@ -56,12 +174,15 @@ export class Tokenizer {
         }
 
     }
+
     private processToken(strToken: string, tokens: Token[], allowEmptyString = false, type: TokenTypes | null = null): string {
         // ignore empty tokens
         if (!strToken.length && !allowEmptyString || strToken === '\n') return "";
 
         const token = this.recognizeToken(strToken, type);
-        tokens.push([token.value, Uint16Array.of(token.type as number, 0, 0, 0, 0)] as Token)
+        tokens.push([token.value, Uint16Array.of(token.type as number,
+            this._startLine, this._startColumn,
+            this._currentLine, this._currentColumn)] as Token)
         return "";
     }
 
@@ -100,84 +221,4 @@ export class Tokenizer {
         }
         return false;
     }
-    /**
-     * Splits script code into a tokens
-     * @param script A jsPython text
-     */
-    tokenize(script: string): Token[] {
-        if (!script || !script.length) { return []; }
-
-        script = script
-            .replace(new RegExp('\t', 'g'), '  ') // replace all tabs with 2 spaces
-            .replace(new RegExp('\r', 'g'), ''); // remove all \r symbols
-
-        let cursor = 0;
-        const tokens: Token[] = [];
-        let tokenText = "";
-
-        do {
-            const symbol = script[cursor]
-
-            if (symbol == ' ' && tokenText.length !== 0) {
-                tokenText = this.processToken(tokenText, tokens);
-                continue;
-            } else if ((SeparatorsMap[symbol]) && !this.isPartOfNumber(symbol, tokenText, cursor)) {
-                // handle numbers with floating point e.g. 3.14
-                tokenText = this.processToken(tokenText, tokens);
-                tokenText = symbol;
-
-                const sepsMap = SeparatorsMap[symbol];
-
-                if (sepsMap.length > 1) {
-                    // process longer operators
-                    while (sepsMap.includes(tokenText + script[cursor + 1])) {
-                        tokenText += script[++cursor];
-                    }
-                }
-                tokenText = this.processToken(tokenText, tokens, false, TokenTypes.Operator);
-
-            } else if (symbol === '#') {
-
-                while (script[++cursor] !== '\n') {
-                    tokenText += script[cursor];
-                    if (cursor + 1 >= script.length) break;
-                }
-                tokenText = this.processToken(tokenText, tokens, true, TokenTypes.Comment);
-
-            } else if (symbol === '"' || symbol === "'") {
-                // remember either it is single or double quote
-                const q = symbol;
-                // we are not expecting token to be added here.
-                // it should pass a failt to parser
-                tokenText = this.processToken(tokenText, tokens);
-
-                // handle """ comment """"
-                if (script[cursor + 1] === q && script[cursor + 2] === q) {
-                    cursor += 2;
-                    while (true) {
-                        tokenText += script[++cursor];
-                        if (cursor + 3 >= script.length
-                            || (script[cursor + 1] === q && script[cursor + 2] === q && script[cursor + 3] === q)) {
-                            break;
-                        }
-                    }
-                    cursor += 3;
-                } else {
-                    while (script[++cursor] !== q) {
-                        tokenText += script[cursor];
-                        if (cursor + 1 >= script.length) break;
-                    }
-                }
-                tokenText = this.processToken(tokenText, tokens, true, TokenTypes.LiteralString);
-            } else if (symbol != ' ') {
-                tokenText += symbol;
-            }
-        }
-        while (++cursor < script.length)
-
-        this.processToken(tokenText, tokens);
-
-        return tokens;
-    }
-
 }

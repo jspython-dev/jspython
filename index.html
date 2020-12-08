@@ -54,7 +54,7 @@
       try {
         const result = jsPython()
           .tokenize(scripts)
-          .map((t, i) => `${i} : '${t[0]}'`)
+          .map((t, i) => `${t[1]} : '${t[0]}'`)
           .join('\n');
 
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result;
