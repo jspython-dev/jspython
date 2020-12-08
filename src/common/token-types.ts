@@ -43,3 +43,19 @@ export function getTokenValue(token: Token): string | number | boolean | null {
 export function getTokenLoc(token: Token): Uint16Array {
     return token[1].subarray(1);
 }
+
+export function getStartLine(token: Token): number {
+    return token[1][1];
+}
+
+export function getStartColumn(token: Token): number {
+    return token[1][2];
+}
+
+export function getEndLine(token: Token): number {
+    return token[1][3];
+}
+
+export function getEndColumn(token: Token): number {
+    return token[1][4];
+}

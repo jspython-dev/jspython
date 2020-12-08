@@ -1,35 +1,96 @@
 import {
     BinOpNode, ConstNode, Ast, Token, ParserOptions, AstNode,
     OperatorsMap, OperationTypes, Operators, AssignNode,
-    TokenTypes, SetSingleVarNode, GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral
+    TokenTypes, SetSingleVarNode, GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine, getStartColumn, getEndColumn, getEndLine
 } from '../common';
+
+export class InstructionLine {
+    readonly tokens: Token[] = [];
+
+    startLine(): number {
+        return getStartLine(this.tokens[0]);
+    }
+
+    startColumn(): number {
+        return getStartColumn(this.tokens[0]);
+    }
+
+    endLine(): number {
+        return getEndLine(this.tokens[this.tokens.length - 1]);
+    }
+    endColumn(): number {
+        return getEndColumn(this.tokens[this.tokens.length - 1]);
+    }
+
+}
 
 export class Parser {
 
     /**
      * Parses tokens and return Ast - Abstract Syntax Tree for jsPython code
-     * @param tokens tokens
+     * @param allTokens tokens
      * @param options parsing options. By default it will exclude comments and include LOC (Line of code)
      */
-    parse(tokens: Token[], options: ParserOptions = { includeComments: false, includeLoc: true }): Ast {
+    parse(allTokens: Token[], options: ParserOptions = { includeComments: false, includeLoc: true }): Ast {
         const ast = {
             name: "undefined.jspy",
             body: []
         } as Ast;
 
-        if (!tokens || !tokens.length) { return ast; }
+        if (!allTokens || !allTokens.length) { return ast; }
 
-        let node: AstNode | null = null;
-        if (OperatorsMap[tokens[1][0] as Operators] === OperationTypes.Assignment) {
-            const target = new SetSingleVarNode(tokens[0]);
-            const source = this.createNode(tokens);
-            node = new AssignNode(target, source);
-        } else {
-            node = this.createNode(tokens)
+        // get all instruction lines starting at first line
+        const instructions = this.getBlock(allTokens, 1);
+
+        for (let instruction of instructions) {
+
+            let node: AstNode | null = null;
+            if (OperatorsMap[instruction.tokens[1][0] as Operators] === OperationTypes.Assignment) {
+                const target = new SetSingleVarNode(instruction.tokens[0]);
+                const source = this.createNode(instruction.tokens.slice(2, instruction.tokens.length));
+                node = new AssignNode(target, source);
+            } else {
+                node = this.createNode(instruction.tokens)
+            }
+
+            ast.body.push(node)
+        }
+        return ast;
+    }
+
+    private getBlock(tokens: Token[], startLine: number): InstructionLine[] {
+        const lines: InstructionLine[] = [];
+
+        let column = 0;
+        let currentLine = startLine;
+        let line = new InstructionLine();
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            const sLine = getStartLine(token);
+            const sColumn = getStartColumn(token);
+            if (sLine >= startLine) {
+                // first line defines a minimum indent
+                if (column === 0) { column = sColumn; }
+
+                if (sLine !== currentLine) {
+                    currentLine = sLine;
+                    lines.push(line);
+                    line = new InstructionLine();
+                }
+
+                line.tokens.push(token);
+
+                // stop looping through if line has less indent
+                // it means the corrent block finished
+                if (sColumn < column) { break; }
+            }
         }
 
-        ast.body.push(node)
-        return ast;
+        if (line.tokens.length) {
+            lines.push(line)
+        }
+
+        return lines;
     }
 
     private getOperators(tokens: Token[]): number[] {
