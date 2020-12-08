@@ -33,20 +33,31 @@ export class Parser {
     }
 
     private getOperators(tokens: Token[]): number[] {
-        const opIndexes: number[] = []
+        const opIndexes: number[] = [];
+
+        const skipInnerBrackets = (i: number, openChar: string, closeChar: string): number => {
+            let innerBrackets = 0;
+            while (getTokenValue(tokens[++i]) !== closeChar || innerBrackets !== 0) {
+                if (i + 1 >= tokens.length) {
+                    throw new Error(`Closing '${closeChar}' is missing`);
+                }
+
+                const tokenValue = getTokenValue(tokens[i]);
+                if (tokenValue === openChar) { innerBrackets++; }
+                if (tokenValue === closeChar) { innerBrackets--; }
+            }
+            return i;
+        };
 
         for (let i = 0; i < tokens.length; i++) {
-            if (tokens[i][0] === '(') {
-                while (tokens[++i][0] !== ')') {
-                    if (i + 1 >= tokens.length) {
-                        throw new Error(`Closing ')' is missing`);
-                    }
-                }
-            } else {
-                const token = tokens[i];
-                if (OperatorsMap[token[0] as Operators] !== undefined) {
-                    opIndexes.push(i);
-                }
+            if (getTokenValue(tokens[i]) === '(') {
+                i = skipInnerBrackets(i, '(', ')');
+            } else if (getTokenValue(tokens[i]) === '[') {
+                i = skipInnerBrackets(i, '[', ']');
+            } else if (getTokenValue(tokens[i]) === '{') {
+                i = skipInnerBrackets(i, '{', '}');
+            } else if (OperatorsMap[getTokenValue(tokens[i]) as Operators] !== undefined) {
+                opIndexes.push(i);
             }
         }
 
@@ -88,43 +99,44 @@ export class Parser {
         }
 
         var prevNode: AstNode | null;
-        var rightNode: AstNode | null = null;
         for (let i = 0; i < ops.length; i++) {
             const opIndex = ops[i];
             const op = getTokenValue(tokens[opIndex]) as Operators;
-            const nextOpIndex = i + 1 < ops.length ? ops[i + 1] : null;
 
-            // this code needs more revisions
-            const nextOp = nextOpIndex !== null ? getTokenValue(tokens[nextOpIndex]) : null;
+            let nextOpIndex = i + 1 < ops.length ? ops[i + 1] : null;
+            let nextOp = nextOpIndex !== null ? getTokenValue(tokens[nextOpIndex]) : null;
             if (nextOpIndex !== null && (nextOp === '*' || nextOp === '/')) {
-                // do
-                // {
+                var rightNode: AstNode | null = null;
+                // iterate through all continuous '*', '/' operations
+                do {
                     const nextOpIndex2 = i + 2 < ops.length ? ops[i + 2] : null;
 
                     const leftSlice2 = slice(tokens, opIndex + 1, nextOpIndex);
                     const rightSlice2 = slice(tokens, nextOpIndex + 1, nextOpIndex2 || tokens.length);
 
-                    const left2 = this.createNode(leftSlice2, prevNode);
+                    const left2 = this.createNode(leftSlice2);
                     const right2 = this.createNode(rightSlice2);
                     rightNode = new BinOpNode(left2, nextOp, right2);
 
-                    if (prevNode === null){
-                        const leftSlice = prevNode ? [] : slice(tokens, 0, opIndex);
-                        prevNode = this.createNode(leftSlice, prevNode);
-                    }
-                    prevNode = new BinOpNode(prevNode, op, rightNode)
                     i++;
+                    nextOpIndex = i + 1 < ops.length ? ops[i + 1] : null;
+                    nextOp = nextOpIndex !== null ? getTokenValue(tokens[nextOpIndex]) : null;
+                }
+                while (nextOpIndex !== null && (nextOp === '*' || nextOp === '/'))
 
+                // add up result
+                if (prevNode === null) {
+                    const leftSlice = slice(tokens, 0, opIndex);
+                    prevNode = this.createNode(leftSlice);
+                }
+                prevNode = new BinOpNode(prevNode, op, rightNode)
 
-                // }
-                // while(op[i+2] !== )
             } else {
                 const leftSlice = prevNode ? [] : slice(tokens, 0, opIndex);
                 const rightSlice = slice(tokens, opIndex + 1, nextOpIndex || tokens.length);
                 const left = prevNode || this.createNode(leftSlice, prevNode);
                 const right = this.createNode(rightSlice);
                 prevNode = new BinOpNode(left, op, right);
-
             }
         }
 
