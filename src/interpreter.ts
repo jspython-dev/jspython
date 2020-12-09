@@ -1,5 +1,6 @@
 import { Ast, Token } from './common';
 import { Evaluator } from './evaluator';
+import { Scope } from './evaluator/scope';
 import { Parser } from './parser';
 import { Tokenizer } from './tokenizer';
 
@@ -31,7 +32,8 @@ export class Interpreter {
 
     async evaluate(codeOrAst: string | Ast, scope: Record<string, unknown> = {}, entryFunctionName = ''): Promise<unknown> {
         const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string) : codeOrAst as Ast;
-        const result = await this.evaluator.eval(ast, scope)
+        const scopeObj = new Scope(scope);
+        const result = await this.evaluator.eval(ast, scopeObj);
         return result;
     }
 

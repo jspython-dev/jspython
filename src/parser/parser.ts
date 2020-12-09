@@ -43,9 +43,13 @@ export class Parser {
         const instructions = this.getBlock(allTokens, 1);
 
         for (let instruction of instructions) {
-
             let node: AstNode | null = null;
-            if (OperatorsMap[instruction.tokens[1][0] as Operators] === OperationTypes.Assignment) {
+            
+            if (!instruction.tokens.length) {
+                continue;
+            }
+
+            if (instruction.tokens.length > 1 && OperatorsMap[instruction.tokens[1][0] as Operators] === OperationTypes.Assignment) {
                 const target = new SetSingleVarNode(instruction.tokens[0]);
                 const source = this.createNode(instruction.tokens.slice(2, instruction.tokens.length));
                 node = new AssignNode(target, source);

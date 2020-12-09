@@ -1,4 +1,5 @@
-import { AssignNode, Ast, AstNode, BinOpNode, ConstNode, Operators } from '../common';
+import { AssignNode, Ast, AstNode, BinOpNode, ConstNode, GetSingleVarNode, Operators, SetSingleVarNode } from '../common';
+import { Scope } from './scope';
 
 type Primitive = string | number | boolean | null;
 const OperationFuncs: Record<string, (l: Primitive, r: Primitive) => Primitive> = {
@@ -22,7 +23,7 @@ export class Evaluator {
         throw new Error('Not implemented yet!')
     }
 
-    eval(ast: Ast, scope: Record<string, unknown>): Promise<unknown> {
+    eval(ast: Ast, scope: Scope): Promise<unknown> {
         let lastResult = null;
 
         for (const node of ast.body) {
@@ -32,10 +33,15 @@ export class Evaluator {
         return Promise.resolve(lastResult);
     }
 
-    private evalNode(node: AstNode, scope: Record<string, unknown>): unknown {
+    private evalNode(node: AstNode, scope: Scope): unknown {
         if (node.type === "const") {
             return (node as ConstNode).value;
         }
+
+        if(node.type === "getSingleVar"){
+            return scope.get((node as GetSingleVarNode).name);
+        }
+
 
         if (node.type === "binOp") {
             const binOpNode = (node as BinOpNode);
@@ -47,8 +53,13 @@ export class Evaluator {
         if (node.type === "assign") {
             const assignNode = node as AssignNode;
 
-            const source = this.evalNode(assignNode.source, scope);
-            // set target here
+            if(assignNode.target.type === 'setSingleVar'){
+                const node = assignNode.target as SetSingleVarNode;
+                scope.set(node.name, this.evalNode(assignNode.source, scope));
+            } else {
+                throw Error('Not implemented Assign operation');
+                // get chaining calls
+            }
 
             return null;
         }
