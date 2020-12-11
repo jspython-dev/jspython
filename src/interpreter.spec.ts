@@ -66,4 +66,12 @@ describe('Interpreter', () => {
     expect(await e.evaluate("5 - (5 * (32 + 4))")).toBe(5 - (5 * (32 + 4)))
     expect(await e.evaluate("12 * 5 - (5 * (32 + 4)) + 3")).toBe(12 * 5 - (5 * (32 + 4)) + 3)
   });
+
+  it('o.sub1.subValue', async () => {
+    const obj = { o: { v1: 55, sub1: { subValue: 45 }}};
+    expect(await e.evaluate("o.v1 + o.sub1.subValue", obj)).toBe(100)
+    expect(await e.evaluate("o.v1 + o.sub1['sub' + 'Value']", obj)).toBe(100)
+    expect(await e.evaluate("o.v1 + o['sub1'].subValue", obj)).toBe(100)
+  });
+
 });

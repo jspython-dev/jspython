@@ -1,4 +1,4 @@
-import { AssignNode, Ast, AstNode, BinOpNode, ConstNode, GetSingleVarNode, Operators, SetSingleVarNode } from '../common';
+import { AssignNode, Ast, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, DotObjectAccessNode, GetSingleVarNode, Operators, SetSingleVarNode } from '../common';
 import { Scope } from './scope';
 
 type Primitive = string | number | boolean | null;
@@ -38,10 +38,9 @@ export class Evaluator {
             return (node as ConstNode).value;
         }
 
-        if(node.type === "getSingleVar"){
+        if (node.type === "getSingleVar") {
             return scope.get((node as GetSingleVarNode).name);
         }
-
 
         if (node.type === "binOp") {
             const binOpNode = (node as BinOpNode);
@@ -53,15 +52,46 @@ export class Evaluator {
         if (node.type === "assign") {
             const assignNode = node as AssignNode;
 
-            if(assignNode.target.type === 'setSingleVar'){
+            if (assignNode.target.type === 'setSingleVar') {
                 const node = assignNode.target as SetSingleVarNode;
                 scope.set(node.name, this.evalNode(assignNode.source, scope));
+            } else if (assignNode.target.type === 'dotObjectAccess'){
+                let targetObject = this.evalNode(assignNode.target, scope);
+
             } else {
                 throw Error('Not implemented Assign operation');
                 // get chaining calls
+
             }
 
             return null;
+        }
+
+        if (node.type === 'bracketObjectAccess') {
+            const sbNode = node as BracketObjectAccessNode;
+            const key = this.evalNode(sbNode.bracketBody, scope) as string;
+            const obj = scope.get(sbNode.propertyName as string) as Record<string, unknown>;
+            return obj[key];
+        } 
+
+        if (node.type === "dotObjectAccess") {
+            const dotObject = node as DotObjectAccessNode;
+
+            let startObject = this.evalNode(dotObject.nestedProps[0], scope) as any;
+            for (let i = 1; i < dotObject.nestedProps.length; i++) {
+
+                if (dotObject.nestedProps[i].type === 'getSingleVar') {
+                    startObject = startObject[(dotObject.nestedProps[i] as SetSingleVarNode).name] as unknown;
+                } else if (dotObject.nestedProps[i].type === 'bracketObjectAccess') {
+                    const node = dotObject.nestedProps[i] as BracketObjectAccessNode;                    
+                    startObject = startObject[node.propertyName] as unknown;
+                    startObject = startObject[this.evalNode(node.bracketBody, scope) as string] as unknown;
+                } else {
+                    throw Error("Can't resolve dotObjectAccess node")
+                }
+            }
+
+            return startObject;
         }
 
     }

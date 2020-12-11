@@ -1,3 +1,5 @@
+import { Operators, OperatorsMap } from "./operators";
+
 export enum TokenTypes {
     Identifier = 0,
     Keyword = 1,
@@ -23,7 +25,8 @@ export enum TokenTypes {
  * [(value). Uint16Array[5]([tokenType, beginLine, beginColumn, endLine, endColumn])]
  * tokenType
  */
-export type Token = [string | number | boolean | null, Uint16Array]
+export type Token = [string | number | boolean | null, Uint16Array];
+export type TokenValue = string | number | boolean | null;
 
 export function isTokenTypeLiteral(tokenType: TokenTypes): boolean {
     return tokenType === TokenTypes.LiteralString
@@ -36,7 +39,7 @@ export function getTokenType(token: Token): TokenTypes {
     return token[1][0] as TokenTypes;
 }
 
-export function getTokenValue(token: Token): string | number | boolean | null {
+export function getTokenValue(token: Token): TokenValue {
     return token[0];
 }
 
@@ -59,3 +62,57 @@ export function getEndLine(token: Token): number {
 export function getEndColumn(token: Token): number {
     return token[1][4];
 }
+
+export function splitTokens(tokens: Token[], separator: string): Token[][] {
+    const result: Token[][] = [];
+
+    const sepIndexes = findTokenValueIndexes(tokens, value => value === separator);
+
+    if (!sepIndexes.length) { return result; }
+
+    let start = 0;
+    for (let i = 0; i < sepIndexes.length; i++) {
+        const ind = sepIndexes[i];
+        result.push(tokens.slice(start, ind));
+        start = ind + 1
+    }
+
+    result.push(tokens.slice(start, tokens.length));
+    return result;
+}
+
+export function findTokenValueIndexes(tokens: Token[], predicate: (value: TokenValue) => boolean): number[] {
+    const opIndexes: number[] = [];
+
+    for (let i = 0; i < tokens.length; i++) {
+        if (getTokenValue(tokens[i]) === '(') {
+            i = skipInnerBrackets(tokens, i, '(', ')');
+        } else if (getTokenValue(tokens[i]) === '[') {
+            i = skipInnerBrackets(tokens, i, '[', ']');
+        } else if (getTokenValue(tokens[i]) === '{') {
+            i = skipInnerBrackets(tokens, i, '{', '}');
+        } else if (predicate(getTokenValue(tokens[i]))) {
+            opIndexes.push(i);
+        }
+    }
+
+    return opIndexes;
+}
+
+export function findOperators(tokens: Token[]): number[] {
+    return findTokenValueIndexes(tokens, value => OperatorsMap[value as Operators] !== undefined);
+}
+
+function skipInnerBrackets(tokens: Token[], i: number, openChar: string, closeChar: string): number {
+    let innerBrackets = 0;
+    while (getTokenValue(tokens[++i]) !== closeChar || innerBrackets !== 0) {
+        if (i + 1 >= tokens.length) {
+            throw new Error(`Closing '${closeChar}' is missing`);
+        }
+
+        const tokenValue = getTokenValue(tokens[i]);
+        if (tokenValue === openChar) { innerBrackets++; }
+        if (tokenValue === closeChar) { innerBrackets--; }
+    }
+    return i;
+};

@@ -6,7 +6,7 @@ export abstract class AstNode {
     constructor(
         public type:
             'assign' | 'binOp' | 'const'
-            | 'getSingleVar' | 'setSingleVar' | 'chainingCalls'
+            | 'getSingleVar' | 'setSingleVar' | 'dotObjectAccess' | 'bracketObjectAccess'
             | 'funcCall' | 'funcDef'
             | 'if' | 'while' | 'tryCatch'
     ) { }
@@ -39,25 +39,34 @@ export class SetSingleVarNode extends AstNode {
 }
 
 export class FunctionCallNode extends AstNode {
-    public name: string;
-    public paramNodes: AstNode[] | null = null;
-    constructor(tokens: Token[]) {
+    constructor(public name: string, public paramNodes: AstNode[] | null) {
         super('funcCall');
-        this.name = tokens[0][0] as string
     }
 }
 
 export class GetSingleVarNode extends AstNode {
-    public name: string;
-    constructor(token: Token) {
+    name: string;
+    nullCoelsing: boolean | undefined = undefined;
+
+    constructor(token: Token, nullCoelsing: boolean | undefined = undefined) {
         super('getSingleVar');
-        this.name = token[0] as string
+        this.name = token[0] as string;
+        this.nullCoelsing = nullCoelsing;
     }
 }
 
-export class ChainVarVarNode extends AstNode {
-    constructor(public sub: AstNode[]) {
-        super('chainingCalls');
+export class DotObjectAccessNode extends AstNode {
+    constructor(public nestedProps: AstNode[]) {
+        super('dotObjectAccess');
+    }
+}
+
+export class BracketObjectAccessNode extends AstNode {
+    constructor(
+        public propertyName: string,
+        public bracketBody: AstNode,
+        public nullCoalescing: boolean | undefined = undefined) {
+        super('bracketObjectAccess');
     }
 }
 
