@@ -74,4 +74,9 @@ describe('Interpreter', () => {
     expect(await e.evaluate("o.v1 + o['sub1'].subValue", obj)).toBe(100)
   });
 
+  it('assignment o.sub1.subValue', async () => {
+    const obj = { o: { v1: 55, sub1: { subValue: 45 }}};
+    expect(await e.evaluate("o.sub1.subValue2 = 10\no.sub1.subValue2", obj)).toBe(10)
+  });
+
 });

@@ -55,13 +55,22 @@ export class Evaluator {
             if (assignNode.target.type === 'setSingleVar') {
                 const node = assignNode.target as SetSingleVarNode;
                 scope.set(node.name, this.evalNode(assignNode.source, scope));
-            } else if (assignNode.target.type === 'dotObjectAccess'){
-                let targetObject = this.evalNode(assignNode.target, scope);
+            } else if (assignNode.target.type === 'dotObjectAccess') {
+                const targetNode = assignNode.target as DotObjectAccessNode;
 
+                // create a node for all but last property token
+                // potentially it can go to parser
+                const targetObjectNode = new DotObjectAccessNode(targetNode.nestedProps.slice(0, targetNode.nestedProps.length - 1));
+                const targetObject = this.evalNode(targetObjectNode, scope) as Record<string, unknown>;
+
+                // not sure nested properties should be GetSingleVarNode
+                // can be factored in the parser
+                const lastPropertyName = (targetNode.nestedProps[targetNode.nestedProps.length - 1] as GetSingleVarNode).name
+
+                targetObject[lastPropertyName] = this.evalNode(assignNode.source, scope);
             } else {
                 throw Error('Not implemented Assign operation');
                 // get chaining calls
-
             }
 
             return null;
@@ -72,7 +81,7 @@ export class Evaluator {
             const key = this.evalNode(sbNode.bracketBody, scope) as string;
             const obj = scope.get(sbNode.propertyName as string) as Record<string, unknown>;
             return obj[key];
-        } 
+        }
 
         if (node.type === "dotObjectAccess") {
             const dotObject = node as DotObjectAccessNode;
@@ -83,7 +92,7 @@ export class Evaluator {
                 if (dotObject.nestedProps[i].type === 'getSingleVar') {
                     startObject = startObject[(dotObject.nestedProps[i] as SetSingleVarNode).name] as unknown;
                 } else if (dotObject.nestedProps[i].type === 'bracketObjectAccess') {
-                    const node = dotObject.nestedProps[i] as BracketObjectAccessNode;                    
+                    const node = dotObject.nestedProps[i] as BracketObjectAccessNode;
                     startObject = startObject[node.propertyName] as unknown;
                     startObject = startObject[this.evalNode(node.bracketBody, scope) as string] as unknown;
                 } else {
