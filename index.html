@@ -28,7 +28,7 @@
 <body>
   <div class="container">
     <h4>JSPython development console</h4>
-    <div id="editor">o.sub1.subValue2 = 59</div>
+    <div id="editor">o.f1(22,23).x</div>
     <button onclick="tokenize()">Tokenize</button>
     <button onclick="parse()">Parse</button>
     <button onclick="runInterpreter()">Run</button>
@@ -85,8 +85,11 @@
       const scripts = editor.getValue();
       try {
         const scope = {
+          Math,
+          print: (p1, p2) => {return p1;},
           x: 10,
           o: {
+            f1: (x,y) => {return {x, y};},
             v1: 55,
             sub1: {
               subValue: 88

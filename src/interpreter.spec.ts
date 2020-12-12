@@ -57,9 +57,9 @@ describe('Interpreter', () => {
   });
 
   it('1*2/4 + 2*3/6', async () => {
-    expect(await e.evaluate("1*2/4 + 2*3/6")).toBe(1*2/4 + 2*3/6)
-    expect(await e.evaluate("1*2/4 + 2*3/6-2.3")).toBe(1*2/4 + 2*3/6-2.3)
-    expect(await e.evaluate("7+1*2/4 + 2*3/6-2.3")).toBe(7+1*2/4 + 2*3/6-2.3)
+    expect(await e.evaluate("1*2/4 + 2*3/6")).toBe(1 * 2 / 4 + 2 * 3 / 6)
+    expect(await e.evaluate("1*2/4 + 2*3/6-2.3")).toBe(1 * 2 / 4 + 2 * 3 / 6 - 2.3)
+    expect(await e.evaluate("7+1*2/4 + 2*3/6-2.3")).toBe(7 + 1 * 2 / 4 + 2 * 3 / 6 - 2.3)
   });
 
   it('5 – (5 * (32 + 4))', async () => {
@@ -68,15 +68,40 @@ describe('Interpreter', () => {
   });
 
   it('o.sub1.subValue', async () => {
-    const obj = { o: { v1: 55, sub1: { subValue: 45 }}};
+    const obj = { o: { v1: 55, sub1: { subValue: 45 } } };
     expect(await e.evaluate("o.v1 + o.sub1.subValue", obj)).toBe(100)
     expect(await e.evaluate("o.v1 + o.sub1['sub' + 'Value']", obj)).toBe(100)
     expect(await e.evaluate("o.v1 + o['sub1'].subValue", obj)).toBe(100)
   });
 
   it('assignment o.sub1.subValue', async () => {
-    const obj = { o: { v1: 55, sub1: { subValue: 45 }}};
+    const obj = { o: { v1: 55, sub1: { subValue: 45 } } };
     expect(await e.evaluate("o.sub1.subValue2 = 10\no.sub1.subValue2", obj)).toBe(10)
   });
+
+  it('func call', async () => {
+    const obj = { add: (x: number, y: number) => x + y };
+    
+    expect(await e.evaluate("add(2, 3)", obj)).toBe(5)
+    expect(await e.evaluate("add(2+10, 3)", obj)).toBe(15)
+  });
+
+  it('Object call', async () => {
+    const obj = { o: { add: (x: number, y: number) => x + y }};
+    
+    expect(await e.evaluate("o.add(2, 3)", obj)).toBe(5)
+    expect(await e.evaluate("o.add(2 * 10, 3)", obj)).toBe(23)
+  });
+
+  it('Object call2', async () => {
+    const obj = { o: { 
+      add: (x: number, y: number) => x + y,
+      getObject: p => { return {p}}
+    }};
+    
+    expect(await e.evaluate("o.getObject(5).p", obj)).toBe(5)
+    expect(await e.evaluate("x = o.getObject(5)\nx.p * x.p", obj)).toBe(25)
+  });
+
 
 });

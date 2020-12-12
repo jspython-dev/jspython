@@ -68,8 +68,6 @@ export function splitTokens(tokens: Token[], separator: string): Token[][] {
 
     const sepIndexes = findTokenValueIndexes(tokens, value => value === separator);
 
-    if (!sepIndexes.length) { return result; }
-
     let start = 0;
     for (let i = 0; i < sepIndexes.length; i++) {
         const ind = sepIndexes[i];

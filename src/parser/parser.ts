@@ -185,7 +185,7 @@ export class Parser {
 
         // create DotObjectAccessNode
         const subObjects = splitTokens(tokens, '.');
-        if (subObjects.length) {
+        if (subObjects.length > 1) {
             return new DotObjectAccessNode(subObjects.map(tkns => this.createNode(tkns)));
         }
 
