@@ -28,7 +28,14 @@
 <body>
   <div class="container">
     <h4>JSPython development console</h4>
-    <div id="editor">o.f1(22,23).x</div>
+    <div id="editor">
+def add(x, y):
+  z = 5
+  x + z + y
+      
+add(3, 5)
+      
+    </div>
     <button onclick="tokenize()">Tokenize</button>
     <button onclick="parse()">Parse</button>
     <button onclick="runInterpreter()">Run</button>

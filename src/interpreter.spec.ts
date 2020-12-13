@@ -91,6 +91,12 @@ describe('Interpreter', () => {
     
     expect(await e.evaluate("o.add(2, 3)", obj)).toBe(5)
     expect(await e.evaluate("o.add(2 * 10, 3)", obj)).toBe(23)
+    expect(await e.evaluate(`
+    o.add(
+      2 * 10,
+      3
+      )`, obj)).toBe(23)
+
   });
 
   it('Object call2', async () => {

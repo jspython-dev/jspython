@@ -44,6 +44,12 @@ export class FunctionCallNode extends AstNode {
     }
 }
 
+export class FunctionDefNode extends AstNode {
+    constructor(public name: string, public params: string[], public body: AstNode[]    ) {
+        super('funcDef');
+    }
+}
+
 export class GetSingleVarNode extends AstNode {
     name: string;
     nullCoelsing: boolean | undefined = undefined;
@@ -81,5 +87,6 @@ export class BinOpNode extends AstNode {
 
 export interface Ast {
     name: string;
-    body: AstNode[]
+    funcs: FunctionDefNode[];
+    body: AstNode[];
 }

@@ -2,7 +2,7 @@ import {
     BinOpNode, ConstNode, Ast, Token, ParserOptions, AstNode, OperatorsMap, OperationTypes,
     Operators, AssignNode, TokenTypes, SetSingleVarNode, GetSingleVarNode, FunctionCallNode,
     getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine, getStartColumn, getEndColumn,
-    getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode
+    getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode, findTokenValueIndexes, findTokenValueIndex, FunctionDefNode
 } from '../common';
 
 export class InstructionLine {
@@ -33,18 +33,25 @@ export class Parser {
      * @param options parsing options. By default it will exclude comments and include LOC (Line of code)
      */
     parse(allTokens: Token[], options: ParserOptions = { includeComments: false, includeLoc: true }): Ast {
-        const ast = {
-            name: "undefined.jspy",
-            body: []
-        } as Ast;
 
-        if (!allTokens || !allTokens.length) { return ast; }
+        if (!allTokens || !allTokens.length) { return {} as Ast; }
 
         // get all instruction lines starting at first line
         const instructions = this.getBlock(allTokens, 1);
 
+        const ast = {
+            name: "undefined.jspy",
+            funcs: [],
+            body: []
+        } as Ast;
+
+        this.instructionsToNodes(instructions, ast);
+        return ast;
+    }
+
+    private instructionsToNodes(instructions: InstructionLine[], ast: Ast): void {
+
         for (let instruction of instructions) {
-            let node: AstNode | null = null;
 
             if (!instruction.tokens.length) {
                 continue;
@@ -52,17 +59,39 @@ export class Parser {
 
             const assignTokens = splitTokens(instruction.tokens, '=');
 
-            if (assignTokens.length > 1) {
-                const target = this.createNode(assignTokens[0]);
-                const source = this.createNode(assignTokens[1]);
-                node = new AssignNode(target, source);
+            if (getTokenValue(instruction.tokens[0]) === 'def') {
+                const funcName = getTokenValue(instruction.tokens[1]) as string;
+                const paramsTokens = instruction.tokens.slice(
+                    instruction.tokens.findIndex(tkns => getTokenValue(tkns) === '(') + 1,
+                    instruction.tokens.findIndex(tkns => getTokenValue(tkns) === ')')
+                );
+
+                const params = splitTokens(paramsTokens, ',').map(t => getTokenValue(t[0]) as string);
+
+                const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
+
+                if (endDefOfDef === -1) {
+                    throw (`Can't find : for def`)
+                }
+
+                const instructionLines = this.getBlock(instruction.tokens, getStartLine(instruction.tokens[endDefOfDef + 1]));
+                const funcAst = {
+                    body: [] as AstNode[],
+                    funcs: [] as AstNode[]
+                } as Ast;
+                this.instructionsToNodes(instructionLines, funcAst);
+
+                ast.funcs.push(new FunctionDefNode(funcName, params, funcAst.body))
+
+            } else if (assignTokens.length > 1) {
+                const target = this.createExpressionNode(assignTokens[0]);
+                const source = this.createExpressionNode(assignTokens[1]);
+                ast.body.push(new AssignNode(target, source));
             } else {
-                node = this.createNode(instruction.tokens)
+                ast.body.push(this.createExpressionNode(instruction.tokens))
             }
 
-            ast.body.push(node)
         }
-        return ast;
     }
 
     private getBlock(tokens: Token[], startLine: number): InstructionLine[] {
@@ -76,10 +105,12 @@ export class Parser {
             const sLine = getStartLine(token);
             const sColumn = getStartColumn(token);
             if (sLine >= startLine) {
-                // first line defines a minimum indent
-                if (column === 0) { column = sColumn; }
 
-                if (sLine !== currentLine) {
+                if (currentLine !== sLine) {
+                    currentLine = sLine;
+                }
+
+                if (column === sColumn) {
                     currentLine = sLine;
                     lines.push(line);
                     line = new InstructionLine();
@@ -87,9 +118,16 @@ export class Parser {
 
                 line.tokens.push(token);
 
+                // first line defines a minimum indent
+                if (column === 0) {
+                    column = sColumn;
+                }
+
                 // stop looping through if line has less indent
                 // it means the corrent block finished
-                if (sColumn < column) { break; }
+                if (sColumn < column) {
+                    break;
+                }
             }
         }
 
@@ -100,11 +138,12 @@ export class Parser {
         return lines;
     }
 
-    private createNode(tokens: Token[], prevNode: AstNode | null = null): AstNode {
+    private createExpressionNode(tokens: Token[], prevNode: AstNode | null = null): AstNode {
         if (tokens.length === 0) {
             throw new Error(`Token length can't be null.`)
         }
 
+        // const or variable
         if (tokens.length === 1
             || (tokens.length === 2 && getTokenValue(tokens[1]) === '?')
         ) {
@@ -150,8 +189,8 @@ export class Parser {
                         const leftSlice2 = slice(tokens, opIndex + 1, nextOpIndex);
                         const rightSlice2 = slice(tokens, nextOpIndex + 1, nextOpIndex2 || tokens.length);
 
-                        const left2 = this.createNode(leftSlice2);
-                        const right2 = this.createNode(rightSlice2);
+                        const left2 = this.createExpressionNode(leftSlice2);
+                        const right2 = this.createExpressionNode(rightSlice2);
                         rightNode = new BinOpNode(left2, nextOp, right2);
 
                         i++;
@@ -163,15 +202,15 @@ export class Parser {
                     // add up result
                     if (prevNode === null) {
                         const leftSlice = slice(tokens, 0, opIndex);
-                        prevNode = this.createNode(leftSlice);
+                        prevNode = this.createExpressionNode(leftSlice);
                     }
                     prevNode = new BinOpNode(prevNode, op, rightNode)
 
                 } else {
                     const leftSlice = prevNode ? [] : slice(tokens, 0, opIndex);
                     const rightSlice = slice(tokens, opIndex + 1, nextOpIndex || tokens.length);
-                    const left = prevNode || this.createNode(leftSlice, prevNode);
-                    const right = this.createNode(rightSlice);
+                    const left = prevNode || this.createExpressionNode(leftSlice, prevNode);
+                    const right = this.createExpressionNode(rightSlice);
                     prevNode = new BinOpNode(left, op, right);
                 }
             }
@@ -186,7 +225,7 @@ export class Parser {
         // create DotObjectAccessNode
         const subObjects = splitTokens(tokens, '.');
         if (subObjects.length > 1) {
-            return new DotObjectAccessNode(subObjects.map(tkns => this.createNode(tkns)));
+            return new DotObjectAccessNode(subObjects.map(tkns => this.createExpressionNode(tkns)));
         }
 
         // create function call node
@@ -194,7 +233,7 @@ export class Parser {
             const name = getTokenValue(tokens[0]) as string;
             const paramsTokensSlice = tokens.slice(2, tokens.length - 1);
             const paramsTokens = splitTokens(paramsTokensSlice, ',')
-            const paramsNodes = paramsTokens.map(tkns => this.createNode(tkns));
+            const paramsNodes = paramsTokens.map(tkns => this.createExpressionNode(tkns));
 
             return new FunctionCallNode(name, paramsNodes);
         }
@@ -203,7 +242,7 @@ export class Parser {
         if (tokens.length > 2 && getTokenValue(tokens[1]) === '[') {
             const name = getTokenValue(tokens[0]) as string;
             const paramsTokensSlice = tokens.slice(2, tokens.length - 1);
-            const paramsNodes = this.createNode(paramsTokensSlice);
+            const paramsNodes = this.createExpressionNode(paramsTokensSlice);
             return new BracketObjectAccessNode(name, paramsNodes);
         }
 

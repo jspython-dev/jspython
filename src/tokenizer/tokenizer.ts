@@ -68,6 +68,17 @@ export class Tokenizer {
 
         const tokens: Token[] = [];
 
+        let first = true;
+        // handle initial spaces
+        while (script[this._cursor] === '\n') {
+            this.incrementCursor();
+            if (first) {
+                this._currentLine++;
+                first = false;
+            }
+            this._currentColumn = 1;
+        }
+
         do {
             const symbol = script[this._cursor];
 

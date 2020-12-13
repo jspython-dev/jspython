@@ -66,6 +66,8 @@ export function getEndColumn(token: Token): number {
 export function splitTokens(tokens: Token[], separator: string): Token[][] {
     const result: Token[][] = [];
 
+    if (!tokens.length) { return []; }
+
     const sepIndexes = findTokenValueIndexes(tokens, value => value === separator);
 
     let start = 0;
@@ -77,6 +79,22 @@ export function splitTokens(tokens: Token[], separator: string): Token[][] {
 
     result.push(tokens.slice(start, tokens.length));
     return result;
+}
+
+export function findTokenValueIndex(tokens: Token[], predicate: (value: TokenValue) => boolean, start = 0): number {
+    for (let i = start; i < tokens.length; i++) {
+        if (getTokenValue(tokens[i]) === '(') {
+            i = skipInnerBrackets(tokens, i, '(', ')');
+        } else if (getTokenValue(tokens[i]) === '[') {
+            i = skipInnerBrackets(tokens, i, '[', ']');
+        } else if (getTokenValue(tokens[i]) === '{') {
+            i = skipInnerBrackets(tokens, i, '{', '}');
+        } else if (predicate(getTokenValue(tokens[i]))) {
+            return i;
+        }
+    }
+
+    return -1;
 }
 
 export function findTokenValueIndexes(tokens: Token[], predicate: (value: TokenValue) => boolean): number[] {
