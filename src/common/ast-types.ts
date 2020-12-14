@@ -8,6 +8,7 @@ export abstract class AstNode {
             'assign' | 'binOp' | 'const'
             | 'getSingleVar' | 'setSingleVar' | 'dotObjectAccess' | 'bracketObjectAccess'
             | 'funcCall' | 'funcDef'
+            | 'createObject' | 'createArray'
             | 'if' | 'while' | 'tryCatch'
     ) { }
 }
@@ -66,6 +67,25 @@ export class DotObjectAccessNode extends AstNode {
         super('dotObjectAccess');
     }
 }
+export interface ObjectPropertyInfo {
+    name: AstNode;
+    value: AstNode;
+}
+
+export class CreateObjectNode extends AstNode {
+    constructor(public props: ObjectPropertyInfo[]) {
+        super('createObject');
+    }
+}
+
+export class CreateArrayNode extends AstNode {
+    constructor(
+        public items: AstNode[]
+        ) {
+        super('createArray');
+    }
+}
+
 
 export class BracketObjectAccessNode extends AstNode {
     constructor(

@@ -1,8 +1,8 @@
 import {
-    BinOpNode, ConstNode, Ast, Token, ParserOptions, AstNode, OperatorsMap, OperationTypes,
-    Operators, AssignNode, TokenTypes, SetSingleVarNode, GetSingleVarNode, FunctionCallNode,
-    getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine, getStartColumn, getEndColumn,
-    getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode, findTokenValueIndexes, findTokenValueIndex, FunctionDefNode
+    BinOpNode, ConstNode, Ast, Token, ParserOptions, AstNode, Operators, AssignNode, TokenTypes, 
+    GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine, 
+    getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode, 
+    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode
 } from '../common';
 
 export class InstructionLine {
@@ -244,6 +244,39 @@ export class Parser {
             const paramsTokensSlice = tokens.slice(2, tokens.length - 1);
             const paramsNodes = this.createExpressionNode(paramsTokensSlice);
             return new BracketObjectAccessNode(name, paramsNodes);
+        }
+
+        // create Object Node
+        if (getTokenValue(tokens[0]) === '{' && getTokenValue(tokens[tokens.length - 1]) === '}') {
+            const keyValueTokens = splitTokens(tokens.splice(1, tokens.length - 2), ',');
+            const props = [] as ObjectPropertyInfo[];
+            for (let i = 0; i < keyValueTokens.length; i++) {
+                const keyValue = splitTokens(keyValueTokens[i], ':');
+                if (keyValue.length !== 2) {
+                    throw Error('Incorrect JSON')
+                }
+
+                // unquoted string becomes a variable, so, we don't need it, that is why we are creating const node explicitlely
+                const name = (keyValue[0].length === 1 && !`'"`.includes((getTokenValue(keyValue[0][0]) as string)[0])) 
+                    ? new ConstNode(keyValue[0][0])
+                    : this.createExpressionNode(keyValue[0]);
+                const pInfo = {
+                    name,
+                    value: this.createExpressionNode(keyValue[1])
+                } as ObjectPropertyInfo;
+
+                props.push(pInfo);
+            }
+
+            return new CreateObjectNode(props)
+        }
+
+        // create Array Node
+        if (getTokenValue(tokens[0]) === '[' && getTokenValue(tokens[tokens.length - 1]) === ']') {
+            const items = splitTokens(tokens.splice(1, tokens.length - 2), ',')
+                .map(tkns => this.createExpressionNode(tkns));
+
+            return new CreateArrayNode(items);
         }
 
         throw new Error('Undefined node error.');

@@ -81,14 +81,14 @@ describe('Interpreter', () => {
 
   it('func call', async () => {
     const obj = { add: (x: number, y: number) => x + y };
-    
+
     expect(await e.evaluate("add(2, 3)", obj)).toBe(5)
     expect(await e.evaluate("add(2+10, 3)", obj)).toBe(15)
   });
 
   it('Object call', async () => {
-    const obj = { o: { add: (x: number, y: number) => x + y }};
-    
+    const obj = { o: { add: (x: number, y: number) => x + y } };
+
     expect(await e.evaluate("o.add(2, 3)", obj)).toBe(5)
     expect(await e.evaluate("o.add(2 * 10, 3)", obj)).toBe(23)
     expect(await e.evaluate(`
@@ -100,13 +100,29 @@ describe('Interpreter', () => {
   });
 
   it('Object call2', async () => {
-    const obj = { o: { 
-      add: (x: number, y: number) => x + y,
-      getObject: p => { return {p}}
-    }};
-    
+    const obj = {
+      o: {
+        add: (x: number, y: number) => x + y,
+        getObject: (p: string) => { return { p } }
+      }
+    };
+
     expect(await e.evaluate("o.getObject(5).p", obj)).toBe(5)
     expect(await e.evaluate("x = o.getObject(5)\nx.p * x.p", obj)).toBe(25)
+  });
+
+  it('json obj', async () => {
+    expect(await e.evaluate("x = {m1: 1+2*3, m2: 'ee'}\nx.m1")).toBe(7);
+    expect(await e.evaluate("x = {'m1': 1+2*3}\nx.m1")).toBe(7);
+    expect(await e.evaluate("x = {'m'+1: 1+2*3}\nx.m1")).toBe(7);
+  });
+
+  it('json array', async () => {
+    expect(await e.evaluate("x = [{m1: 1+2*3, m2: 'ee'}]\nx.length")).toBe(1);
+    expect(await e.evaluate("x = [1,2,3]\nx.length")).toBe(3);
+    expect(await e.evaluate("x = [1,2,3]\nx[1]")).toBe(2);
+    expect(await e.evaluate("x = [{f1:1, f2:12}, {f1:2, f2:22}, {f1:3, f2:32}]\nx[1].f2")).toBe(22);
+    expect(await e.evaluate("x = [{f1:1, f2:12}, {f1:2, f2:22}, {f1:3, f2:32}]\nx[1].f2 = 55\nx[1].f2")).toBe(55);
   });
 
 

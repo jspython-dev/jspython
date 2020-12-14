@@ -1,4 +1,7 @@
-import { AssignNode, Ast, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, DotObjectAccessNode, FunctionCallNode, GetSingleVarNode, Operators, SetSingleVarNode } from '../common';
+import { 
+    AssignNode, Ast, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode, 
+    CreateObjectNode, DotObjectAccessNode, FunctionCallNode, GetSingleVarNode, SetSingleVarNode 
+} from '../common';
 import { Scope } from './scope';
 
 type Primitive = string | number | boolean | null;
@@ -70,7 +73,6 @@ export class Evaluator {
         }
     }
 
-
     private evalNode(node: AstNode, scope: Scope): unknown {
         if (node.type === "const") {
             return (node as ConstNode).value;
@@ -141,19 +143,41 @@ export class Evaluator {
                     const node = dotObject.nestedProps[i] as BracketObjectAccessNode;
                     startObject = startObject[node.propertyName] as unknown;
                     startObject = startObject[this.evalNode(node.bracketBody, scope) as string] as unknown;
-                } else if(dotObject.nestedProps[i].type === 'funcCall'){
+                } else if (dotObject.nestedProps[i].type === 'funcCall') {
                     const funcCallNode = dotObject.nestedProps[i] as FunctionCallNode;
                     const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
                     const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, scope)) || []
 
                     startObject = this.invokeFunction(func, pms);
-                    
+
                 } else {
                     throw Error("Can't resolve dotObjectAccess node")
                 }
             }
 
             return startObject;
+        }
+
+        if (node.type === 'createObject') {
+            const createObjectNode = node as CreateObjectNode;
+            const obj = {} as Record<string, unknown>;
+
+            for (const p of createObjectNode.props) {
+                obj[this.evalNode(p.name, scope) as string] = this.evalNode(p.value, scope);
+            }
+
+            return obj;
+        }
+
+        if (node.type === 'createArray') {
+            const arrayNode = node as CreateArrayNode;
+            const res = [] as unknown[];
+
+            for (const item of arrayNode.items) {
+                res.push(this.evalNode(item, scope));
+            }
+
+            return res;
         }
 
     }
