@@ -3,7 +3,8 @@ import { Tokenizer, CodeLine } from "../tokenizer";
 import { EvalInstruction } from "./eval.instruction";
 
 function isIfStatement(instruction: string): boolean {
-    return instruction.trim().startsWith('if ') && instruction[instruction.length - 1] === ':';
+    instruction = instruction.trim();   
+    return instruction.startsWith('if ') && instruction[instruction.length - 1] === ':';
 }
 
 export class EvalCodeBlock {
