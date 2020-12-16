@@ -7,7 +7,7 @@ export abstract class AstNode {
         public type:
             'assign' | 'binOp' | 'const'
             | 'getSingleVar' | 'setSingleVar' | 'dotObjectAccess' | 'bracketObjectAccess'
-            | 'funcCall' | 'funcDef'
+            | 'funcCall' | 'funcDef' | 'arrowFuncDef'
             | 'createObject' | 'createArray'
             | 'if' | 'while' | 'tryCatch'
     ) { }
@@ -48,6 +48,12 @@ export class FunctionCallNode extends AstNode {
 export class FunctionDefNode extends AstNode {
     constructor(public name: string, public params: string[], public body: AstNode[]    ) {
         super('funcDef');
+    }
+}
+
+export class ArrowFuncDefNode extends AstNode {
+    constructor(public params: string[], public body: AstNode[]    ) {
+        super('arrowFuncDef');
     }
 }
 
@@ -105,8 +111,9 @@ export class BinOpNode extends AstNode {
     }
 }
 
-export interface Ast {
+export interface AstBlock {
     name: string;
+    type: 'module' | 'func' | 'if' | 'for' | 'trycatch'
     funcs: FunctionDefNode[];
     body: AstNode[];
 }

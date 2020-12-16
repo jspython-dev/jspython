@@ -29,8 +29,15 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
-x = { obj1: 2 + 4 }
-x
+arr = [1,2,3]
+arr.map(n =>
+  n = n * 2
+  {
+    t1: n * 2,
+    t2: n * 3
+  }
+)
+
     </div>
     <button onclick="tokenize()">Tokenize</button>
     <button onclick="parse()">Parse</button>
@@ -68,11 +75,11 @@ x
       }
     }
 
-    async function parse() {
+    function parse() {
 
       const scripts = editor.getValue();
       try {
-        const result = await jsPython()
+        const result = jsPython()
           .parse(scripts);
 
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result;
@@ -83,7 +90,7 @@ x
       }
     }
 
-    async function runInterpreter() {
+    function runInterpreter() {
 
       const scripts = editor.getValue();
       try {
@@ -99,7 +106,7 @@ x
             }
           }
         };
-        const result = await jsPython()
+        const result = jsPython()
           .evaluate(scripts, scope);
 
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : String(result);

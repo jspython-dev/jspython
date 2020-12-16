@@ -1,6 +1,7 @@
-import { 
-    AssignNode, Ast, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode, 
-    CreateObjectNode, DotObjectAccessNode, FunctionCallNode, GetSingleVarNode, SetSingleVarNode 
+import {
+    ArrowFuncDefNode,
+    AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
+    CreateObjectNode, DotObjectAccessNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, SetSingleVarNode
 } from '../common';
 import { Scope } from './scope';
 
@@ -14,26 +15,44 @@ const OperationFuncs: Record<string, (l: Primitive, r: Primitive) => Primitive> 
 
 export class Evaluator {
 
-    registerFunction(funcName: string, fn: () => unknown): Evaluator {
-        throw new Error('Not implemented yet!')
-    }
 
-    registerInstance(instanceName: string, instance: Record<string, unknown>): Evaluator {
-        throw new Error('Not implemented yet!')
-    }
-
-    assignObject(obj: Record<string, unknown>): Evaluator {
-        throw new Error('Not implemented yet!')
-    }
-
-    eval(ast: Ast, scope: Scope): Promise<unknown> {
+    evalBlock(ast: AstBlock, scope: Scope): unknown {
         let lastResult = null;
+
+        for (let node of ast?.funcs || []) {
+            const funcDef = node as FunctionDefNode;
+
+            const ast = {
+                name: '',
+                type: 'func',
+                funcs: [],
+                body: funcDef.body
+            } as AstBlock;
+
+            // a child scope needs to be created here
+            const newScope = scope;
+
+            scope.set(funcDef.name, (...args: unknown[]): unknown => {
+
+                // set parameters into new scope, based incomming arguments
+                for (let i = 0; i < args?.length || 0; i++) {
+                    if (i >= funcDef.params.length) {
+                        break;
+                        // throw new Error('Too much parameters provided');
+                    }
+                    newScope.set(funcDef.params[i], args[i]);
+                }
+                return this.evalBlock(ast, newScope);
+            }
+            );
+
+        }
 
         for (const node of ast.body) {
             lastResult = this.evalNode(node, scope);
         }
 
-        return Promise.resolve(lastResult);
+        return lastResult;
     }
 
     private invokeFunction(func: (...args: unknown[]) => unknown, fps: unknown[]): unknown {
@@ -87,6 +106,32 @@ export class Evaluator {
             var left = this.evalNode(binOpNode.left, scope);
             var right = this.evalNode(binOpNode.right, scope);
             return OperationFuncs[binOpNode.op](left as Primitive, right as Primitive);
+        }
+
+        if(node.type === "arrowFuncDef") {
+            const arrowFuncDef = node as ArrowFuncDefNode;
+
+            const newScope = scope;
+            const ast = {
+                name: '',
+                type: 'func',
+                funcs: [],
+                body: arrowFuncDef.body
+            } as AstBlock;
+
+            const arrowFuncHandler = (...args: unknown[]): unknown => {
+                // set parameters into new scope, based incomming arguments
+                for (let i = 0; i < args?.length || 0; i++) {
+                    if (i >= arrowFuncDef.params.length) {
+                        break;
+                        // throw new Error('Too much parameters provided');
+                    }
+                    newScope.set(arrowFuncDef.params[i], args[i]);
+                }
+                return this.evalBlock(ast, newScope);              
+            }
+
+            return arrowFuncHandler;
         }
 
         if (node.type === "funcCall") {
@@ -148,7 +193,7 @@ export class Evaluator {
                     const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
                     const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, scope)) || []
 
-                    startObject = this.invokeFunction(func, pms);
+                    startObject = this.invokeFunction(func.bind(startObject), pms);
 
                 } else {
                     throw Error("Can't resolve dotObjectAccess node")

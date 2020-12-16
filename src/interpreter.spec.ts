@@ -7,91 +7,101 @@ describe('Interpreter', () => {
     e = Interpreter.create();
   });
 
-  it('Test1', async () => {
+  it('Test1', () => {
     expect(e).toBe(e);
   });
 
-  it('1+2', async () => {
-    expect(await e.evaluate("1+2")).toBe(3);
-    expect(await e.evaluate("1+2+3")).toBe(6);
+  it('1+2', () => {
+    expect(e.evaluate("1+2")).toBe(3);
+    expect(e.evaluate("1+2+3")).toBe(6);
   });
 
-  it(`"hello" + " " + 'world'`, async () => {
-    expect(await e.evaluate(`"hello" + " " + 'world'`)).toBe('hello world');
+  it(`"hello" + " " + 'world'`, () => {
+    expect(e.evaluate(`"hello" + " " + 'world'`)).toBe('hello world');
   });
 
-  it(`"'hello'" + " " + '"world"'`, async () => {
-    expect(await e.evaluate(`"'hello'" + " " + '"world"'`)).toBe(`'hello' "world"`);
+  it(`"'hello'" + " " + '"world"'`, () => {
+    expect(e.evaluate(`"'hello'" + " " + '"world"'`)).toBe(`'hello' "world"`);
   });
 
-  it('(1 + 2) * 3', async () => {
-    expect(await e.evaluate("(1 + 2) * 3")).toBe(9);
-    expect(await e.evaluate("(1 + 2) * 3 + 5")).toBe(14);
+  it('(1 + 2) * 3', () => {
+    expect(e.evaluate("(1 + 2) * 3")).toBe(9);
+    expect(e.evaluate("(1 + 2) * 3 + 5")).toBe(14);
   });
 
-  it('(1 + 2) * (3 + 5)', async () => {
-    expect(await e.evaluate("(1 + 2) * (3 + 5)")).toBe(24);
-    expect(await e.evaluate("(1 + 2) * (3 + 4) -5")).toBe(16);
+  it('(1 + 2) * (3 + 5)', () => {
+    expect(e.evaluate("(1 + 2) * (3 + 5)")).toBe(24);
+    expect(e.evaluate("(1 + 2) * (3 + 4) -5")).toBe(16);
 
-    expect(await e.evaluate("2*(3+4)")).toBe(14);
-    expect(await e.evaluate("2*(3+4)+5")).toBe(19);
+    expect(e.evaluate("2*(3+4)")).toBe(14);
+    expect(e.evaluate("2*(3+4)+5")).toBe(19);
   });
 
-  it('1+2*3', async () => {
-    expect(await e.evaluate("1 + 2 * 3")).toBe(1 + 2 * 3);
-    expect(await e.evaluate("1 + 2 * 3 + 4")).toBe(1 + 2 * 3 + 4);
+  it('1+2*3', () => {
+    expect(e.evaluate("1 + 2 * 3")).toBe(1 + 2 * 3);
+    expect(e.evaluate("1 + 2 * 3 + 4")).toBe(1 + 2 * 3 + 4);
   });
 
 
-  it('2 * 3 + 4 * 5', async () => {
-    expect(await e.evaluate("(1 + 2) + (3 + 4) * (5*6)")).toBe((1 + 2) + (3 + 4) * (5 * 6));
-    expect(await e.evaluate("(1 + 2) + (3 + 4) * 5")).toBe((1 + 2) + (3 + 4) * 5);
-    expect(await e.evaluate("2*3+4*5")).toBe(2 * 3 + 4 * 5);
-    expect(await e.evaluate("2*(3+4)+5*6")).toBe(2 * (3 + 4) + 5 * 6);
+  it('2 * 3 + 4 * 5', () => {
+    expect(e.evaluate("(1 + 2) + (3 + 4) * (5*6)")).toBe((1 + 2) + (3 + 4) * (5 * 6));
+    expect(e.evaluate("(1 + 2) + (3 + 4) * 5")).toBe((1 + 2) + (3 + 4) * 5);
+    expect(e.evaluate("2*3+4*5")).toBe(2 * 3 + 4 * 5);
+    expect(e.evaluate("2*(3+4)+5*6")).toBe(2 * (3 + 4) + 5 * 6);
   });
 
-  it('2 * 3 + 4 * 5', async () => {
-    expect(await e.evaluate("1+2*1/4")).toBe(1 + 2 * 1 / 4)
-    expect(await e.evaluate("1+2*1/2+3")).toBe(1 + 2 * 1 / 2 + 3)
+  it('2 * 3 + 4 * 5', () => {
+    expect(e.evaluate("1+2*1/4")).toBe(1 + 2 * 1 / 4)
+    expect(e.evaluate("1+2*1/2+3")).toBe(1 + 2 * 1 / 2 + 3)
 
   });
 
-  it('1*2/4 + 2*3/6', async () => {
-    expect(await e.evaluate("1*2/4 + 2*3/6")).toBe(1 * 2 / 4 + 2 * 3 / 6)
-    expect(await e.evaluate("1*2/4 + 2*3/6-2.3")).toBe(1 * 2 / 4 + 2 * 3 / 6 - 2.3)
-    expect(await e.evaluate("7+1*2/4 + 2*3/6-2.3")).toBe(7 + 1 * 2 / 4 + 2 * 3 / 6 - 2.3)
+  it('1*2/4 + 2*3/6', () => {
+    expect(e.evaluate("1*2/4 + 2*3/6")).toBe(1 * 2 / 4 + 2 * 3 / 6)
+    expect(e.evaluate("1*2/4 + 2*3/6-2.3")).toBe(1 * 2 / 4 + 2 * 3 / 6 - 2.3)
+    expect(e.evaluate("7+1*2/4 + 2*3/6-2.3")).toBe(7 + 1 * 2 / 4 + 2 * 3 / 6 - 2.3)
   });
 
-  it('5 – (5 * (32 + 4))', async () => {
-    expect(await e.evaluate("5 - (5 * (32 + 4))")).toBe(5 - (5 * (32 + 4)))
-    expect(await e.evaluate("12 * 5 - (5 * (32 + 4)) + 3")).toBe(12 * 5 - (5 * (32 + 4)) + 3)
+  it('5 – (5 * (32 + 4))', () => {
+    expect(e.evaluate("5 - (5 * (32 + 4))")).toBe(5 - (5 * (32 + 4)))
+    expect(e.evaluate("12 * 5 - (5 * (32 + 4)) + 3")).toBe(12 * 5 - (5 * (32 + 4)) + 3)
   });
 
-  it('o.sub1.subValue', async () => {
+  it('o.sub1.subValue', () => {
     const obj = { o: { v1: 55, sub1: { subValue: 45 } } };
-    expect(await e.evaluate("o.v1 + o.sub1.subValue", obj)).toBe(100)
-    expect(await e.evaluate("o.v1 + o.sub1['sub' + 'Value']", obj)).toBe(100)
-    expect(await e.evaluate("o.v1 + o['sub1'].subValue", obj)).toBe(100)
+    expect(e.evaluate("o.v1 + o.sub1.subValue", obj)).toBe(100)
+    expect(e.evaluate("o.v1 + o.sub1['sub' + 'Value']", obj)).toBe(100)
+    expect(e.evaluate("o.v1 + o['sub1'].subValue", obj)).toBe(100)
   });
 
-  it('assignment o.sub1.subValue', async () => {
+  it('assignment o.sub1.subValue', () => {
     const obj = { o: { v1: 55, sub1: { subValue: 45 } } };
-    expect(await e.evaluate("o.sub1.subValue2 = 10\no.sub1.subValue2", obj)).toBe(10)
+    expect(e.evaluate("o.sub1.subValue2 = 10\no.sub1.subValue2", obj)).toBe(10)
   });
 
-  it('func call', async () => {
+  it('func call', () => {
     const obj = { add: (x: number, y: number) => x + y };
 
-    expect(await e.evaluate("add(2, 3)", obj)).toBe(5)
-    expect(await e.evaluate("add(2+10, 3)", obj)).toBe(15)
+    expect(e.evaluate("add(2, 3)", obj)).toBe(5)
+    expect(e.evaluate("add(2+10, 3)", obj)).toBe(15)
   });
 
-  it('Object call', async () => {
+  it(`empty or special param`, () => {
+    expect(e.evaluate(`def f(p):\n  p\nf('')`)).toBe(``);
+    expect(e.evaluate(`def f(p):\n  p\nf('"')`)).toBe(`"`);
+    expect(e.evaluate(`def f(p):\n  p\nf("'")`)).toBe(`'`);
+    expect(e.evaluate(`def f(p):\n  p\nf(",")`)).toBe(`,`);
+    expect(e.evaluate(`def f(p):\n  p\nf(" ")`)).toBe(` `);
+    expect(e.evaluate(`def f(p):\n  p\nf(")")`)).toBe(`)`);
+    expect(e.evaluate(`def f(p):\n  p\nf("}")`)).toBe(`}`);
+  });
+
+  it('Object call', () => {
     const obj = { o: { add: (x: number, y: number) => x + y } };
 
-    expect(await e.evaluate("o.add(2, 3)", obj)).toBe(5)
-    expect(await e.evaluate("o.add(2 * 10, 3)", obj)).toBe(23)
-    expect(await e.evaluate(`
+    expect(e.evaluate("o.add(2, 3)", obj)).toBe(5)
+    expect(e.evaluate("o.add(2 * 10, 3)", obj)).toBe(23)
+    expect(e.evaluate(`
     o.add(
       2 * 10,
       3
@@ -99,7 +109,7 @@ describe('Interpreter', () => {
 
   });
 
-  it('Object call2', async () => {
+  it('Object call2', () => {
     const obj = {
       o: {
         add: (x: number, y: number) => x + y,
@@ -107,23 +117,77 @@ describe('Interpreter', () => {
       }
     };
 
-    expect(await e.evaluate("o.getObject(5).p", obj)).toBe(5)
-    expect(await e.evaluate("x = o.getObject(5)\nx.p * x.p", obj)).toBe(25)
+    expect(e.evaluate("o.getObject(5).p", obj)).toBe(5)
+    expect(e.evaluate("x = o.getObject(5)\nx.p * x.p", obj)).toBe(25)
   });
 
-  it('json obj', async () => {
-    expect(await e.evaluate("x = {m1: 1+2*3, m2: 'ee'}\nx.m1")).toBe(7);
-    expect(await e.evaluate("x = {'m1': 1+2*3}\nx.m1")).toBe(7);
-    expect(await e.evaluate("x = {'m'+1: 1+2*3}\nx.m1")).toBe(7);
+  it('json obj', () => {
+    expect(e.evaluate("x = {m1: 1+2*3, m2: 'ee'}\nx.m1")).toBe(7);
+    expect(e.evaluate("x = {'m1': 1+2*3}\nx.m1")).toBe(7);
+    expect(e.evaluate("x = {'m'+1: 1+2*3}\nx.m1")).toBe(7);
   });
 
-  it('json array', async () => {
-    expect(await e.evaluate("x = [{m1: 1+2*3, m2: 'ee'}]\nx.length")).toBe(1);
-    expect(await e.evaluate("x = [1,2,3]\nx.length")).toBe(3);
-    expect(await e.evaluate("x = [1,2,3]\nx[1]")).toBe(2);
-    expect(await e.evaluate("x = [{f1:1, f2:12}, {f1:2, f2:22}, {f1:3, f2:32}]\nx[1].f2")).toBe(22);
-    expect(await e.evaluate("x = [{f1:1, f2:12}, {f1:2, f2:22}, {f1:3, f2:32}]\nx[1].f2 = 55\nx[1].f2")).toBe(55);
+  it('json array', () => {
+    expect(e.evaluate("x = [{m1: 1+2*3, m2: 'ee'}]\nx.length")).toBe(1);
+    expect(e.evaluate("x = [1,2,3]\nx.length")).toBe(3);
+    expect(e.evaluate("x = [1,2,3]\nx[1]")).toBe(2);
+    expect(e.evaluate("x = [{f1:1, f2:12}, {f1:2, f2:22}, {f1:3, f2:32}]\nx[1].f2")).toBe(22);
+    expect(e.evaluate("x = [{f1:1, f2:12}, {f1:2, f2:22}, {f1:3, f2:32}]\nx[1].f2 = 55\nx[1].f2")).toBe(55);
   });
 
+  it('array map', () => {
+    const script =`
+    def map(n):
+      {
+        t1: n * 2,
+        t2: n * 3
+      }
+        
+    arr = [1,2,3]
+    arr.map(map)     
+    `; 
+    const res = e.evaluate(script) as {t1: number, t2: number}[];
+
+    expect(res.length).toBe(3);
+    expect(res.map(o => o.t1 + o.t2).join(',') ).toBe("5,10,15");
+  });
+
+  it('array map 2', () => {
+    const script =`
+  def map(n):
+    {
+      t1: n * 2,
+      t2: n * 3
+    }
+  
+  def map2(o):
+      o.t1 + o.t2
+  
+  arr = [1,2,3]
+  
+  arr
+      .map(map)
+      .map(map2)
+      .join(",")
+      `; 
+    expect(e.evaluate(script)).toBe("5,10,15");
+  });
+
+  it('arrow functions', () => {
+    const script = `
+    arr = [1,2,3]
+    arr
+        .map(n =>
+            n = n * 2
+            {
+                t1: n * 2,
+                t2: n * 3
+            }
+        )
+        .map(r => r.t1 * 8)
+        .join(',')     
+      `; 
+    expect(e.evaluate(script)).toBe("32,64,96");
+  });
 
 });

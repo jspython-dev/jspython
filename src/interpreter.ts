@@ -1,4 +1,4 @@
-import { Ast, Token } from './common';
+import { AstBlock, Token } from './common';
 import { Evaluator } from './evaluator';
 import { Scope } from './evaluator/scope';
 import { Parser } from './parser';
@@ -23,17 +23,17 @@ export class Interpreter {
         return tokenizer.tokenize(script);
     }
 
-    parse(script: string): Ast {
+    parse(script: string): AstBlock {
         const tokenizer = new Tokenizer();
         const parser = new Parser();
         const jspyAst = parser.parse(tokenizer.tokenize(script));
         return jspyAst;
     }
 
-    async evaluate(codeOrAst: string | Ast, scope: Record<string, unknown> = {}, entryFunctionName = ''): Promise<unknown> {
-        const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string) : codeOrAst as Ast;
+    evaluate(codeOrAst: string | AstBlock, scope: Record<string, unknown> = {}, entryFunctionName = ''): unknown {
+        const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string) : codeOrAst as AstBlock;
         const scopeObj = new Scope(scope);
-        const result = await this.evaluator.eval(ast, scopeObj);
+        const result = this.evaluator.evalBlock(ast, scopeObj);
         return result;
     }
 

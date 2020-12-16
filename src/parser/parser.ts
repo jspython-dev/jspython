@@ -1,8 +1,8 @@
 import {
-    BinOpNode, ConstNode, Ast, Token, ParserOptions, AstNode, Operators, AssignNode, TokenTypes, 
+    BinOpNode, ConstNode, AstBlock, Token, ParserOptions, AstNode, Operators, AssignNode, TokenTypes, 
     GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine, 
     getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode, 
-    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode
+    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode
 } from '../common';
 
 export class InstructionLine {
@@ -32,24 +32,25 @@ export class Parser {
      * @param allTokens tokens
      * @param options parsing options. By default it will exclude comments and include LOC (Line of code)
      */
-    parse(allTokens: Token[], options: ParserOptions = { includeComments: false, includeLoc: true }): Ast {
+    parse(allTokens: Token[], options: ParserOptions = { includeComments: false, includeLoc: true }): AstBlock {
 
-        if (!allTokens || !allTokens.length) { return {} as Ast; }
+        if (!allTokens || !allTokens.length) { return {} as AstBlock; }
 
         // get all instruction lines starting at first line
         const instructions = this.getBlock(allTokens, 1);
 
         const ast = {
             name: "undefined.jspy",
+            type: 'module',
             funcs: [],
             body: []
-        } as Ast;
+        } as AstBlock;
 
         this.instructionsToNodes(instructions, ast);
         return ast;
     }
 
-    private instructionsToNodes(instructions: InstructionLine[], ast: Ast): void {
+    private instructionsToNodes(instructions: InstructionLine[], ast: AstBlock): void {
 
         for (let instruction of instructions) {
 
@@ -78,7 +79,7 @@ export class Parser {
                 const funcAst = {
                     body: [] as AstNode[],
                     funcs: [] as AstNode[]
-                } as Ast;
+                } as AstBlock;
                 this.instructionsToNodes(instructionLines, funcAst);
 
                 ast.funcs.push(new FunctionDefNode(funcName, params, funcAst.body))
@@ -104,13 +105,14 @@ export class Parser {
             const token = tokens[i];
             const sLine = getStartLine(token);
             const sColumn = getStartColumn(token);
+            const value = getTokenValue(token);
             if (sLine >= startLine) {
 
                 if (currentLine !== sLine) {
                     currentLine = sLine;
                 }
 
-                if (column === sColumn) {
+                if (column === sColumn && !")}]".includes(value as string) ) {
                     currentLine = sLine;
                     lines.push(line);
                     line = new InstructionLine();
@@ -157,6 +159,22 @@ export class Parser {
             }
 
             throw Error(`Unhandled single token: '${JSON.stringify(firstToken)}'`);
+        }
+
+
+        // arrow function
+        const arrowFuncParts = splitTokens(tokens, '=>');
+        if(arrowFuncParts.length > 1) {           
+            const params = splitTokens(arrowFuncParts[0], ',').map(t => getTokenValue(t[0]) as string);
+
+            const instructionLines = this.getBlock(arrowFuncParts[1], 0);
+            const funcAst = {
+                body: [] as AstNode[],
+                funcs: [] as AstNode[]
+            } as AstBlock;
+            this.instructionsToNodes(instructionLines, funcAst);
+
+            return new ArrowFuncDefNode(params, funcAst.body);
         }
 
         // create expression
@@ -278,6 +296,7 @@ export class Parser {
 
             return new CreateArrayNode(items);
         }
+
 
         throw new Error('Undefined node error.');
     }

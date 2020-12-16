@@ -101,13 +101,18 @@ export function findTokenValueIndexes(tokens: Token[], predicate: (value: TokenV
     const opIndexes: number[] = [];
 
     for (let i = 0; i < tokens.length; i++) {
-        if (getTokenValue(tokens[i]) === '(') {
+        const tValue = getTokenValue(tokens[i]);
+        const tType = getTokenType(tokens[i]);
+
+        if (tType === TokenTypes.LiteralString) { continue; }
+
+        if (tValue === '(') {
             i = skipInnerBrackets(tokens, i, '(', ')');
-        } else if (getTokenValue(tokens[i]) === '[') {
+        } else if (tValue === '[') {
             i = skipInnerBrackets(tokens, i, '[', ']');
-        } else if (getTokenValue(tokens[i]) === '{') {
+        } else if (tValue === '{') {
             i = skipInnerBrackets(tokens, i, '{', '}');
-        } else if (predicate(getTokenValue(tokens[i]))) {
+        } else if (predicate(tValue)) {
             opIndexes.push(i);
         }
     }
