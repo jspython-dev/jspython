@@ -190,4 +190,21 @@ describe('Interpreter', () => {
     expect(e.evaluate(script)).toBe("32,64,96");
   });
 
+  it('arrow functions with filter', () => {
+    const script = `
+    arr = [1,2,3]
+    arr.map(n =>
+        n = n * 2
+        {
+          t1: n * 2,
+          t2: n * 3
+        }
+      )
+      .filter(v => (v.t1 > 10) or (v.t2 > 10))
+      .map(r => r.t1 * r.t2)
+      .join(',')
+        `; 
+    expect(e.evaluate(script)).toBe("96,216");
+  });
+
 });

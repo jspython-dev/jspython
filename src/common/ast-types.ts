@@ -1,4 +1,4 @@
-import { OperationTypes, Operators } from "./operators";
+import { ExpressionOperators, OperationTypes, Operators } from "./operators";
 import { Token } from "./token-types";
 
 export abstract class AstNode {
@@ -105,7 +105,7 @@ export class BracketObjectAccessNode extends AstNode {
 export class BinOpNode extends AstNode {
     constructor(
         public left: AstNode,
-        public op: Operators,
+        public op: ExpressionOperators,
         public right: AstNode) {
         super('binOp');
     }

@@ -2,7 +2,7 @@ import {
     BinOpNode, ConstNode, AstBlock, Token, ParserOptions, AstNode, Operators, AssignNode, TokenTypes, 
     GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine, 
     getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode, 
-    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode
+    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode, ExpressionOperators
 } from '../common';
 
 export class InstructionLine {
@@ -222,14 +222,14 @@ export class Parser {
                         const leftSlice = slice(tokens, 0, opIndex);
                         prevNode = this.createExpressionNode(leftSlice);
                     }
-                    prevNode = new BinOpNode(prevNode, op, rightNode)
+                    prevNode = new BinOpNode(prevNode, op as ExpressionOperators, rightNode)
 
                 } else {
                     const leftSlice = prevNode ? [] : slice(tokens, 0, opIndex);
                     const rightSlice = slice(tokens, opIndex + 1, nextOpIndex || tokens.length);
                     const left = prevNode || this.createExpressionNode(leftSlice, prevNode);
                     const right = this.createExpressionNode(rightSlice);
-                    prevNode = new BinOpNode(left, op, right);
+                    prevNode = new BinOpNode(left, op as ExpressionOperators, right);
                 }
             }
 

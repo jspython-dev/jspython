@@ -1,17 +1,9 @@
 import {
     ArrowFuncDefNode,
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
-    CreateObjectNode, DotObjectAccessNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, SetSingleVarNode
+    CreateObjectNode, DotObjectAccessNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, OperationFuncs, Primitive, SetSingleVarNode
 } from '../common';
 import { Scope } from './scope';
-
-type Primitive = string | number | boolean | null;
-const OperationFuncs: Record<string, (l: Primitive, r: Primitive) => Primitive> = {
-    "+": (l, r) => (l as number) + (r as number) as Primitive,
-    "-": (l, r) => (l as number) - (r as number) as Primitive,
-    "/": (l, r) => (l as number) / (r as number) as Primitive,
-    "*": (l, r) => (l as number) * (r as number) as Primitive
-}
 
 export class Evaluator {
 
