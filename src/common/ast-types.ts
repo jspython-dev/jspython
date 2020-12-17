@@ -57,6 +57,12 @@ export class ArrowFuncDefNode extends AstNode {
     }
 }
 
+export class IfNode extends AstNode {
+    constructor(public conditionNode: AstNode, public ifBody: AstNode[], public elseBody: AstNode[] | undefined = undefined) {
+        super('if');
+    }
+}
+
 export class GetSingleVarNode extends AstNode {
     name: string;
     nullCoelsing: boolean | undefined = undefined;

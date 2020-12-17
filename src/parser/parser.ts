@@ -1,8 +1,8 @@
 import {
-    BinOpNode, ConstNode, AstBlock, Token, ParserOptions, AstNode, Operators, AssignNode, TokenTypes, 
-    GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine, 
-    getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode, 
-    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode, ExpressionOperators
+    BinOpNode, ConstNode, AstBlock, Token, ParserOptions, AstNode, Operators, AssignNode, TokenTypes,
+    GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine,
+    getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode,
+    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode, ExpressionOperators, IfNode
 } from '../common';
 
 export class InstructionLine {
@@ -52,12 +52,19 @@ export class Parser {
 
     private instructionsToNodes(instructions: InstructionLine[], ast: AstBlock): void {
 
-        for (let instruction of instructions) {
+        const getBody = (tokens: Token[], startTokenIndex: number): AstNode[] => {
+            const instructionLines = this.getBlock(tokens, getStartLine(tokens[startTokenIndex]));
+            const bodyAst = { body: [] as AstNode[], funcs: [] as AstNode[] } as AstBlock;
+            this.instructionsToNodes(instructionLines, bodyAst);
+            return bodyAst.body;
+        }
+
+        for (let i = 0; i < instructions.length; i++) {
+            const instruction = instructions[i]
 
             if (!instruction.tokens.length) {
                 continue;
             }
-
             const assignTokens = splitTokens(instruction.tokens, '=');
 
             if (getTokenValue(instruction.tokens[0]) === 'def') {
@@ -83,6 +90,26 @@ export class Parser {
                 this.instructionsToNodes(instructionLines, funcAst);
 
                 ast.funcs.push(new FunctionDefNode(funcName, params, funcAst.body))
+
+            } else if (getTokenValue(instruction.tokens[0]) === 'if') {
+
+                const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
+
+                if (endDefOfDef === -1) {
+                    throw (`Can't find : for if`)
+                }
+
+                const ifBody = getBody(instruction.tokens, endDefOfDef + 1);
+                const conditionNode = this.createExpressionNode(instruction.tokens.slice(1, endDefOfDef))
+
+                let elseBody: AstNode[] | undefined = undefined;
+                if (getTokenValue(instructions[i + 1].tokens[0]) === 'else'
+                    && getTokenValue(instructions[i + 1].tokens[1]) === ':') {
+                    elseBody = getBody(instructions[i + 1].tokens, 2);
+                    i++;
+                }
+
+                ast.body.push(new IfNode(conditionNode, ifBody, elseBody))
 
             } else if (assignTokens.length > 1) {
                 const target = this.createExpressionNode(assignTokens[0]);
@@ -112,7 +139,7 @@ export class Parser {
                     currentLine = sLine;
                 }
 
-                if (column === sColumn && !")}]".includes(value as string) ) {
+                if (column === sColumn && !")}]".includes(value as string)) {
                     currentLine = sLine;
                     lines.push(line);
                     line = new InstructionLine();
@@ -164,7 +191,7 @@ export class Parser {
 
         // arrow function
         const arrowFuncParts = splitTokens(tokens, '=>');
-        if(arrowFuncParts.length > 1) {           
+        if (arrowFuncParts.length > 1) {
             const params = splitTokens(arrowFuncParts[0], ',').map(t => getTokenValue(t[0]) as string);
 
             const instructionLines = this.getBlock(arrowFuncParts[1], 0);
@@ -275,7 +302,7 @@ export class Parser {
                 }
 
                 // unquoted string becomes a variable, so, we don't need it, that is why we are creating const node explicitlely
-                const name = (keyValue[0].length === 1 && !`'"`.includes((getTokenValue(keyValue[0][0]) as string)[0])) 
+                const name = (keyValue[0].length === 1 && !`'"`.includes((getTokenValue(keyValue[0][0]) as string)[0]))
                     ? new ConstNode(keyValue[0][0])
                     : this.createExpressionNode(keyValue[0]);
                 const pInfo = {

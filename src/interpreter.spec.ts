@@ -207,4 +207,19 @@ describe('Interpreter', () => {
     expect(e.evaluate(script)).toBe("96,216");
   });
 
+
+  it('if condition', () => {
+    const script = (p) => `
+    x = 1
+    if x == ${p}:
+      x = 5
+    else:
+      x = 10
+    x
+          `; 
+    expect(e.evaluate(script(1))).toBe(5);
+    expect(e.evaluate(script(2))).toBe(10);
+  });
+  
+
 });

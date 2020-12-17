@@ -1,7 +1,7 @@
 import {
     ArrowFuncDefNode,
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
-    CreateObjectNode, DotObjectAccessNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, OperationFuncs, Primitive, SetSingleVarNode
+    CreateObjectNode, DotObjectAccessNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, IfNode, OperationFuncs, Primitive, SetSingleVarNode
 } from '../common';
 import { Scope } from './scope';
 
@@ -85,6 +85,18 @@ export class Evaluator {
     }
 
     private evalNode(node: AstNode, scope: Scope): unknown {
+        if (node.type === 'if') {
+            const ifNode = node as IfNode;
+            const newScope = scope;
+            if (this.evalNode(ifNode.conditionNode, scope)) {
+                this.evalBlock({ body: ifNode.ifBody } as AstBlock, newScope);
+            } else if (ifNode.elseBody) {
+                this.evalBlock({ body: ifNode.elseBody } as AstBlock, newScope);
+            }
+
+            return;
+        }
+
         if (node.type === "const") {
             return (node as ConstNode).value;
         }
@@ -100,7 +112,7 @@ export class Evaluator {
             return OperationFuncs[binOpNode.op](left as Primitive, right as Primitive);
         }
 
-        if(node.type === "arrowFuncDef") {
+        if (node.type === "arrowFuncDef") {
             const arrowFuncDef = node as ArrowFuncDefNode;
 
             const newScope = scope;
@@ -120,7 +132,7 @@ export class Evaluator {
                     }
                     newScope.set(arrowFuncDef.params[i], args[i]);
                 }
-                return this.evalBlock(ast, newScope);              
+                return this.evalBlock(ast, newScope);
             }
 
             return arrowFuncHandler;
