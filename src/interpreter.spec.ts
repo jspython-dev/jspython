@@ -209,7 +209,7 @@ describe('Interpreter', () => {
 
 
   it('if condition', () => {
-    const script = (p) => `
+    const script = (p: ) => `
     x = 1
     if x == ${p}:
       x = 5
@@ -221,5 +221,24 @@ describe('Interpreter', () => {
     expect(e.evaluate(script(2))).toBe(10);
   });
   
+  it('if condition', () => {
+    const script = `
+    x = {o1: {ov: 55}}
+    x.o1.ov1?.someProp or 32
+    `; 
+    expect(e.evaluate(script)).toBe(32);
+    expect(e.evaluate("x={}\nx?.p1?.ff")).toBe(null);
+  });
+
+  it('simple for', () => {
+    const script = `
+    sum = 0
+    for item in [1,2,3]:
+      sum = sum + item
+    sum
+      `; 
+    expect(e.evaluate(script)).toBe(6);
+  });
+
 
 });

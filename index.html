@@ -29,12 +29,12 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
-x = 1
-
-if x == 3:
-  x = 5
-else:
-  x = 10
+      sum = 0
+      
+      for item in [1,2,3]:
+        sum = sum + item
+      
+      sum
 
     </div>
     <button onclick="tokenize()">Tokenize</button>
@@ -94,10 +94,10 @@ else:
       try {
         const scope = {
           Math,
-          print: (p1, p2) => {return p1;},
+          print: (p1, p2) => { return p1; },
           x: 10,
           o: {
-            f1: (x,y) => {return {x, y};},
+            f1: (x, y) => { return { x, y }; },
             v1: 55,
             sub1: {
               subValue: 88

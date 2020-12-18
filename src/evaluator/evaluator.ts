@@ -1,7 +1,7 @@
 import {
     ArrowFuncDefNode,
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
-    CreateObjectNode, DotObjectAccessNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, IfNode, OperationFuncs, Primitive, SetSingleVarNode
+    CreateObjectNode, DotObjectAccessNode, ForNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, IfNode, OperationFuncs, Primitive, SetSingleVarNode
 } from '../common';
 import { Scope } from './scope';
 
@@ -97,6 +97,20 @@ export class Evaluator {
             return;
         }
 
+        if (node.type === 'for') {
+            const forNode = node as ForNode;
+            const newScope = scope;
+
+            const array = this.evalNode(forNode.sourceArray, newScope) as unknown[] | string;
+
+            for(let item of array){
+                newScope.set(forNode.itemVarName, item);
+                this.evalBlock({ body: forNode.body } as AstBlock, newScope);
+            }
+            return;
+        }
+
+
         if (node.type === "const") {
             return (node as ConstNode).value;
         }
@@ -185,15 +199,20 @@ export class Evaluator {
 
             let startObject = this.evalNode(dotObject.nestedProps[0], scope) as any;
             for (let i = 1; i < dotObject.nestedProps.length; i++) {
+                const nestedProp = dotObject.nestedProps[i];
 
-                if (dotObject.nestedProps[i].type === 'getSingleVar') {
-                    startObject = startObject[(dotObject.nestedProps[i] as SetSingleVarNode).name] as unknown;
-                } else if (dotObject.nestedProps[i].type === 'bracketObjectAccess') {
-                    const node = dotObject.nestedProps[i] as BracketObjectAccessNode;
+                if((dotObject.nestedProps[i - 1] as any).nullCoelsing && !startObject) {
+                    startObject = {};
+                }
+
+                if (nestedProp.type === 'getSingleVar') {
+                    startObject = startObject[(nestedProp as SetSingleVarNode).name] as unknown;
+                } else if (nestedProp.type === 'bracketObjectAccess') {
+                    const node = nestedProp as BracketObjectAccessNode;
                     startObject = startObject[node.propertyName] as unknown;
                     startObject = startObject[this.evalNode(node.bracketBody, scope) as string] as unknown;
-                } else if (dotObject.nestedProps[i].type === 'funcCall') {
-                    const funcCallNode = dotObject.nestedProps[i] as FunctionCallNode;
+                } else if (nestedProp.type === 'funcCall') {
+                    const funcCallNode = nestedProp as FunctionCallNode;
                     const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
                     const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, scope)) || []
 
@@ -204,7 +223,8 @@ export class Evaluator {
                 }
             }
 
-            return startObject;
+            // no undefined values, make it rather null
+            return (startObject === undefined)? null : startObject;
         }
 
         if (node.type === 'createObject') {

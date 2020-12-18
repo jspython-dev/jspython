@@ -9,7 +9,8 @@ export abstract class AstNode {
             | 'getSingleVar' | 'setSingleVar' | 'dotObjectAccess' | 'bracketObjectAccess'
             | 'funcCall' | 'funcDef' | 'arrowFuncDef'
             | 'createObject' | 'createArray'
-            | 'if' | 'while' | 'tryCatch'
+            | 'if' | 'for' | 'tryCatch'
+            | 'return' | 'continue' | 'break'
     ) { }
 }
 
@@ -28,6 +29,24 @@ export class ConstNode extends AstNode {
         super('const');
         this.value = token[0];
         //this.loc = token[1].subarray(1);
+    }
+}
+
+export class ReturnNode extends AstNode {
+    constructor(public returnValue: AstNode) {
+        super('return');
+    }
+}
+
+export class ContinueNode extends AstNode {
+    constructor() {
+        super('continue');
+    }
+}
+
+export class BreakNode extends AstNode {
+    constructor() {
+        super('break');
     }
 }
 
@@ -60,6 +79,12 @@ export class ArrowFuncDefNode extends AstNode {
 export class IfNode extends AstNode {
     constructor(public conditionNode: AstNode, public ifBody: AstNode[], public elseBody: AstNode[] | undefined = undefined) {
         super('if');
+    }
+}
+
+export class ForNode extends AstNode {
+    constructor(public sourceArray: AstNode, public itemVarName: string, public body: AstNode[]) {
+        super('for');
     }
 }
 
@@ -97,7 +122,6 @@ export class CreateArrayNode extends AstNode {
         super('createArray');
     }
 }
-
 
 export class BracketObjectAccessNode extends AstNode {
     constructor(
