@@ -30,9 +30,11 @@
     <h4>JSPython development console</h4>
     <div id="editor">
       sum = 0
-      
-      for item in [1,2,3]:
-        sum = sum + item
+      i = 0
+
+      while i<1000:
+        sum = sum + i
+        i = i + 1
       
       sum
 
@@ -94,7 +96,11 @@
       try {
         const scope = {
           Math,
-          print: (p1, p2) => { return p1; },
+          dateTime: () => new Date(),
+          print: (p1, p2) => { 
+            console.log(p1);
+            return p1; 
+          },
           x: 10,
           o: {
             f1: (x, y) => { return { x, y }; },

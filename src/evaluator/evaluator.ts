@@ -1,7 +1,7 @@
 import {
     ArrowFuncDefNode,
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
-    CreateObjectNode, DotObjectAccessNode, ForNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, IfNode, OperationFuncs, Primitive, SetSingleVarNode
+    CreateObjectNode, DotObjectAccessNode, ForNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, IfNode, OperationFuncs, Primitive, SetSingleVarNode, WhileNode
 } from '../common';
 import { Scope } from './scope';
 
@@ -110,6 +110,16 @@ export class Evaluator {
             return;
         }
 
+        if (node.type === 'while') {
+            const forNode = node as WhileNode;
+            const newScope = scope;
+
+            while(this.evalNode(forNode.condition, newScope)){
+                this.evalBlock({ body: forNode.body } as AstBlock, newScope);
+            }
+
+            return;
+        }
 
         if (node.type === "const") {
             return (node as ConstNode).value;

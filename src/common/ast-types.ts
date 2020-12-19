@@ -9,7 +9,7 @@ export abstract class AstNode {
             | 'getSingleVar' | 'setSingleVar' | 'dotObjectAccess' | 'bracketObjectAccess'
             | 'funcCall' | 'funcDef' | 'arrowFuncDef'
             | 'createObject' | 'createArray'
-            | 'if' | 'for' | 'tryCatch'
+            | 'if' | 'for' | 'while'
             | 'return' | 'continue' | 'break'
     ) { }
 }
@@ -85,6 +85,12 @@ export class IfNode extends AstNode {
 export class ForNode extends AstNode {
     constructor(public sourceArray: AstNode, public itemVarName: string, public body: AstNode[]) {
         super('for');
+    }
+}
+
+export class WhileNode extends AstNode {
+    constructor(public condition: AstNode, public body: AstNode[]) {
+        super('while');
     }
 }
 

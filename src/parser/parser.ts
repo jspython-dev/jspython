@@ -2,7 +2,7 @@ import {
     BinOpNode, ConstNode, AstBlock, Token, ParserOptions, AstNode, Operators, AssignNode, TokenTypes,
     GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine,
     getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode,
-    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode, ExpressionOperators, IfNode, ForNode
+    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode, ExpressionOperators, IfNode, ForNode, WhileNode
 } from '../common';
 
 export class InstructionLine {
@@ -124,6 +124,19 @@ export class Parser {
                 const forBody = getBody(instruction.tokens, endDefOfDef + 1);
 
                 ast.body.push(new ForNode(sourceArray, itemVarName, forBody))
+
+            } else if (getTokenValue(instruction.tokens[0]) === 'while') {
+
+                const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
+
+                if (endDefOfDef === -1) {
+                    throw (`Can't find : for [while]`)
+                }
+
+                const condition = this.createExpressionNode(instruction.tokens.slice(1, endDefOfDef))
+                const body = getBody(instruction.tokens, endDefOfDef + 1);
+
+                ast.body.push(new WhileNode(condition, body))
 
             } else if (assignTokens.length > 1) {
                 const target = this.createExpressionNode(assignTokens[0]);

@@ -209,7 +209,7 @@ describe('Interpreter', () => {
 
 
   it('if condition', () => {
-    const script = (p: ) => `
+    const script = (p: number) => `
     x = 1
     if x == ${p}:
       x = 5
@@ -240,5 +240,18 @@ describe('Interpreter', () => {
     expect(e.evaluate(script)).toBe(6);
   });
 
+  it('simple while', () => {
+    const script = `
+    sum = 0
+    i = 0
+    
+    while i < 5:
+        sum = sum + i
+        i = i + 1
+
+    sum
+    `; 
+    expect(e.evaluate(script)).toBe(10);
+  });
 
 });
