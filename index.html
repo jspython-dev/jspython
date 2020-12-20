@@ -29,8 +29,20 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
-      from datapipe-js-array import sort, first as f, fullJoin
-    </div>
+print(
+    ""
+)
+      </div>
+    <!--
+          def f(n):
+            n * n
+          x = [2, 3, 4]
+          x.map(f)
+             
+# arr = [1,2,3]
+# arr.map(mapFunc)
+
+    -->
     <button onclick="tokenize()">Tokenize</button>
     <button onclick="parse()">Parse</button>
     <button onclick="runInterpreter()">Run</button>
@@ -82,7 +94,7 @@
       }
     }
 
-    function runInterpreter() {
+    async function runInterpreter() {
 
       const scripts = editor.getValue();
       try {
@@ -102,8 +114,14 @@
             }
           }
         };
-        const result = jsPython()
-          .evaluate(scripts, scope);
+        // const result = await jsPython()
+        //   .evaluate(scripts, scope);
+
+        // const result = jsPython()
+        //   .eval(scripts, scope);
+
+        const result = await jsPython()
+          .evalAsync(scripts, scope);
 
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : String(result);
         resultEditor.getSession().setValue(data)

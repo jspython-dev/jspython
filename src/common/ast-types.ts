@@ -1,18 +1,17 @@
 import { ExpressionOperators, OperationTypes, Operators } from "./operators";
 import { Token } from "./token-types";
 
+export type AstNodeType = 'assign' | 'binOp' | 'const'
+    | 'getSingleVar' | 'setSingleVar' | 'dotObjectAccess' | 'bracketObjectAccess'
+    | 'funcCall' | 'funcDef' | 'arrowFuncDef'
+    | 'createObject' | 'createArray'
+    | 'if' | 'for' | 'while'
+    | 'import'
+    | 'return' | 'continue' | 'break';
+
 export abstract class AstNode {
     loc: Uint16Array | undefined = undefined;
-    constructor(
-        public type:
-            'assign' | 'binOp' | 'const'
-            | 'getSingleVar' | 'setSingleVar' | 'dotObjectAccess' | 'bracketObjectAccess'
-            | 'funcCall' | 'funcDef' | 'arrowFuncDef'
-            | 'createObject' | 'createArray'
-            | 'if' | 'for' | 'while'
-            | 'import'
-            | 'return' | 'continue' | 'break'
-    ) { }
+    constructor(public type: AstNodeType) { }
 }
 
 export class AssignNode extends AstNode {
@@ -65,13 +64,18 @@ export class FunctionCallNode extends AstNode {
     }
 }
 
-export class FunctionDefNode extends AstNode {
+export interface FuncDefNode {
+    params: string[];
+    body: AstNode[];
+}
+
+export class FunctionDefNode extends AstNode implements FuncDefNode {
     constructor(public name: string, public params: string[], public body: AstNode[]) {
-        super('funcDef');
+        super('funcDef',);
     }
 }
 
-export class ArrowFuncDefNode extends AstNode {
+export class ArrowFuncDefNode extends AstNode implements FuncDefNode {
     constructor(public params: string[], public body: AstNode[]) {
         super('arrowFuncDef');
     }

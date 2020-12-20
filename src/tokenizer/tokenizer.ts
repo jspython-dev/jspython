@@ -132,6 +132,12 @@ export class Tokenizer {
                         if (this._cursor + 1 >= script.length) break;
                     }
                 }
+                
+                // a special case when empty string
+                if(this.tokenText.length === 0) {
+                    this._startLine = this._currentLine;
+                    this._startColumn = this._currentColumn;
+                }
                 this.tokenText = this.processToken(this.tokenText, tokens, true, TokenTypes.LiteralString);
             } else if (symbol != ' ') {
                 this.tokenText += symbol;

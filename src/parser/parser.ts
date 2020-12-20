@@ -254,7 +254,10 @@ export class Parser {
         // arrow function
         const arrowFuncParts = splitTokens(tokens, '=>');
         if (arrowFuncParts.length > 1) {
-            const params = splitTokens(arrowFuncParts[0], ',').map(t => getTokenValue(t[0]) as string);
+            const pArray = getTokenValue(arrowFuncParts[0][0]) === '(' ? 
+                arrowFuncParts[0].splice(1, arrowFuncParts[0].length - 2) 
+                : arrowFuncParts[0];
+            const params = splitTokens(pArray, ',').map(t => getTokenValue(t[0]) as string);
 
             const instructionLines = this.getBlock(arrowFuncParts[1], 0);
             const funcAst = {
@@ -345,14 +348,6 @@ export class Parser {
             return new FunctionCallNode(name, paramsNodes);
         }
 
-        // bracket access object node
-        if (tokens.length > 2 && getTokenValue(tokens[1]) === '[') {
-            const name = getTokenValue(tokens[0]) as string;
-            const paramsTokensSlice = tokens.slice(2, tokens.length - 1);
-            const paramsNodes = this.createExpressionNode(paramsTokensSlice);
-            return new BracketObjectAccessNode(name, paramsNodes);
-        }
-
         // create Object Node
         if (getTokenValue(tokens[0]) === '{' && getTokenValue(tokens[tokens.length - 1]) === '}') {
             const keyValueTokens = splitTokens(tokens.splice(1, tokens.length - 2), ',');
@@ -386,6 +381,13 @@ export class Parser {
             return new CreateArrayNode(items);
         }
 
+        // bracket access object node
+        if (tokens.length > 2 && getTokenValue(tokens[1]) === '[') {
+            const name = getTokenValue(tokens[0]) as string;
+            const paramsTokensSlice = tokens.slice(2, tokens.length - 1);
+            const paramsNodes = this.createExpressionNode(paramsTokensSlice);
+            return new BracketObjectAccessNode(name, paramsNodes);
+        }
 
         throw new Error('Undefined node error.');
     }

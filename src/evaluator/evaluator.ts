@@ -1,12 +1,11 @@
 import {
     ArrowFuncDefNode,
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
-    CreateObjectNode, DotObjectAccessNode, ForNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, IfNode, OperationFuncs, Primitive, SetSingleVarNode, WhileNode
+    CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, IfNode, OperationFuncs, Primitive, SetSingleVarNode, WhileNode
 } from '../common';
 import { Scope } from './scope';
 
 export class Evaluator {
-
 
     evalBlock(ast: AstBlock, scope: Scope): unknown {
         let lastResult = null;
@@ -14,30 +13,12 @@ export class Evaluator {
         for (let node of ast?.funcs || []) {
             const funcDef = node as FunctionDefNode;
 
-            const ast = {
-                name: '',
-                type: 'func',
-                funcs: [],
-                body: funcDef.body
-            } as AstBlock;
-
             // a child scope needs to be created here
             const newScope = scope;
 
-            scope.set(funcDef.name, (...args: unknown[]): unknown => {
-
-                // set parameters into new scope, based incomming arguments
-                for (let i = 0; i < args?.length || 0; i++) {
-                    if (i >= funcDef.params.length) {
-                        break;
-                        // throw new Error('Too much parameters provided');
-                    }
-                    newScope.set(funcDef.params[i], args[i]);
-                }
-                return this.evalBlock(ast, newScope);
-            }
+            scope.set(funcDef.name, 
+                (...args: unknown[]): unknown => this.jspyFuncInvoker(funcDef, scope, ...args)
             );
-
         }
 
         for (const node of ast.body) {
@@ -45,6 +26,42 @@ export class Evaluator {
         }
 
         return lastResult;
+    }
+
+    async evalBlockAsync(ast: AstBlock, scope: Scope): Promise<unknown> {
+        let lastResult = null;
+
+        for (let node of ast?.funcs || []) {
+            const funcDef = node as FunctionDefNode;
+
+            // a child scope needs to be created here
+            const newScope = scope;
+
+            scope.set(funcDef.name, 
+                (...args: unknown[]): unknown => this.jspyFuncInvoker(funcDef, scope, ...args)
+            );
+        }
+
+        for (const node of ast.body) {
+            lastResult = this.evalNode(node, scope);
+        }
+
+        return lastResult;
+    }
+
+    private jspyFuncInvoker(funcDef: FuncDefNode, newScope: Scope, ...args: unknown[]): unknown {
+
+        const ast = { name: '', type: 'func', funcs: [], body: funcDef.body } as AstBlock;
+
+        // set parameters into new scope, based incomming arguments
+        for (let i = 0; i < args?.length || 0; i++) {
+            if (i >= funcDef.params.length) {
+                break;
+                // throw new Error('Too much parameters provided');
+            }
+            newScope.set(funcDef.params[i], args[i]);
+        }
+        return this.evalBlock(ast, newScope);
     }
 
     private invokeFunction(func: (...args: unknown[]) => unknown, fps: unknown[]): unknown {
@@ -143,28 +160,9 @@ export class Evaluator {
 
         if (node.type === "arrowFuncDef") {
             const arrowFuncDef = node as ArrowFuncDefNode;
-
             const newScope = scope;
-            const ast = {
-                name: '',
-                type: 'func',
-                funcs: [],
-                body: arrowFuncDef.body
-            } as AstBlock;
 
-            const arrowFuncHandler = (...args: unknown[]): unknown => {
-                // set parameters into new scope, based incomming arguments
-                for (let i = 0; i < args?.length || 0; i++) {
-                    if (i >= arrowFuncDef.params.length) {
-                        break;
-                        // throw new Error('Too much parameters provided');
-                    }
-                    newScope.set(arrowFuncDef.params[i], args[i]);
-                }
-                return this.evalBlock(ast, newScope);
-            }
-
-            return arrowFuncHandler;
+            return (...args:unknown[]): unknown => this.jspyFuncInvoker(arrowFuncDef, newScope, ...args);
         }
 
         if (node.type === "funcCall") {
@@ -194,6 +192,12 @@ export class Evaluator {
                 const lastPropertyName = (targetNode.nestedProps[targetNode.nestedProps.length - 1] as GetSingleVarNode).name
 
                 targetObject[lastPropertyName] = this.evalNode(assignNode.source, scope);
+            } else if (assignNode.target.type === 'bracketObjectAccess') {
+                const targetNode = assignNode.target as BracketObjectAccessNode;
+                const keyValue = this.evalNode(targetNode.bracketBody, scope) as string | number;
+                const targetObject = scope.get(targetNode.propertyName as string) as Record<string, unknown>;
+
+                targetObject[keyValue] = this.evalNode(assignNode.source, scope);
             } else {
                 throw Error('Not implemented Assign operation');
                 // get chaining calls
@@ -206,7 +210,7 @@ export class Evaluator {
             const sbNode = node as BracketObjectAccessNode;
             const key = this.evalNode(sbNode.bracketBody, scope) as string;
             const obj = scope.get(sbNode.propertyName as string) as Record<string, unknown>;
-            return obj[key];
+            return (obj[key] === undefined)? null : obj[key];
         }
 
         if (node.type === "dotObjectAccess") {
@@ -265,6 +269,4 @@ export class Evaluator {
         }
 
     }
-
-
 }
