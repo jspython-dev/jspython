@@ -2,7 +2,7 @@ import {
     BinOpNode, ConstNode, AstBlock, Token, ParserOptions, AstNode, Operators, AssignNode, TokenTypes,
     GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine,
     getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode,
-    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode, ExpressionOperators, IfNode, ForNode, WhileNode
+    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode, ExpressionOperators, IfNode, ForNode, WhileNode, ImportNode, NameAlias
 } from '../common';
 
 export class InstructionLine {
@@ -60,14 +60,15 @@ export class Parser {
         }
 
         for (let i = 0; i < instructions.length; i++) {
-            const instruction = instructions[i]
+            const instruction = instructions[i];
+            const firstToken = instruction.tokens[0];
 
             if (!instruction.tokens.length) {
                 continue;
             }
             const assignTokens = splitTokens(instruction.tokens, '=');
 
-            if (getTokenValue(instruction.tokens[0]) === 'def') {
+            if (getTokenValue(firstToken) === 'def') {
                 const funcName = getTokenValue(instruction.tokens[1]) as string;
                 const paramsTokens = instruction.tokens.slice(
                     instruction.tokens.findIndex(tkns => getTokenValue(tkns) === '(') + 1,
@@ -91,7 +92,7 @@ export class Parser {
 
                 ast.funcs.push(new FunctionDefNode(funcName, params, funcAst.body))
 
-            } else if (getTokenValue(instruction.tokens[0]) === 'if') {
+            } else if (getTokenValue(firstToken) === 'if') {
 
                 const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
 
@@ -111,7 +112,7 @@ export class Parser {
 
                 ast.body.push(new IfNode(conditionNode, ifBody, elseBody))
 
-            } else if (getTokenValue(instruction.tokens[0]) === 'for') {
+            } else if (getTokenValue(firstToken) === 'for') {
 
                 const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
 
@@ -125,7 +126,7 @@ export class Parser {
 
                 ast.body.push(new ForNode(sourceArray, itemVarName, forBody))
 
-            } else if (getTokenValue(instruction.tokens[0]) === 'while') {
+            } else if (getTokenValue(firstToken) === 'while') {
 
                 const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
 
@@ -138,6 +139,40 @@ export class Parser {
 
                 ast.body.push(new WhileNode(condition, body))
 
+            } else if (getTokenValue(firstToken) === 'import') {
+                let asIndex = findTokenValueIndex(instruction.tokens, v => v === 'as');
+                if (asIndex < 0) {
+                    asIndex = instruction.tokens.length;
+                }
+
+                const module = {
+                    name: instruction.tokens.slice(1, asIndex).map(t => getTokenValue(t)).join(''),
+                    alias: instruction.tokens.slice(asIndex + 1).map(t => getTokenValue(t)).join('') || undefined
+                } as NameAlias;
+
+                const body = {} as AstBlock; // empty for now
+                ast.body.push(new ImportNode(module, body))
+            } else if (getTokenValue(firstToken) === 'from') {
+                let importIndex = findTokenValueIndex(instruction.tokens, v => v === 'import');
+                if (importIndex < 0) {
+                    throw Error(`'import' must follow 'from'`);
+                }
+
+                const module = {
+                    name: instruction.tokens.slice(1, importIndex).map(t => getTokenValue(t)).join('')
+                } as NameAlias;
+
+                const parts = splitTokens(instruction.tokens.slice(importIndex + 1), ',')
+                    .map(t => {
+                        return {
+                            name: getTokenValue(t[0]),
+                            alias: (t.length === 3) ? getTokenValue(t[2]) : undefined
+                        } as NameAlias
+                    });
+
+                const body = {} as AstBlock; // empty for now
+
+                ast.body.push(new ImportNode(module, body, parts))
             } else if (assignTokens.length > 1) {
                 const target = this.createExpressionNode(assignTokens[0]);
                 const source = this.createExpressionNode(assignTokens[1]);

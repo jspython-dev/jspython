@@ -10,6 +10,7 @@ export abstract class AstNode {
             | 'funcCall' | 'funcDef' | 'arrowFuncDef'
             | 'createObject' | 'createArray'
             | 'if' | 'for' | 'while'
+            | 'import'
             | 'return' | 'continue' | 'break'
     ) { }
 }
@@ -65,13 +66,13 @@ export class FunctionCallNode extends AstNode {
 }
 
 export class FunctionDefNode extends AstNode {
-    constructor(public name: string, public params: string[], public body: AstNode[]    ) {
+    constructor(public name: string, public params: string[], public body: AstNode[]) {
         super('funcDef');
     }
 }
 
 export class ArrowFuncDefNode extends AstNode {
-    constructor(public params: string[], public body: AstNode[]    ) {
+    constructor(public params: string[], public body: AstNode[]) {
         super('arrowFuncDef');
     }
 }
@@ -91,6 +92,17 @@ export class ForNode extends AstNode {
 export class WhileNode extends AstNode {
     constructor(public condition: AstNode, public body: AstNode[]) {
         super('while');
+    }
+}
+
+export interface NameAlias {
+    name: string,
+    alias: string | undefined
+}
+
+export class ImportNode extends AstNode {
+    constructor(public module: NameAlias, public body: AstBlock, public parts: NameAlias[] | undefined = undefined) {
+        super('import');
     }
 }
 
@@ -124,7 +136,7 @@ export class CreateObjectNode extends AstNode {
 export class CreateArrayNode extends AstNode {
     constructor(
         public items: AstNode[]
-        ) {
+    ) {
         super('createArray');
     }
 }

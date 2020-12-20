@@ -85,6 +85,11 @@ export class Evaluator {
     }
 
     private evalNode(node: AstNode, scope: Scope): unknown {
+        if (node.type === 'import') {
+            // skip this for now. As modules are implemented externally
+            return null;
+        }
+
         if (node.type === 'if') {
             const ifNode = node as IfNode;
             const newScope = scope;
@@ -103,7 +108,7 @@ export class Evaluator {
 
             const array = this.evalNode(forNode.sourceArray, newScope) as unknown[] | string;
 
-            for(let item of array){
+            for (let item of array) {
                 newScope.set(forNode.itemVarName, item);
                 this.evalBlock({ body: forNode.body } as AstBlock, newScope);
             }
@@ -114,7 +119,7 @@ export class Evaluator {
             const forNode = node as WhileNode;
             const newScope = scope;
 
-            while(this.evalNode(forNode.condition, newScope)){
+            while (this.evalNode(forNode.condition, newScope)) {
                 this.evalBlock({ body: forNode.body } as AstBlock, newScope);
             }
 
@@ -211,7 +216,7 @@ export class Evaluator {
             for (let i = 1; i < dotObject.nestedProps.length; i++) {
                 const nestedProp = dotObject.nestedProps[i];
 
-                if((dotObject.nestedProps[i - 1] as any).nullCoelsing && !startObject) {
+                if ((dotObject.nestedProps[i - 1] as any).nullCoelsing && !startObject) {
                     startObject = {};
                 }
 
@@ -234,7 +239,7 @@ export class Evaluator {
             }
 
             // no undefined values, make it rather null
-            return (startObject === undefined)? null : startObject;
+            return (startObject === undefined) ? null : startObject;
         }
 
         if (node.type === 'createObject') {
