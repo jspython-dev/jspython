@@ -1,57 +1,92 @@
 import {
     ArrowFuncDefNode,
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
-    CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, IfNode, OperationFuncs, Primitive, SetSingleVarNode, WhileNode
+    CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, IfNode, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
 } from '../common';
-import { Scope } from './scope';
+import { BlockContext, Scope } from './scope';
 
 export class Evaluator {
 
-    evalBlock(ast: AstBlock, scope: Scope): unknown {
+    evalBlock(ast: AstBlock, blockContext: BlockContext): unknown {
         let lastResult = null;
 
         for (let node of ast?.funcs || []) {
             const funcDef = node as FunctionDefNode;
 
             // a child scope needs to be created here
-            const newScope = scope;
+            const newScope = blockContext.blockScope;
 
-            scope.set(funcDef.name, 
-                (...args: unknown[]): unknown => this.jspyFuncInvoker(funcDef, scope, ...args)
+            newScope.set(funcDef.funcAst.name,
+                (...args: unknown[]): unknown => this.jspyFuncInvoker(funcDef, blockContext, ...args)
             );
         }
 
         for (const node of ast.body) {
-            lastResult = this.evalNode(node, scope);
+            if (node.type === 'comment') { continue; }
+            lastResult = this.evalNode(node, blockContext);
+
+            if (blockContext.returnCalled) {
+                const res = blockContext.returnObject;
+                blockContext.returnCalled = false;
+                blockContext.returnObject = null;
+                return res;
+            }
+
+            if (blockContext.continueCalled) {
+                break;
+            }
+            if (blockContext.breakCalled) {
+                break;
+            }
         }
 
         return lastResult;
     }
 
-    async evalBlockAsync(ast: AstBlock, scope: Scope): Promise<unknown> {
+    async evalBlockAsync(ast: AstBlock, blockContext: BlockContext): Promise<unknown> {
         let lastResult = null;
 
         for (let node of ast?.funcs || []) {
             const funcDef = node as FunctionDefNode;
 
             // a child scope needs to be created here
-            const newScope = scope;
+            const newScope = blockContext.blockScope;
 
-            scope.set(funcDef.name, 
-                (...args: unknown[]): unknown => this.jspyFuncInvoker(funcDef, scope, ...args)
+            newScope.set(funcDef.funcAst.name,
+                (...args: unknown[]): unknown => this.jspyFuncInvoker(funcDef, blockContext, ...args)
             );
         }
 
         for (const node of ast.body) {
-            lastResult = this.evalNode(node, scope);
+            if (node.type === 'comment') { continue; }
+
+            lastResult = this.evalNode(node, blockContext);
+            if (blockContext.returnCalled) {
+                const res = blockContext.returnObject;
+                blockContext.returnCalled = false;
+                blockContext.returnObject = null;
+                return res;
+            }
+
+            if (blockContext.continueCalled) {
+                break;
+            }
+            if (blockContext.breakCalled) {
+                break;
+            }
         }
 
         return lastResult;
     }
 
-    private jspyFuncInvoker(funcDef: FuncDefNode, newScope: Scope, ...args: unknown[]): unknown {
+    private jspyFuncInvoker(funcDef: FuncDefNode, context: BlockContext, ...args: unknown[]): unknown {
 
-        const ast = { name: '', type: 'func', funcs: [], body: funcDef.body } as AstBlock;
+        const ast = funcDef.funcAst;
+
+        const blockContext = {
+            namelessFuncsCount: 0,
+            blockScope: context.blockScope.clone()
+        } as BlockContext;
 
         // set parameters into new scope, based incomming arguments
         for (let i = 0; i < args?.length || 0; i++) {
@@ -59,9 +94,10 @@ export class Evaluator {
                 break;
                 // throw new Error('Too much parameters provided');
             }
-            newScope.set(funcDef.params[i], args[i]);
+            blockContext.blockScope.set(funcDef.params[i], args[i]);
         }
-        return this.evalBlock(ast, newScope);
+
+        return this.evalBlock(ast, blockContext);
     }
 
     private invokeFunction(func: (...args: unknown[]) => unknown, fps: unknown[]): unknown {
@@ -101,44 +137,72 @@ export class Evaluator {
         }
     }
 
-    private evalNode(node: AstNode, scope: Scope): unknown {
+    private evalNode(node: AstNode, blockContext: BlockContext): unknown {
         if (node.type === 'import') {
             // skip this for now. As modules are implemented externally
             return null;
         }
 
+        if (node.type === 'comment') {
+            return null;
+        }
+
         if (node.type === 'if') {
             const ifNode = node as IfNode;
-            const newScope = scope;
-            if (this.evalNode(ifNode.conditionNode, scope)) {
-                this.evalBlock({ body: ifNode.ifBody } as AstBlock, newScope);
+            if (this.evalNode(ifNode.conditionNode, blockContext)) {
+                this.evalBlock({ body: ifNode.ifBody } as AstBlock, blockContext);
             } else if (ifNode.elseBody) {
-                this.evalBlock({ body: ifNode.elseBody } as AstBlock, newScope);
+                this.evalBlock({ body: ifNode.elseBody } as AstBlock, blockContext);
             }
 
+            return;
+        }
+
+        if (node.type === 'return') {
+            const returnNode = node as ReturnNode;
+            blockContext.returnCalled = true;
+            blockContext.returnObject = returnNode.returnValue ?
+                this.evalNode(returnNode.returnValue, blockContext)
+                : null;
+
+            return blockContext.returnObject;
+        }
+
+        if (node.type === 'continue') {
+            blockContext.continueCalled = true;
+            return;
+        }
+
+        if (node.type === 'break') {
+            blockContext.breakCalled = true;
             return;
         }
 
         if (node.type === 'for') {
             const forNode = node as ForNode;
-            const newScope = scope;
 
-            const array = this.evalNode(forNode.sourceArray, newScope) as unknown[] | string;
+            const array = this.evalNode(forNode.sourceArray, blockContext) as unknown[] | string;
 
             for (let item of array) {
-                newScope.set(forNode.itemVarName, item);
-                this.evalBlock({ body: forNode.body } as AstBlock, newScope);
+                blockContext.blockScope.set(forNode.itemVarName, item);
+                this.evalBlock({ body: forNode.body } as AstBlock, blockContext);
+                if (blockContext.continueCalled) { blockContext.continueCalled = false; }
+                if (blockContext.breakCalled) { break; }
             }
+            if (blockContext.breakCalled) { blockContext.breakCalled = false; }
             return;
         }
 
         if (node.type === 'while') {
             const forNode = node as WhileNode;
-            const newScope = scope;
 
-            while (this.evalNode(forNode.condition, newScope)) {
-                this.evalBlock({ body: forNode.body } as AstBlock, newScope);
+            while (this.evalNode(forNode.condition, blockContext)) {
+                this.evalBlock({ body: forNode.body } as AstBlock, blockContext);
+
+                if (blockContext.continueCalled) { blockContext.continueCalled = false; }
+                if (blockContext.breakCalled) { break; }
             }
+            if (blockContext.breakCalled) { blockContext.breakCalled = false; }
 
             return;
         }
@@ -148,27 +212,26 @@ export class Evaluator {
         }
 
         if (node.type === "getSingleVar") {
-            return scope.get((node as GetSingleVarNode).name);
+            return blockContext.blockScope.get((node as GetSingleVarNode).name);
         }
 
         if (node.type === "binOp") {
             const binOpNode = (node as BinOpNode);
-            var left = this.evalNode(binOpNode.left, scope);
-            var right = this.evalNode(binOpNode.right, scope);
+            var left = this.evalNode(binOpNode.left, blockContext);
+            var right = this.evalNode(binOpNode.right, blockContext);
             return OperationFuncs[binOpNode.op](left as Primitive, right as Primitive);
         }
 
         if (node.type === "arrowFuncDef") {
             const arrowFuncDef = node as ArrowFuncDefNode;
-            const newScope = scope;
 
-            return (...args:unknown[]): unknown => this.jspyFuncInvoker(arrowFuncDef, newScope, ...args);
+            return (...args: unknown[]): unknown => this.jspyFuncInvoker(arrowFuncDef, blockContext, ...args);
         }
 
         if (node.type === "funcCall") {
             const funcCallNode = node as FunctionCallNode;
-            const func = scope.get(funcCallNode.name) as (...args: unknown[]) => unknown;
-            const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, scope)) || []
+            const func = blockContext.blockScope.get(funcCallNode.name) as (...args: unknown[]) => unknown;
+            const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || []
 
             return this.invokeFunction(func, pms);
         }
@@ -178,26 +241,26 @@ export class Evaluator {
 
             if (assignNode.target.type === 'getSingleVar') {
                 const node = assignNode.target as SetSingleVarNode;
-                scope.set(node.name, this.evalNode(assignNode.source, scope));
+                blockContext.blockScope.set(node.name, this.evalNode(assignNode.source, blockContext));
             } else if (assignNode.target.type === 'dotObjectAccess') {
                 const targetNode = assignNode.target as DotObjectAccessNode;
 
                 // create a node for all but last property token
                 // potentially it can go to parser
                 const targetObjectNode = new DotObjectAccessNode(targetNode.nestedProps.slice(0, targetNode.nestedProps.length - 1));
-                const targetObject = this.evalNode(targetObjectNode, scope) as Record<string, unknown>;
+                const targetObject = this.evalNode(targetObjectNode, blockContext) as Record<string, unknown>;
 
                 // not sure nested properties should be GetSingleVarNode
                 // can be factored in the parser
                 const lastPropertyName = (targetNode.nestedProps[targetNode.nestedProps.length - 1] as GetSingleVarNode).name
 
-                targetObject[lastPropertyName] = this.evalNode(assignNode.source, scope);
+                targetObject[lastPropertyName] = this.evalNode(assignNode.source, blockContext);
             } else if (assignNode.target.type === 'bracketObjectAccess') {
                 const targetNode = assignNode.target as BracketObjectAccessNode;
-                const keyValue = this.evalNode(targetNode.bracketBody, scope) as string | number;
-                const targetObject = scope.get(targetNode.propertyName as string) as Record<string, unknown>;
+                const keyValue = this.evalNode(targetNode.bracketBody, blockContext) as string | number;
+                const targetObject = blockContext.blockScope.get(targetNode.propertyName as string) as Record<string, unknown>;
 
-                targetObject[keyValue] = this.evalNode(assignNode.source, scope);
+                targetObject[keyValue] = this.evalNode(assignNode.source, blockContext);
             } else {
                 throw Error('Not implemented Assign operation');
                 // get chaining calls
@@ -208,15 +271,15 @@ export class Evaluator {
 
         if (node.type === 'bracketObjectAccess') {
             const sbNode = node as BracketObjectAccessNode;
-            const key = this.evalNode(sbNode.bracketBody, scope) as string;
-            const obj = scope.get(sbNode.propertyName as string) as Record<string, unknown>;
-            return (obj[key] === undefined)? null : obj[key];
+            const key = this.evalNode(sbNode.bracketBody, blockContext) as string;
+            const obj = blockContext.blockScope.get(sbNode.propertyName as string) as Record<string, unknown>;
+            return (obj[key] === undefined) ? null : obj[key];
         }
 
         if (node.type === "dotObjectAccess") {
             const dotObject = node as DotObjectAccessNode;
 
-            let startObject = this.evalNode(dotObject.nestedProps[0], scope) as any;
+            let startObject = this.evalNode(dotObject.nestedProps[0], blockContext) as any;
             for (let i = 1; i < dotObject.nestedProps.length; i++) {
                 const nestedProp = dotObject.nestedProps[i];
 
@@ -229,11 +292,11 @@ export class Evaluator {
                 } else if (nestedProp.type === 'bracketObjectAccess') {
                     const node = nestedProp as BracketObjectAccessNode;
                     startObject = startObject[node.propertyName] as unknown;
-                    startObject = startObject[this.evalNode(node.bracketBody, scope) as string] as unknown;
+                    startObject = startObject[this.evalNode(node.bracketBody, blockContext) as string] as unknown;
                 } else if (nestedProp.type === 'funcCall') {
                     const funcCallNode = nestedProp as FunctionCallNode;
                     const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
-                    const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, scope)) || []
+                    const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || []
 
                     startObject = this.invokeFunction(func.bind(startObject), pms);
 
@@ -251,7 +314,7 @@ export class Evaluator {
             const obj = {} as Record<string, unknown>;
 
             for (const p of createObjectNode.props) {
-                obj[this.evalNode(p.name, scope) as string] = this.evalNode(p.value, scope);
+                obj[this.evalNode(p.name, blockContext) as string] = this.evalNode(p.value, blockContext);
             }
 
             return obj;
@@ -262,7 +325,7 @@ export class Evaluator {
             const res = [] as unknown[];
 
             for (const item of arrayNode.items) {
-                res.push(this.evalNode(item, scope));
+                res.push(this.evalNode(item, blockContext));
             }
 
             return res;

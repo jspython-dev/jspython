@@ -6,7 +6,7 @@ export type AstNodeType = 'assign' | 'binOp' | 'const'
     | 'funcCall' | 'funcDef' | 'arrowFuncDef'
     | 'createObject' | 'createArray'
     | 'if' | 'for' | 'while'
-    | 'import'
+    | 'import' | 'comment'
     | 'return' | 'continue' | 'break';
 
 export abstract class AstNode {
@@ -32,8 +32,14 @@ export class ConstNode extends AstNode {
     }
 }
 
+export class CommentNode extends AstNode {
+    constructor(public comment: string) {
+        super('comment');
+    }
+}
+
 export class ReturnNode extends AstNode {
-    constructor(public returnValue: AstNode) {
+    constructor(public returnValue: AstNode | undefined = undefined) {
         super('return');
     }
 }
@@ -66,17 +72,17 @@ export class FunctionCallNode extends AstNode {
 
 export interface FuncDefNode {
     params: string[];
-    body: AstNode[];
+    funcAst: AstBlock;
 }
 
 export class FunctionDefNode extends AstNode implements FuncDefNode {
-    constructor(public name: string, public params: string[], public body: AstNode[]) {
+    constructor(public funcAst: AstBlock, public params: string[]) {
         super('funcDef',);
     }
 }
 
 export class ArrowFuncDefNode extends AstNode implements FuncDefNode {
-    constructor(public params: string[], public body: AstNode[]) {
+    constructor(public funcAst: AstBlock, public params: string[]) {
         super('arrowFuncDef');
     }
 }

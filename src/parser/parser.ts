@@ -2,7 +2,7 @@ import {
     BinOpNode, ConstNode, AstBlock, Token, ParserOptions, AstNode, Operators, AssignNode, TokenTypes,
     GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine,
     getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode,
-    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode, ExpressionOperators, IfNode, ForNode, WhileNode, ImportNode, NameAlias
+    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode, ExpressionOperators, IfNode, ForNode, WhileNode, ImportNode, NameAlias, ContinueNode, BreakNode, ReturnNode, CommentNode
 } from '../common';
 
 export class InstructionLine {
@@ -52,6 +52,8 @@ export class Parser {
 
     private instructionsToNodes(instructions: InstructionLine[], ast: AstBlock): void {
 
+
+
         const getBody = (tokens: Token[], startTokenIndex: number): AstNode[] => {
             const instructionLines = this.getBlock(tokens, getStartLine(tokens[startTokenIndex]));
             const bodyAst = { body: [] as AstNode[], funcs: [] as AstNode[] } as AstBlock;
@@ -60,7 +62,18 @@ export class Parser {
         }
 
         for (let i = 0; i < instructions.length; i++) {
+
             const instruction = instructions[i];
+            // remove comments
+            let tt = 0;
+            while (tt < instruction.tokens.length) {
+                if (getTokenType(instruction.tokens[tt]) === TokenTypes.Comment) {
+                    instruction.tokens.splice(tt, 1);
+                } else {
+                    tt++;
+                }
+            }
+
             const firstToken = instruction.tokens[0];
 
             if (!instruction.tokens.length) {
@@ -68,7 +81,9 @@ export class Parser {
             }
             const assignTokens = splitTokens(instruction.tokens, '=');
 
-            if (getTokenValue(firstToken) === 'def') {
+            if (getTokenType(firstToken) === TokenTypes.Comment) {
+                ast.body.push(new CommentNode(getTokenValue(firstToken) as string));
+            } else if (getTokenValue(firstToken) === 'def') {
                 const funcName = getTokenValue(instruction.tokens[1]) as string;
                 const paramsTokens = instruction.tokens.slice(
                     instruction.tokens.findIndex(tkns => getTokenValue(tkns) === '(') + 1,
@@ -85,12 +100,13 @@ export class Parser {
 
                 const instructionLines = this.getBlock(instruction.tokens, getStartLine(instruction.tokens[endDefOfDef + 1]));
                 const funcAst = {
+                    name: funcName,
                     body: [] as AstNode[],
                     funcs: [] as AstNode[]
                 } as AstBlock;
                 this.instructionsToNodes(instructionLines, funcAst);
 
-                ast.funcs.push(new FunctionDefNode(funcName, params, funcAst.body))
+                ast.funcs.push(new FunctionDefNode(funcAst, params))
 
             } else if (getTokenValue(firstToken) === 'if') {
 
@@ -104,7 +120,8 @@ export class Parser {
                 const conditionNode = this.createExpressionNode(instruction.tokens.slice(1, endDefOfDef))
 
                 let elseBody: AstNode[] | undefined = undefined;
-                if (getTokenValue(instructions[i + 1].tokens[0]) === 'else'
+                if (instructions.length > i + 1
+                    && getTokenValue(instructions[i + 1].tokens[0]) === 'else'
                     && getTokenValue(instructions[i + 1].tokens[1]) === ':') {
                     elseBody = getBody(instructions[i + 1].tokens, 2);
                     i++;
@@ -112,8 +129,13 @@ export class Parser {
 
                 ast.body.push(new IfNode(conditionNode, ifBody, elseBody))
 
+            } else if (getTokenValue(firstToken) === 'continue') {
+                ast.body.push(new ContinueNode());
+            } else if (getTokenValue(firstToken) === 'break') {
+                ast.body.push(new BreakNode());
+            } else if (getTokenValue(firstToken) === 'return') {
+                ast.body.push(new ReturnNode(this.createExpressionNode(instruction.tokens.slice(1))));
             } else if (getTokenValue(firstToken) === 'for') {
-
                 const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
 
                 if (endDefOfDef === -1) {
@@ -180,7 +202,6 @@ export class Parser {
             } else {
                 ast.body.push(this.createExpressionNode(instruction.tokens))
             }
-
         }
     }
 
@@ -254,8 +275,8 @@ export class Parser {
         // arrow function
         const arrowFuncParts = splitTokens(tokens, '=>');
         if (arrowFuncParts.length > 1) {
-            const pArray = getTokenValue(arrowFuncParts[0][0]) === '(' ? 
-                arrowFuncParts[0].splice(1, arrowFuncParts[0].length - 2) 
+            const pArray = getTokenValue(arrowFuncParts[0][0]) === '(' ?
+                arrowFuncParts[0].splice(1, arrowFuncParts[0].length - 2)
                 : arrowFuncParts[0];
             const params = splitTokens(pArray, ',').map(t => getTokenValue(t[0]) as string);
 
@@ -266,7 +287,7 @@ export class Parser {
             } as AstBlock;
             this.instructionsToNodes(instructionLines, funcAst);
 
-            return new ArrowFuncDefNode(params, funcAst.body);
+            return new ArrowFuncDefNode(funcAst, params);
         }
 
         // create expression

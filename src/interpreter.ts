@@ -1,6 +1,6 @@
 import { AstBlock, ImportNode, Token } from './common';
 import { Evaluator } from './evaluator';
-import { Scope } from './evaluator/scope';
+import { BlockContext, Scope } from './evaluator/scope';
 import { FileLoader, INITIAL_SCOPE, PackageLoader, PackageToImport } from './initialScope';
 import { Parser } from './parser';
 import { Tokenizer } from './tokenizer';
@@ -38,13 +38,17 @@ export class Interpreter {
     eval(codeOrAst: string | AstBlock, scope: Record<string, unknown> = {}
         , entryFunctionName: string = ''): unknown {
         const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string) : codeOrAst as AstBlock;
-        const scopeObj = new Scope(scope);
         const evaluator = new Evaluator();
-        const result = evaluator.evalBlock(ast, scopeObj);
+        
+        const blockContext = {
+            blockScope: new Scope(scope)
+        } as BlockContext;
+
+        const result = evaluator.evalBlock(ast, blockContext);
         if (!entryFunctionName || !entryFunctionName.length) {
             return result;
         } else {
-            const func = scopeObj.get(entryFunctionName);
+            const func = blockContext.blockScope.get(entryFunctionName);
             if (typeof func !== 'function') {
                 throw Error(`Function ${entryFunctionName} does not exists or not a function`)
             }
@@ -56,13 +60,15 @@ export class Interpreter {
         , entryFunctionName: string = ''): Promise<unknown> {
         const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string) : codeOrAst as AstBlock;
         const evaluator = new Evaluator();
-        const scopeObj = new Scope(scope);
-        const result = await evaluator.evalBlockAsync(ast, scopeObj);
+        const blockContext = {
+            blockScope: new Scope(scope)
+        } as BlockContext;
+        const result = await evaluator.evalBlockAsync(ast, blockContext);
 
         if (!entryFunctionName || !entryFunctionName.length) {
             return result;
         } else {
-            const func = scopeObj.get(entryFunctionName);
+            const func = blockContext.blockScope.get(entryFunctionName);
             if (typeof func !== 'function') {
                 throw Error(`Function ${entryFunctionName} does not exists or not a function`)
             }

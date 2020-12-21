@@ -723,7 +723,7 @@ describe('Interpreter', () => {
       await Interpreter.create()
         .evaluate([
           'def func1():',
-          '# test',
+          '  # test',
           '  15 + 25',
           'func1()'
         ].join('\n')
@@ -1008,14 +1008,15 @@ describe('Interpreter', () => {
     ).toBe("4,9");
   })
 
-//   it('and operator', async () => {
-//     expect(await e.evaluate('(2 == 2) and (3 == 3)')).toBe(true)
-//     expect(await e.evaluate('(2 == 2) and (3 == 3) and (5 == 5)')).toBe(true)
-//     expect(await e.evaluate('(2 == 2) and (3 != 3) and 5 == 5)')).toBe(false)
-//     expect(await e.evaluate('2 != 2 and 3 != 3 and 5 == 5)')).toBe(false)
-//     expect(await e.evaluate('2 != 2 and 3 == 3 and 5 == 5)')).toBe(false)
-//     expect(await e.evaluate('2 == 2 and 3 == 3 and 5 != 5)')).toBe(false)
-//   })
+  // ** migration issue for now
+  // it('and operator', async () => {
+  //   expect(await e.evaluate('(2 == 2) and (3 == 3)')).toBe(true)
+  //   expect(await e.evaluate('(2 == 2) and (3 == 3) and (5 == 5)')).toBe(true)
+  //   expect(await e.evaluate('(2 == 2) and (3 != 3) and 5 == 5)')).toBe(false)
+  //   expect(await e.evaluate('(2 != 2) and (3 != 3) and (5 == 5)')).toBe(false)
+  //   expect(await e.evaluate('(2 != 2) and (3 == 3) and (5 == 5)')).toBe(false)
+  //   expect(await e.evaluate('(2 == 2) and (3 == 3) and 5 != 5)')).toBe(false)
+  // })
 
 //   it('or operator', async () => {
 //     expect(await e.evaluate('2 == 2 or 3 == 3)')).toBe(true)
@@ -1085,73 +1086,72 @@ describe('Interpreter', () => {
     `)).toBe('2,3,4,5,6')
   })
 
-//  ** Migration Issue **
-//   it('while break / continue', async () => {
-//     expect(await e.evaluate(`      
-//     i = 1
-//     x = []
-//     while i < 10:
-//       i = i + 1
-//       if i % 2 == 0:
-//         continue
-//       x.push(i)
-//     x.join(",")
-//     `)).toBe('3,5,7,9')
+  it('while break / continue', async () => {
+    expect(await e.evaluate(`      
+    i = 1
+    x = []
+    while i < 10:
+      i = i + 1
+      if i % 2 == 0:
+        continue
+      x.push(i)
+    x.join(",")
+    `)).toBe('3,5,7,9')
 
-//     expect(await e.evaluate(`      
-//     i = 1
-//     x = []
-//     while i < 10:
-//       i = i + 1
-//       if i == 5:
-//         break
-//       x.push(i)
-//     x.join(",")
-//     `)).toBe('2,3,4')
-//   })
+    expect(await e.evaluate(`      
+    i = 1
+    x = []
+    while i < 10:
+      i = i + 1
+      if i == 5:
+        break
+      x.push(i)
+    x.join(",")
+    `)).toBe('2,3,4')
+  })
 
-//   it('while break / continue - in function', async () => {
-//     expect(await e.evaluate(`      
-//     def f():
-//       i = 1
-//       x = []
-//       while i < 10:
-//         i = i + 1
-//         if i % 2 == 0:
-//           continue
-//         x.push(i)
-//       x.join(",")
-//     f()
-//     `)).toBe('3,5,7,9')
+  it('while break / continue - in function', async () => {
+    expect(await e.evaluate(`      
+    def f():
+      i = 1
+      x = []
+      while i < 10:
+        i = i + 1
+        if i % 2 == 0:
+          continue
+        x.push(i)
+      x.join(",")
+    f()
+    `)).toBe('3,5,7,9')
 
-//     expect(await e.evaluate(`
-//     def f(s, e):
-//       i = s
-//       x = []
-//       while i < e:
-//         i = i + 1
-//         if i == 5:
-//           break
-//         x.push(i)
-//       x.join(",")
-//     f(1, 10)
-//     `)).toBe('2,3,4')
-//   })
+    expect(await e.evaluate(`
+    def f(s, e):
+      i = s
+      x = []
+      while i < e:
+        i = i + 1
+        if i == 5:
+          break
+        x.push(i)
+      x.join(",")
+    f(1, 10)
+    `)).toBe('2,3,4')
+  })
 
-//   it('while - with function calls', async () => {
-//     expect(await e.evaluate(`      
-//     def addUp(x, y):
-//       x + y
-//     i = 0
-//     x = []
-//     while true:
-//       i = i + 1
-//       x.push(addUp(i, i + 1))
-//       if i == 10:
-//         break
-//     x.join(",")
-//     `)).toBe('3,5,7,9,11,13,15,17,19,21')
-//   })
+  it('while - with function calls', async () => {
+    expect(await e.evaluate(`      
+    def addUp(x, y):
+      x + y
+    i = 0
+    x = []
+    while true:
+      i = i + 1
+      x.push(addUp(i, i + 1))
+      if i == 10:
+        break
+    x.join(",")
+    `)).toBe('3,5,7,9,11,13,15,17,19,21')
+  })
 
   it('for with variable what contains in', async () => {
     expect(await e.evaluate(`      
@@ -1162,83 +1162,80 @@ describe('Interpreter', () => {
   `)).toBe('1,2,3')
   })
 
-//  ** Migration Issue **
-//   it('for - continue', async () => {
-//     expect(await e.evaluate(`      
-//     x = []
-//     for i in [1,2,3,4,5]:
-//       x.push(i)
-//       if i == 3:
-//         continue
-//     x.join(",")
-//   `)).toBe('1,2,3,4,5')
-//   })
+  it('for - continue', async () => {
+    expect(await e.evaluate(`      
+    x = []
+    for i in [1,2,3,4,5]:
+      x.push(i)
+      if i == 3:
+        continue
+    x.join(",")
+  `)).toBe('1,2,3,4,5')
+  })
 
-//   it('for - break', async () => {
-//     expect(await e.evaluate(`      
-//     x = []
-//     a = [1,2,3,4,5]
-//     for i in a:
-//       x.push(i)
-//       if i == 3:
-//         break
-//     x.join(",")
-//   `)).toBe('1,2,3')
-//   })
+  it('for - break', async () => {
+    expect(await e.evaluate(`      
+    x = []
+    a = [1,2,3,4,5]
+    for i in a:
+      x.push(i)
+      if i == 3:
+        break
+    x.join(",")
+  `)).toBe('1,2,3')
+  })
 
-//   it('for', async () => {
-//     expect(await e.evaluate(`      
-//     x = []
-//     a = [1,2,3,4,5]
-//     for i in a:
-//       x.push(i)
-//       if i == 3:
-//         break
-//     x.join(",")
-//   `)).toBe('1,2,3')
-//   })
+  it('for', async () => {
+    expect(await e.evaluate(`      
+    x = []
+    a = [1,2,3,4,5]
+    for i in a:
+      x.push(i)
+      if i == 3:
+        break
+    x.join(",")
+  `)).toBe('1,2,3')
+  })
 
-// // ** Migration Issue **
-//   it('for with range function', async () => {
-//     expect(await e.evaluate(`
-//     def myRange(n):
-//       x = []
-//       i = 0
-//       while i < n:
-//         x.push(i)
-//         i = i + 1
-//       x
-//     x = []
-//     for i in myRange(10):
-//       x.push(i)
-//     x.join(",")
-//   `)).toBe('0,1,2,3,4,5,6,7,8,9')
-//   })
+  it('for with range function', async () => {
+    expect(await e.evaluate(`
+    def myRange(n):
+      x = []
+      i = 0
+      while i < n:
+        x.push(i)
+        i = i + 1
+      x
+    x = []
+    for i in myRange(10):
+      x.push(i)
+    x.join(",")
+  `)).toBe('0,1,2,3,4,5,6,7,8,9')
+  })
 
 // ** Migration Issue **
-//   it('Recursive function - pow', async () => {
-//     expect(await e.evaluate(`
-//     def power(base, exponent):
-//       if exponent == 0:
-//         return 1
-//       else:
-//         return base * power(base, exponent - 1)
+  // it('Recursive function - pow', async () => {
+  //   expect(await e.evaluate(`
+  //   def power(base, exponent):
+  //     if exponent == 0:
+  //       return 1
+  //     else:
+  //       return base * power(base, exponent - 1)
 
-//     power(2, 3)
-//     `)).toBe(Math.pow(2, 3))
-//   })
+  //   power(2, 3)
+  //   `)).toBe(Math.pow(2, 3))
+  // })
 
-// ** Migration Issue **
-//   it('for with myRange function call', async () => {
-//     expect(await e.evaluate(`
-//     def myRange(arr):
-//       x = []
-//       for i in arr:
-//         x.push(i * i)
-//       x
-//     myRange([1,2,3,6]).join("|")
-//   `)).toBe('1|4|9|36')
-//   })
+  it('for with myRange function call', async () => {
+    expect(await e.evaluate(`
+    def myRange(arr):
+      x = []
+      for i in arr:
+        x.push(i * i)
+      x
+    myRange([1,2,3,6]).join("|")
+  `)).toBe('1|4|9|36')
+  })
 
   it('Null-conditional operators ?.', async () => {
     expect(await e.evaluate(`
@@ -1282,18 +1279,17 @@ describe('Interpreter', () => {
     expect(await e.evaluate(`value + 10`, o)).toBe(15)
   })
 
-// ** Migration issue **
-//   it('Passing references 2', async () => {
-//     const o = {
-//       value: 5,
-//       func: (f) => {
-//         var obj = { value: 5 };
-//         f(obj);
-//         return obj.value + 10;
-//       }
-//     }
-//     expect(await e.evaluate(`func(r => r.value = r.value + 10)`, o)).toBe(25)
-//   })
+  it('Passing references 2', async () => {
+    const o = {
+      value: 5,
+      func: (f) => {
+        var obj = { value: 5 };
+        f(obj);
+        return obj.value + 10;
+      }
+    }
+    expect(await e.evaluate(`func(r => r.value = r.value + 10)`, o)).toBe(25)
+  })
 
   it('null props', async () => {
     expect(await e.evaluate(

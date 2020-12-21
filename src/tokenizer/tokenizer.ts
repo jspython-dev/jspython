@@ -102,8 +102,16 @@ export class Tokenizer {
 
             } else if (symbol === '#') {
 
+                let first = true;
                 while (script[this.incrementCursor()] !== '\n') {
                     this.tokenText += script[this._cursor];
+
+                    // correct start column
+                    if (first) {
+                        first = false;
+                        this._startColumn = this._startColumn - 1
+                    }
+
                     if (this._cursor + 1 >= script.length) break;
                 }
                 this.tokenText = this.processToken(this.tokenText, tokens, true, TokenTypes.Comment);
@@ -132,9 +140,9 @@ export class Tokenizer {
                         if (this._cursor + 1 >= script.length) break;
                     }
                 }
-                
+
                 // a special case when empty string
-                if(this.tokenText.length === 0) {
+                if (this.tokenText.length === 0) {
                     this._startLine = this._currentLine;
                     this._startColumn = this._currentColumn;
                 }
