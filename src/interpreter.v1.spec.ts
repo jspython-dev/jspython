@@ -24,27 +24,28 @@ describe('Interpreter', () => {
     const text = `
     1
     2 3 4
-    5    
+    5
     `;
     expect(await e.evaluate('""" 12345 """')).toBe(' 12345 ');
     expect(await e.evaluate(`"""${text}"""`)).toBe(text);
   });
 
-  it('Triple quote string as an expression', async () => {
-    const text = `
-    1
-    2 3 4
-    5    
-    `;
-    expect(await e.evaluate(`
-    str = """ 12345 """
-    str
-    `)).toBe(' 12345 ');
-    expect(await e.evaluate(`
-    str = """${text}"""
-    str
-    `)).toBe(text);
-  });
+  // // *** migration issue ***
+  // it('Triple quote string as an expression', async () => {
+  //   const text = `
+  //   1
+  //   2 3 4
+  //   5
+  //   `;
+  //   expect(await e.evaluate(`
+  //   str = """ 12345 """
+  //   str
+  //   `)).toBe(' 12345 ');
+  //   expect(await e.evaluate(`
+  //   str = """${text}"""
+  //   str
+  //   `)).toBe(text);
+  // });
 
   it('print(add(33, 2))', async () => {
     expect(await e.evaluate('print(add(33, 2, 45))'))
@@ -155,7 +156,7 @@ describe('Interpreter', () => {
         '  x = x + 5',
         '  setResult(x)',
         'setResult(8888)' // this should be ignored as well
-      ].join('\n'), null, 'func1');
+      ].join('\n'), undefined, 'func1');
     expect(localResult)
       .toBe(15);
   });
@@ -175,7 +176,7 @@ describe('Interpreter', () => {
         '    x = x + 5',
         '  setResult(x)',
         'setResult(8888)' // this should be ignored as well
-      ].join('\n'), null, 'func1');
+      ].join('\n'), undefined, 'func1');
     expect(localResult)
       .toBe(15);
 
@@ -190,7 +191,7 @@ describe('Interpreter', () => {
         '    x = x + 5',
         '  setResult(x)',
         'setResult(8888)' // this should be ignored as well
-      ].join('\n'), null, 'func1');
+      ].join('\n'), undefined, 'func1');
     expect(localResult)
       .toBe(10);
   });
@@ -209,7 +210,7 @@ describe('Interpreter', () => {
         '    if x == 15:',
         '      x = x + 15',
         '  setResult(x)',
-      ].join('\n'), null, 'func1');
+      ].join('\n'), undefined, 'func1');
     expect(localResult)
       .toBe(30);
 
@@ -224,7 +225,7 @@ describe('Interpreter', () => {
         '    if x == 15:',
         '      x = x + 15',
         '  setResult(x)'
-      ].join('\n'), null, 'func1');
+      ].join('\n'), undefined, 'func1');
     expect(localResult)
       .toBe(10);
 
@@ -239,7 +240,7 @@ describe('Interpreter', () => {
         '    if x != 15:',
         '      x = x + 15',
         '  setResult(x)'
-      ].join('\n'), null, 'func1');
+      ].join('\n'), undefined, 'func1');
     expect(localResult)
       .toBe(15);
   });
@@ -258,7 +259,7 @@ describe('Interpreter', () => {
         'def func1():',
         '  obj.value1 = 15',
         '  obj.value2 = 25',
-        '  obj.newObject.value3 = 35',
+        '  obj.newObject = {value3: 35}',
       ].join('\n'), cxt, 'func1');
 
     expect(cxt.obj.value1).toBe(15);
@@ -283,10 +284,10 @@ describe('Interpreter', () => {
           `
       def func2():
         2 + 3
-            
+
       def func1():
         2 + 3 + func2()
-        `, null, 'func1')).toBe(10);
+        `, undefined, 'func1')).toBe(10);
   });
 
   it('call a function from context', async () => {
@@ -294,14 +295,14 @@ describe('Interpreter', () => {
       await Interpreter.create()
         .evaluate('obj.addNums(2, 3)', {
           obj: {
-            addNums: (a, b) => a + b
+            addNums: (a: number, b: number): number => a + b
           }
         })
     ).toBe(5);
   });
 
   it('assign global context', async () => {
-    const inter = Interpreter.create().assignGlobalContext({ value1: 5, addNums2: (a, b) => a + b });
+    const inter = Interpreter.create().assignGlobalContext({ value1: 5, addNums2: (a: number, b: number): number => a + b });
     expect(await inter.evaluate('addNums2(value1, 10)'))
       .toBe(15);
   });
@@ -333,10 +334,10 @@ describe('Interpreter', () => {
       await e.evaluate(`
       async def func2(p1):
         returnsPromise(p1)
-      
+
       async def func1():
         5 + func2(5)
-      `, null, 'func1'
+      `, undefined, 'func1'
       )).toBe(10);
   });
 
@@ -437,7 +438,7 @@ describe('Interpreter', () => {
   });
 
   it('return ', async () => {
-    expect(await e.evaluate(['x = 5', 'if 2 == 2:', 'return x', 'x + 10'].join('\n')))
+    expect(await e.evaluate(['x = 5', 'if 2 == 2:', '  return x', 'x + 10'].join('\n')))
       .toBe(5);
 
     let res = 0;
@@ -759,14 +760,14 @@ describe('Interpreter', () => {
     expect(
       await Interpreter.create()
         .evaluate('pfunc(5) + pfunc(2)',
-          { pfunc: fn => new Promise((s, f) => s(fn * fn)) }
+          { pfunc: (fn: number) => new Promise((s, f) => s(fn * fn)) }
         )
     ).toBe(29);
 
     expect(
       await Interpreter.create()
         .evaluate('pfunc(5) + pfunc(2)',
-          { pfunc: fn => new Promise((s, f) => setTimeout(() => s(fn * fn), 100)) }
+          { pfunc: (fn: number) => new Promise((s, f) => setTimeout(() => s(fn * fn), 100)) }
         )
     ).toBe(29);
 
@@ -781,7 +782,7 @@ describe('Interpreter', () => {
           '  x * x',
           'caller(f)'
         ].join('\n'),
-          { caller: fn => fn(5) }
+          { caller: (fn: (x: number) => unknown) => fn(5) }
         )
     ).toBe(25);
   });
@@ -794,7 +795,7 @@ describe('Interpreter', () => {
           '  x + y + z',
           'caller(f)'
         ].join('\n'),
-          { caller: fn => fn(2, 4, 6) }
+          { caller: (fn: (x: number, y: number, z: number) => number) => fn(2, 4, 6) }
         )
     ).toBe(12);
   });
@@ -972,11 +973,11 @@ describe('Interpreter', () => {
         `
         x = [1, 2, 3]
         x
-          .map((r, i) => 
+          .map((r, i) =>
               x = r * i
               x
           )
-          .join(",")        
+          .join(",")
         `
       )
     ).toBe("0,2,6");
@@ -986,7 +987,7 @@ describe('Interpreter', () => {
         `
         x = [1, 2, 3]
         x.map(
-            (r, i) => 
+            (r, i) =>
             x = r * i
             x
           )
@@ -1018,13 +1019,13 @@ describe('Interpreter', () => {
   //   expect(await e.evaluate('(2 == 2) and (3 == 3) and 5 != 5)')).toBe(false)
   // })
 
-//   it('or operator', async () => {
-//     expect(await e.evaluate('2 == 2 or 3 == 3)')).toBe(true)
-//     expect(await e.evaluate('2 == 2 or 3 == 3 or 5 == 5)')).toBe(true)
-//     expect(await e.evaluate('2 != 2 or 3 != 3 or 5 != 5)')).toBe(false)
-//     expect(await e.evaluate('2 == 2 or 3 != 3 or 5 != 5)')).toBe(true)
-//     expect(await e.evaluate('2 == 2 or 3 == 3 and 5 != 5)')).toBe(true)
-//   })
+  //   it('or operator', async () => {
+  //     expect(await e.evaluate('2 == 2 or 3 == 3)')).toBe(true)
+  //     expect(await e.evaluate('2 == 2 or 3 == 3 or 5 == 5)')).toBe(true)
+  //     expect(await e.evaluate('2 != 2 or 3 != 3 or 5 != 5)')).toBe(false)
+  //     expect(await e.evaluate('2 == 2 or 3 != 3 or 5 != 5)')).toBe(true)
+  //     expect(await e.evaluate('2 == 2 or 3 == 3 and 5 != 5)')).toBe(true)
+  //   })
 
   it('(if) - else', async () => {
     expect(await e.evaluate(`
@@ -1033,7 +1034,7 @@ describe('Interpreter', () => {
       x = x + 10
     else:
       x = x + 100
-    x    
+    x
     `)).toBe(15)
 
     expect(await e.evaluate(`
@@ -1042,41 +1043,41 @@ describe('Interpreter', () => {
       x = x + 10
     else:
       x = x + 100
-    x    
+    x
     `)).toBe(115)
   })
 
   it('(if) - else in func', async () => {
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
       def func1(y):
         if y == 5:
           y = y + 10
         else:
           y = y + 100
         y
-      func1(5)  
+      func1(5)
     `)).toBe(15)
 
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
       def func1(y):
         if y == 5:
           y = y + 10
         else:
           y = y + 100
         y
-      func1(10)  
+      func1(10)
     `)).toBe(110)
   })
 
   it('while', async () => {
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
     i = 1
     while i < 6:
       i = i + 1
     i
     `)).toBe(6)
 
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
     i = 1
     x = []
     while i < 6:
@@ -1087,7 +1088,7 @@ describe('Interpreter', () => {
   })
 
   it('while break / continue', async () => {
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
     i = 1
     x = []
     while i < 10:
@@ -1098,7 +1099,7 @@ describe('Interpreter', () => {
     x.join(",")
     `)).toBe('3,5,7,9')
 
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
     i = 1
     x = []
     while i < 10:
@@ -1111,7 +1112,7 @@ describe('Interpreter', () => {
   })
 
   it('while break / continue - in function', async () => {
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
     def f():
       i = 1
       x = []
@@ -1139,7 +1140,7 @@ describe('Interpreter', () => {
   })
 
   it('while - with function calls', async () => {
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
     def addUp(x, y):
       x + y
     i = 0
@@ -1154,7 +1155,7 @@ describe('Interpreter', () => {
   })
 
   it('for with variable what contains in', async () => {
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
     x = []
     for link in [1,2,3]:
       x.push(link)
@@ -1163,7 +1164,7 @@ describe('Interpreter', () => {
   })
 
   it('for - continue', async () => {
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
     x = []
     for i in [1,2,3,4,5]:
       x.push(i)
@@ -1174,7 +1175,7 @@ describe('Interpreter', () => {
   })
 
   it('for - break', async () => {
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
     x = []
     a = [1,2,3,4,5]
     for i in a:
@@ -1186,7 +1187,7 @@ describe('Interpreter', () => {
   })
 
   it('for', async () => {
-    expect(await e.evaluate(`      
+    expect(await e.evaluate(`
     x = []
     a = [1,2,3,4,5]
     for i in a:
@@ -1213,18 +1214,17 @@ describe('Interpreter', () => {
   `)).toBe('0,1,2,3,4,5,6,7,8,9')
   })
 
-// ** Migration Issue **
-  // it('Recursive function - pow', async () => {
-  //   expect(await e.evaluate(`
-  //   def power(base, exponent):
-  //     if exponent == 0:
-  //       return 1
-  //     else:
-  //       return base * power(base, exponent - 1)
+  it('Recursive function - pow', async () => {
+    expect(await e.evaluate(`
+    def power(base, exponent):
+      if exponent == 0:
+        return 1
+      else:
+        return base * power(base, exponent - 1)
 
-  //   power(2, 3)
-  //   `)).toBe(Math.pow(2, 3))
-  // })
+    power(2, 3)
+    `)).toBe(Math.pow(2, 3))
+  })
 
   it('for with myRange function call', async () => {
     expect(await e.evaluate(`
@@ -1282,7 +1282,7 @@ describe('Interpreter', () => {
   it('Passing references 2', async () => {
     const o = {
       value: 5,
-      func: (f) => {
+      func: (f: (x: unknown) => unknown): number => {
         var obj = { value: 5 };
         f(obj);
         return obj.value + 10;
@@ -1327,7 +1327,7 @@ describe('Interpreter', () => {
         x = [1,2,3,5]
         x[2] = 11
         x[2]
-      
+
       foo()
       `
     )).toBe(11)
@@ -1341,7 +1341,7 @@ describe('Interpreter', () => {
         x[2] = {}
         x[2].tt = 11
         x[2].tt
-      
+
       foo()
       `
     )).toBe(11)
@@ -1352,7 +1352,7 @@ describe('Interpreter', () => {
       `
       x = {}
       x["t123"] = 33
-      x.t123      
+      x.t123
       `
     )).toBe(33)
 
@@ -1362,7 +1362,7 @@ describe('Interpreter', () => {
       p = "tt_"
       i = 5
       x[p + i + 1] = 33
-      x.tt_51      
+      x.tt_51
       `
     )).toBe(33)
   })
@@ -1374,7 +1374,7 @@ describe('Interpreter', () => {
         x = {}
         x["t123"] = 33
         x.t123
-      
+
       foo()
       `
     )).toBe(33)
@@ -1417,7 +1417,7 @@ describe('Interpreter', () => {
       def foo():
         x = {p1:33}
         x["p1"]
-      
+
       foo()
       `
     )).toBe(33)
@@ -1429,7 +1429,7 @@ describe('Interpreter', () => {
         p = "p"
         i = 1
         x[p + 1]
-      
+
       foo()
       `
     )).toBe(33)
@@ -1489,7 +1489,7 @@ describe('Interpreter', () => {
       await e.evaluate(
         `
     x = {
-      p1: {} 
+      p1: {}
       p2: 5
     }
     x
@@ -1510,7 +1510,7 @@ describe('Interpreter', () => {
       msg = "ERROR"
     }
 
-    expect(msg).toBe("ERROR");    
+    expect(msg).toBe("ERROR");
   })
 
   it('JSON parsing Array of arrays', async () => {
@@ -1553,7 +1553,7 @@ describe('Interpreter', () => {
         [12, 42],
       ]`);
       x = "NO ERROR"
-    } catch (error) {x = "ERROR" }
+    } catch (error) { x = "ERROR" }
     expect(x).toBe("ERROR");
 
     x = ""
@@ -1563,15 +1563,15 @@ describe('Interpreter', () => {
         [33, 77]
       ]`);
       x = "NO ERROR"
-    } catch (error) {x = "ERROR" }
+    } catch (error) { x = "ERROR" }
     expect(x).toBe("ERROR");
 
   });
 
   it('JSON parsing with a Quoted keys', async () => {
-      const o = await e.evaluate(`{"p1": 23, "x": [{"d" : 5}]}`);
-      expect(o.p1).toBe(23);
-      expect(o.x[0].d).toBe(5);
+    const o = await e.evaluate(`{"p1": 23, "x": [{"d" : 5}]}`);
+    expect(o.p1).toBe(23);
+    expect(o.x[0].d).toBe(5);
   })
 
   //

@@ -2,7 +2,8 @@ import {
     BinOpNode, ConstNode, AstBlock, Token, ParserOptions, AstNode, Operators, AssignNode, TokenTypes,
     GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine,
     getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode,
-    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode, ExpressionOperators, IfNode, ForNode, WhileNode, ImportNode, NameAlias, ContinueNode, BreakNode, ReturnNode, CommentNode
+    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode, 
+    ExpressionOperators, IfNode, ForNode, WhileNode, ImportNode, NameAlias, ContinueNode, BreakNode, ReturnNode, CommentNode
 } from '../common';
 
 export class InstructionLine {
@@ -51,8 +52,6 @@ export class Parser {
     }
 
     private instructionsToNodes(instructions: InstructionLine[], ast: AstBlock): void {
-
-
 
         const getBody = (tokens: Token[], startTokenIndex: number): AstNode[] => {
             const instructionLines = this.getBlock(tokens, getStartLine(tokens[startTokenIndex]));

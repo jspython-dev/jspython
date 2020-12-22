@@ -171,7 +171,7 @@ export class BinOpNode extends AstNode {
 
 export interface AstBlock {
     name: string;
-    type: 'module' | 'func' | 'if' | 'for' | 'trycatch'
+    type: 'module' | 'func' | 'if' | 'for' | 'while' | 'trycatch'
     funcs: FunctionDefNode[];
     body: AstNode[];
 }

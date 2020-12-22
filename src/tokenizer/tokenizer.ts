@@ -92,7 +92,7 @@ export class Tokenizer {
 
                 const sepsMap = SeparatorsMap[symbol];
 
-                if (sepsMap.length > 1) {
+                if (sepsMap.length >= 1) {
                     // process longer operators
                     while (sepsMap.includes(this.tokenText + script[this._cursor + 1])) {
                         this.tokenText += script[this.incrementCursor()];

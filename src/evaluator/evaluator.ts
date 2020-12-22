@@ -27,8 +27,12 @@ export class Evaluator {
 
             if (blockContext.returnCalled) {
                 const res = blockContext.returnObject;
-                blockContext.returnCalled = false;
-                blockContext.returnObject = null;
+
+                // stop processing return
+                if(ast.type == 'func' || ast.type == 'module'){
+                    blockContext.returnCalled = false;
+                    blockContext.returnObject = null;
+                }
                 return res;
             }
 
@@ -63,8 +67,11 @@ export class Evaluator {
             lastResult = this.evalNode(node, blockContext);
             if (blockContext.returnCalled) {
                 const res = blockContext.returnObject;
-                blockContext.returnCalled = false;
-                blockContext.returnObject = null;
+                // stop processing return
+                if(ast.type == 'func' || ast.type == 'module'){
+                    blockContext.returnCalled = false;
+                    blockContext.returnObject = null;
+                }
                 return res;
             }
 
@@ -81,7 +88,8 @@ export class Evaluator {
 
     private jspyFuncInvoker(funcDef: FuncDefNode, context: BlockContext, ...args: unknown[]): unknown {
 
-        const ast = funcDef.funcAst;
+        const ast = Object.assign({}, funcDef.funcAst);
+        ast.type = 'func';
 
         const blockContext = {
             namelessFuncsCount: 0,
@@ -150,9 +158,9 @@ export class Evaluator {
         if (node.type === 'if') {
             const ifNode = node as IfNode;
             if (this.evalNode(ifNode.conditionNode, blockContext)) {
-                this.evalBlock({ body: ifNode.ifBody } as AstBlock, blockContext);
+                this.evalBlock({ type: 'if', body: ifNode.ifBody } as AstBlock, blockContext);
             } else if (ifNode.elseBody) {
-                this.evalBlock({ body: ifNode.elseBody } as AstBlock, blockContext);
+                this.evalBlock({ type: 'if', body: ifNode.elseBody } as AstBlock, blockContext);
             }
 
             return;
@@ -185,7 +193,7 @@ export class Evaluator {
 
             for (let item of array) {
                 blockContext.blockScope.set(forNode.itemVarName, item);
-                this.evalBlock({ body: forNode.body } as AstBlock, blockContext);
+                this.evalBlock({ type:'for', body: forNode.body } as AstBlock, blockContext);
                 if (blockContext.continueCalled) { blockContext.continueCalled = false; }
                 if (blockContext.breakCalled) { break; }
             }
@@ -194,10 +202,10 @@ export class Evaluator {
         }
 
         if (node.type === 'while') {
-            const forNode = node as WhileNode;
+            const whileNode = node as WhileNode;
 
-            while (this.evalNode(forNode.condition, blockContext)) {
-                this.evalBlock({ body: forNode.body } as AstBlock, blockContext);
+            while (this.evalNode(whileNode.condition, blockContext)) {
+                this.evalBlock({ type:'while', body: whileNode.body } as AstBlock, blockContext);
 
                 if (blockContext.continueCalled) { blockContext.continueCalled = false; }
                 if (blockContext.breakCalled) { break; }
