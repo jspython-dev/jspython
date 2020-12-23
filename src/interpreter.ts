@@ -39,13 +39,12 @@ export class Interpreter {
     eval(codeOrAst: string | AstBlock, scope: Record<string, unknown> = {}
         , entryFunctionName: string = ''): unknown {
         const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string) : codeOrAst as AstBlock;
-        const evaluator = new Evaluator();
         
         const blockContext = {
             blockScope: new Scope(scope)
         } as BlockContext;
 
-        const result = evaluator.evalBlock(ast, blockContext);
+        const result = Evaluator.evalBlock(ast, blockContext);
         if (!entryFunctionName || !entryFunctionName.length) {
             return result;
         } else {

@@ -30,8 +30,10 @@
     <h4>JSPython development console</h4>
     <div id="editor">
       
-sqrPromise(5) * 2
-
+      def f(n):
+        n * n
+      x = [2, 3, 4]
+      x.map(f).join("|")
 
     </div>
     <!--
@@ -119,11 +121,11 @@ sqrPromise(5) * 2
         // const result = await jsPython()
         //   .evaluate(scripts, scope);
 
-        // const result = jsPython()
-        //   .eval(scripts, scope);
+        const result = jsPython()
+          .eval(scripts, scope);
 
-        const result = await jsPython()
-          .evalAsync(scripts, scope);
+        // const result = await jsPython()
+        //   .evalAsync(scripts, scope);
 
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : String(result);
         resultEditor.getSession().setValue(data)

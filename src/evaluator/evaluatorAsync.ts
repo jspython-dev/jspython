@@ -1,10 +1,17 @@
 import {
     ArrowFuncDefNode,
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
-    CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, IfNode, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
+    CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, 
+    IfNode, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
 } from '../common';
+import { Evaluator } from './evaluator';
 import { BlockContext, Scope } from './scope';
 
+/**
+ * This is copy/paste from Evaluator.
+ * Sadly, we have to copy code around to support both async and non async methods.
+ * So, any changes to this method, should be replicated in the evaluator.ts
+ */
 export class EvaluatorAsync {
 
     async evalBlockAsync(ast: AstBlock, blockContext: BlockContext): Promise<unknown> {
@@ -16,9 +23,11 @@ export class EvaluatorAsync {
             // a child scope needs to be created here
             const newScope = blockContext.blockScope;
 
-            newScope.set(funcDef.funcAst.name,
+            const invoker = (funcDef.isAsync) ?
                 async (...args: unknown[]): Promise<unknown> => await this.jspyFuncInvokerAsync(funcDef, blockContext, ...args)
-            );
+                : (...args: unknown[]): unknown => Evaluator.jspyFuncInvoker(funcDef, blockContext, ...args);
+
+            newScope.set(funcDef.funcAst.name, invoker);
         }
 
         for (const node of ast.body) {
@@ -193,7 +202,7 @@ export class EvaluatorAsync {
         if (node.type === "arrowFuncDef") {
             const arrowFuncDef = node as ArrowFuncDefNode;
 
-            return (...args: unknown[]): unknown => this.jspyFuncInvokerAsync(arrowFuncDef, blockContext, ...args);
+            return (...args: unknown[]): unknown => Evaluator.jspyFuncInvoker(arrowFuncDef, blockContext, ...args);
         }
 
         if (node.type === "funcCall") {
@@ -272,7 +281,7 @@ export class EvaluatorAsync {
                     for (let p of funcCallNode.paramNodes || []) {
                         pms.push(await this.evalNodeAsync(p, blockContext));
                     }
-       
+
                     startObject = await this.invokeFunctionAsync(func.bind(startObject), pms);
 
                 } else {
