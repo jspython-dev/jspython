@@ -1,5 +1,6 @@
 import { AstBlock, ImportNode, Token } from './common';
 import { Evaluator } from './evaluator';
+import { EvaluatorAsync } from './evaluator/evaluatorAsync';
 import { BlockContext, Scope } from './evaluator/scope';
 import { FileLoader, INITIAL_SCOPE, PackageLoader, PackageToImport } from './initialScope';
 import { Parser } from './parser';
@@ -59,7 +60,7 @@ export class Interpreter {
     async evalAsync(codeOrAst: string | AstBlock, scope: Record<string, unknown> = {}
         , entryFunctionName: string = ''): Promise<unknown> {
         const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string) : codeOrAst as AstBlock;
-        const evaluator = new Evaluator();
+        const evaluator = new EvaluatorAsync();
         const blockContext = {
             blockScope: new Scope(scope)
         } as BlockContext;

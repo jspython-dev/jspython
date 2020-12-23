@@ -76,7 +76,7 @@ export interface FuncDefNode {
 }
 
 export class FunctionDefNode extends AstNode implements FuncDefNode {
-    constructor(public funcAst: AstBlock, public params: string[]) {
+    constructor(public funcAst: AstBlock, public params: string[], public isAsync: boolean) {
         super('funcDef',);
     }
 }

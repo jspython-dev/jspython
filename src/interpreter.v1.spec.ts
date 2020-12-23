@@ -1289,7 +1289,7 @@ describe('Interpreter', () => {
       }
     }
     expect(await e.evaluate(`func(r => r.value = r.value + 10)`, o)).toBe(25)
-  })
+  });
 
   it('null props', async () => {
     expect(await e.evaluate(
@@ -1297,7 +1297,7 @@ describe('Interpreter', () => {
     x = {prop1: 25}
     x?.prop1
     `)).toBe(25)
-  })
+  });
 
   it('Set indexed array', async () => {
     expect(await e.evaluate(

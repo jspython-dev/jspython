@@ -30,11 +30,8 @@
     <h4>JSPython development console</h4>
     <div id="editor">
       
-      x = 5
-      if 2 == 2:
-        return x
-        
-      x + 10
+sqrPromise(5) * 2
+
 
     </div>
     <!--
@@ -105,6 +102,7 @@
         const scope = {
           Math,
           dateTime: () => new Date(),
+          sqrPromise: (fn) => new Promise((s, f) => setTimeout(() => s(fn * fn), 5)),
           print: (p1, p2) => { 
             console.log(p1);
             return p1; 

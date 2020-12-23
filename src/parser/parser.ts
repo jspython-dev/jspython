@@ -74,6 +74,7 @@ export class Parser {
             }
 
             const firstToken = instruction.tokens[0];
+            const secondToken = instruction.tokens.length > 1? instruction.tokens[1] : null;
 
             if (!instruction.tokens.length) {
                 continue;
@@ -82,8 +83,11 @@ export class Parser {
 
             if (getTokenType(firstToken) === TokenTypes.Comment) {
                 ast.body.push(new CommentNode(getTokenValue(firstToken) as string));
-            } else if (getTokenValue(firstToken) === 'def') {
-                const funcName = getTokenValue(instruction.tokens[1]) as string;
+            } else if (getTokenValue(firstToken) === 'def' 
+                || (getTokenValue(firstToken) === "async" && getTokenValue(secondToken) === "def")) {
+
+                const isAsync = getTokenValue(firstToken) === "async";
+                const funcName = getTokenValue(instruction.tokens[isAsync? 2 : 1]) as string;
                 const paramsTokens = instruction.tokens.slice(
                     instruction.tokens.findIndex(tkns => getTokenValue(tkns) === '(') + 1,
                     instruction.tokens.findIndex(tkns => getTokenValue(tkns) === ')')
@@ -105,7 +109,7 @@ export class Parser {
                 } as AstBlock;
                 this.instructionsToNodes(instructionLines, funcAst);
 
-                ast.funcs.push(new FunctionDefNode(funcAst, params))
+                ast.funcs.push(new FunctionDefNode(funcAst, params, isAsync))
 
             } else if (getTokenValue(firstToken) === 'if') {
 

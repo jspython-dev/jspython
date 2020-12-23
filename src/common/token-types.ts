@@ -39,8 +39,8 @@ export function getTokenType(token: Token): TokenTypes {
     return token[1][0] as TokenTypes;
 }
 
-export function getTokenValue(token: Token): TokenValue {
-    return token[0];
+export function getTokenValue(token: Token | null): TokenValue {
+    return token? token[0] : null;
 }
 
 export function getTokenLoc(token: Token): Uint16Array {
