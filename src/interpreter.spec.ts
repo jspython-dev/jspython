@@ -264,4 +264,17 @@ describe('Interpreter', () => {
     expect(e.eval(script)).toBe(10);
   });
 
+  it('funcCall with null coelsing', () => {
+    const script = `
+    def f():
+      null
+
+    f()?.prop or 5
+    `
+    ;
+    expect(e.eval(script)).toBe(5);
+  });
+
+
+
 });

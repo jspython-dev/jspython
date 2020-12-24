@@ -1,5 +1,5 @@
 import { ExpressionOperators, OperationTypes, Operators } from "./operators";
-import { Token } from "./token-types";
+import { getTokenLoc, getTokenValue, Token } from "./token-types";
 
 export type AstNodeType = 'assign' | 'binOp' | 'const'
     | 'getSingleVar' | 'setSingleVar' | 'dotObjectAccess' | 'bracketObjectAccess'
@@ -14,11 +14,22 @@ export abstract class AstNode {
     constructor(public type: AstNodeType) { }
 }
 
+export interface FuncDefNode {
+    params: string[];
+    funcAst: AstBlock;
+}
+
+export interface IsNullCoelsing {
+    nullCoelsing: boolean | undefined
+}
+
 export class AssignNode extends AstNode {
     constructor(
         public target: AstNode,
-        public source: AstNode) {
+        public source: AstNode,
+        public loc: Uint16Array) {
         super('assign');
+        this.loc = loc;
     }
 }
 
@@ -27,20 +38,22 @@ export class ConstNode extends AstNode {
 
     constructor(token: Token) {
         super('const');
-        this.value = token[0];
-        //this.loc = token[1].subarray(1);
+        this.value = getTokenValue(token);
+        this.loc = getTokenLoc(token);
     }
 }
 
 export class CommentNode extends AstNode {
-    constructor(public comment: string) {
+    constructor(public comment: string, public loc: Uint16Array) {
         super('comment');
+        this.loc = loc;
     }
 }
 
 export class ReturnNode extends AstNode {
-    constructor(public returnValue: AstNode | undefined = undefined) {
+    constructor(public returnValue: AstNode | undefined = undefined, public loc: Uint16Array) {
         super('return');
+        this.loc = loc;
     }
 }
 
@@ -61,47 +74,51 @@ export class SetSingleVarNode extends AstNode {
     constructor(token: Token) {
         super('setSingleVar');
         this.name = token[0] as string
+        this.loc = getTokenLoc(token);
     }
 }
 
-export class FunctionCallNode extends AstNode {
-    constructor(public name: string, public paramNodes: AstNode[] | null) {
+export class FunctionCallNode extends AstNode implements IsNullCoelsing {
+    public nullCoelsing: boolean | undefined = undefined;
+
+    constructor(public name: string, public paramNodes: AstNode[] | null, public loc: Uint16Array) {
         super('funcCall');
+        this.loc = loc;
     }
-}
-
-export interface FuncDefNode {
-    params: string[];
-    funcAst: AstBlock;
 }
 
 export class FunctionDefNode extends AstNode implements FuncDefNode {
-    constructor(public funcAst: AstBlock, public params: string[], public isAsync: boolean) {
-        super('funcDef',);
+    constructor(public funcAst: AstBlock, public params: string[], public isAsync: boolean, public loc: Uint16Array) {
+        super('funcDef');
+        this.loc = loc;
     }
 }
 
 export class ArrowFuncDefNode extends AstNode implements FuncDefNode {
-    constructor(public funcAst: AstBlock, public params: string[]) {
+    constructor(public funcAst: AstBlock, public params: string[], public loc: Uint16Array) {
         super('arrowFuncDef');
+        this.loc = loc;
     }
 }
 
 export class IfNode extends AstNode {
-    constructor(public conditionNode: AstNode, public ifBody: AstNode[], public elseBody: AstNode[] | undefined = undefined) {
+    constructor(public conditionNode: AstNode, public ifBody: AstNode[], public elseBody: AstNode[] | undefined = undefined, public loc: Uint16Array) {
         super('if');
+        this.loc = loc
     }
 }
 
 export class ForNode extends AstNode {
-    constructor(public sourceArray: AstNode, public itemVarName: string, public body: AstNode[]) {
+    constructor(public sourceArray: AstNode, public itemVarName: string, public body: AstNode[], public loc: Uint16Array) {
         super('for');
+        this.loc = loc;
     }
 }
 
 export class WhileNode extends AstNode {
-    constructor(public condition: AstNode, public body: AstNode[]) {
+    constructor(public condition: AstNode, public body: AstNode[], public loc: Uint16Array) {
         super('while');
+        this.loc = loc;
     }
 }
 
@@ -111,12 +128,13 @@ export interface NameAlias {
 }
 
 export class ImportNode extends AstNode {
-    constructor(public module: NameAlias, public body: AstBlock, public parts: NameAlias[] | undefined = undefined) {
+    constructor(public module: NameAlias, public body: AstBlock, public parts: NameAlias[] | undefined = undefined, public loc: Uint16Array) {
         super('import');
+        this.loc = loc;
     }
 }
 
-export class GetSingleVarNode extends AstNode {
+export class GetSingleVarNode extends AstNode implements IsNullCoelsing {
     name: string;
     nullCoelsing: boolean | undefined = undefined;
 
@@ -124,12 +142,14 @@ export class GetSingleVarNode extends AstNode {
         super('getSingleVar');
         this.name = token[0] as string;
         this.nullCoelsing = nullCoelsing;
+        this.loc = getTokenLoc(token);
     }
 }
 
 export class DotObjectAccessNode extends AstNode {
-    constructor(public nestedProps: AstNode[]) {
+    constructor(public nestedProps: AstNode[], public loc: Uint16Array) {
         super('dotObjectAccess');
+        this.loc = loc;
     }
 }
 export interface ObjectPropertyInfo {
@@ -138,16 +158,16 @@ export interface ObjectPropertyInfo {
 }
 
 export class CreateObjectNode extends AstNode {
-    constructor(public props: ObjectPropertyInfo[]) {
+    constructor(public props: ObjectPropertyInfo[], public loc: Uint16Array) {
         super('createObject');
+        this.loc = loc;
     }
 }
 
 export class CreateArrayNode extends AstNode {
-    constructor(
-        public items: AstNode[]
-    ) {
+    constructor(public items: AstNode[], public loc: Uint16Array) {
         super('createArray');
+        this.loc = loc;
     }
 }
 
@@ -155,8 +175,10 @@ export class BracketObjectAccessNode extends AstNode {
     constructor(
         public propertyName: string,
         public bracketBody: AstNode,
-        public nullCoalescing: boolean | undefined = undefined) {
+        public nullCoalescing: boolean | undefined = undefined,
+        public loc: Uint16Array) {
         super('bracketObjectAccess');
+        this.loc = loc;
     }
 }
 
@@ -164,8 +186,10 @@ export class BinOpNode extends AstNode {
     constructor(
         public left: AstNode,
         public op: ExpressionOperators,
-        public right: AstNode) {
+        public right: AstNode,
+        public loc: Uint16Array) {
         super('binOp');
+        this.loc = loc;
     }
 }
 
@@ -175,3 +199,5 @@ export interface AstBlock {
     funcs: FunctionDefNode[];
     body: AstNode[];
 }
+
+

@@ -1,9 +1,11 @@
 import {
     ArrowFuncDefNode,
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
-    CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode, 
+    CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode,
+    getTokenLoc,
     IfNode, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
 } from '../common';
+import { JspyEvalError } from '../common/utils';
 import { Evaluator } from './evaluator';
 import { BlockContext, Scope } from './scope';
 
@@ -33,22 +35,31 @@ export class EvaluatorAsync {
         for (const node of ast.body) {
             if (node.type === 'comment') { continue; }
 
-            lastResult = await this.evalNodeAsync(node, blockContext);
-            if (blockContext.returnCalled) {
-                const res = blockContext.returnObject;
-                // stop processing return
-                if (ast.type == 'func' || ast.type == 'module') {
-                    blockContext.returnCalled = false;
-                    blockContext.returnObject = null;
+            try {
+                lastResult = await this.evalNodeAsync(node, blockContext);
+                if (blockContext.returnCalled) {
+                    const res = blockContext.returnObject;
+                    // stop processing return
+                    if (ast.type == 'func' || ast.type == 'module') {
+                        blockContext.returnCalled = false;
+                        blockContext.returnObject = null;
+                    }
+                    return res;
                 }
-                return res;
-            }
 
-            if (blockContext.continueCalled) {
-                break;
-            }
-            if (blockContext.breakCalled) {
-                break;
+                if (blockContext.continueCalled) {
+                    break;
+                }
+                if (blockContext.breakCalled) {
+                    break;
+                }
+            } catch (err) {
+                if (err instanceof JspyEvalError) {
+                    throw err;
+                } else {
+                    const loc = node.loc? node.loc : [0, 0]
+                    throw new JspyEvalError('mainModule', loc[0], loc[1], err.message)
+                }
             }
         }
 
@@ -227,7 +238,7 @@ export class EvaluatorAsync {
 
                 // create a node for all but last property token
                 // potentially it can go to parser
-                const targetObjectNode = new DotObjectAccessNode(targetNode.nestedProps.slice(0, targetNode.nestedProps.length - 1));
+                const targetObjectNode = new DotObjectAccessNode(targetNode.nestedProps.slice(0, targetNode.nestedProps.length - 1), targetNode.loc);
                 const targetObject = await this.evalNodeAsync(targetObjectNode, blockContext) as Record<string, unknown>;
 
                 // not sure nested properties should be GetSingleVarNode

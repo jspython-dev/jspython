@@ -29,11 +29,11 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
-      
-      def f(n):
-        n * n
-      x = [2, 3, 4]
-      x.map(f).join("|")
+
+def f():
+  null
+
+f()?.prop or 1
 
     </div>
     <!--
@@ -78,7 +78,7 @@
         resultEditor.getSession().setValue(data)
       } catch (err) {
         console.error(err);
-        resultEditor.getSession().setValue('Error:\n' + String(err))
+        resultEditor.getSession().setValue(String(err.message))
       }
     }
 
@@ -93,7 +93,7 @@
         resultEditor.getSession().setValue(data)
       } catch (err) {
         console.error(err);
-        resultEditor.getSession().setValue('Error:\n' + String(err))
+        resultEditor.getSession().setValue(String(err.message))
       }
     }
 
@@ -118,11 +118,11 @@
             }
           }
         };
-        // const result = await jsPython()
-        //   .evaluate(scripts, scope);
+        const result = await jsPython()
+          .evaluate(scripts, scope);
 
-        const result = jsPython()
-          .eval(scripts, scope);
+        // const result = jsPython()
+        //   .eval(scripts, scope);
 
         // const result = await jsPython()
         //   .evalAsync(scripts, scope);
@@ -131,7 +131,7 @@
         resultEditor.getSession().setValue(data)
       } catch (err) {
         console.error(err);
-        resultEditor.getSession().setValue('Error:\n' + String(err))
+        resultEditor.getSession().setValue(String(err.message))
       }
     }
 

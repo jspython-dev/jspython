@@ -2,10 +2,12 @@ import { AstBlock, ImportNode, Token } from './common';
 import { Evaluator } from './evaluator';
 import { EvaluatorAsync } from './evaluator/evaluatorAsync';
 import { BlockContext, Scope } from './evaluator/scope';
-import { FileLoader, INITIAL_SCOPE, PackageLoader, PackageToImport } from './initialScope';
+import { INITIAL_SCOPE, PackageToImport } from './initialScope';
 import { Parser } from './parser';
 import { Tokenizer } from './tokenizer';
 
+export type PackageLoader = (packageName: string) => any;
+export type FileLoader = (filePath: string) => Promise<any>;
 
 export function jsPython(): Interpreter {
     return Interpreter.create();
@@ -18,6 +20,7 @@ export class Interpreter {
 
     private packageLoader?: PackageLoader;
     private fileLoader?: FileLoader;
+
 
     constructor() { }
     static create(): Interpreter {
@@ -44,6 +47,9 @@ export class Interpreter {
             blockScope: new Scope(scope)
         } as BlockContext;
 
+        blockContext.blockScope.set('printExecutionContext', () => console.log(blockContext.blockScope));
+        blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope);
+        
         const result = Evaluator.evalBlock(ast, blockContext);
         if (!entryFunctionName || !entryFunctionName.length) {
             return result;
@@ -63,6 +69,10 @@ export class Interpreter {
         const blockContext = {
             blockScope: new Scope(scope)
         } as BlockContext;
+        blockContext.blockScope.set('printExecutionContext', () => console.log(blockContext.blockScope));
+        blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope);
+
+
         const result = await evaluator.evalBlockAsync(ast, blockContext);
 
         if (!entryFunctionName || !entryFunctionName.length) {
@@ -90,9 +100,6 @@ export class Interpreter {
             ...this.initialScope,
             ...context
         } as Record<string, unknown>;
-
-        // blockContext.blockScope.printExecutionContext = () => console.log(blockContext.blockScope);
-        // blockContext.blockScope.getExecutionContext = () => blockContext.blockScope;
 
         try {
 

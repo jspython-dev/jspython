@@ -2,7 +2,7 @@ import { parseDatetimeOrNull } from "./common/utils";
 
 export const INITIAL_SCOPE = {
     jsPython(): string {
-        return [`JSPython v2.0.1`, "(c) FalconSoft Ltd"].join('\n')
+        return [`JSPython v2.0.2`, "(c) FalconSoft Ltd"].join('\n')
     },
     dateTime: (str: number | string | any = null) => (str && str.length)
         ? parseDatetimeOrNull(str) || new Date() : new Date(),
@@ -26,9 +26,6 @@ export interface PackageToImport {
     properties?: { name: string, as?: string }[];
     as?: string;
 }
-
-export type PackageLoader = (packageName: string) => any;
-export type FileLoader = (filePath: string) => Promise<any>;
 
 function range(start: number, stop: number = NaN, step: number = 1): number[] {
     const arr: number[] = [];

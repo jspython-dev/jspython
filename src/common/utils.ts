@@ -67,3 +67,31 @@ export function parseDatetimeOrNull(value: string | Date): Date | null {
 
     return null;
 }
+
+function jspyErrorMessage(error: string, module: string, line: number, column: number, message: string): string {
+    return `${error}: ${module}(${line},${column}): ${message}`;
+}
+
+export class JspyTokenizerError extends Error {
+    constructor(public module: string, public line: number, public column: number, public message: string) {
+        super();
+        this.message = jspyErrorMessage("JspyTokenizerError", module, line, column, message);
+        Object.setPrototypeOf(this, JspyTokenizerError.prototype);
+    }
+}
+
+export class JspyParserError extends Error {
+    constructor(public module: string, public line: number, public column: number, public message: string) {
+        super();
+        this.message = jspyErrorMessage("JspyParserError", module, line, column, message);
+        Object.setPrototypeOf(this, JspyParserError.prototype);
+    }
+}
+
+export class JspyEvalError extends Error {
+    constructor(public module: string, public line: number, public column: number, public message: string) {
+        super();
+        this.message = jspyErrorMessage("JspyEvalError", module, line, column, message);
+        Object.setPrototypeOf(this, JspyParserError.prototype);
+    }
+}
