@@ -1,3 +1,5 @@
+import { Token } from "./token-types";
+
 export function parseDatetimeOrNull(value: string | Date): Date | null {
     if (!value) { return null; }
     if (value instanceof Date && !isNaN(value.valueOf())) { return value; }
@@ -92,6 +94,6 @@ export class JspyEvalError extends Error {
     constructor(public module: string, public line: number, public column: number, public message: string) {
         super();
         this.message = jspyErrorMessage("JspyEvalError", module, line, column, message);
-        Object.setPrototypeOf(this, JspyParserError.prototype);
+        Object.setPrototypeOf(this, JspyEvalError.prototype);
     }
 }

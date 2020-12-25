@@ -28,23 +28,30 @@ class InstructionLine {
 }
 
 export class Parser {
+    private _currentToken: Token | null = null;
 
     /**
      * Parses tokens and return Ast - Abstract Syntax Tree for jsPython code
      * @param tokens tokens
      * @param options parsing options. By default it will exclude comments and include LOC (Line of code)
      */
-    parse(tokens: Token[], name = 'undefined', type: string = 'module'): AstBlock {
+    parse(tokens: Token[], name = 'main.jspy', type: string = 'module'): AstBlock {
         const ast = { name, type, funcs: [], body: [] } as AstBlock;
 
         if (!tokens || !tokens.length) { return ast; }
 
-        // group all tokens into an Instruction lines.
-        const instructions = this.tokensToInstructionLines(tokens, 1);
+        try {
 
-        // process all instructions
-        this.instructionsToNodes(instructions, ast);
+            // group all tokens into an Instruction lines.
+            const instructions = this.tokensToInstructionLines(tokens, 1);
 
+            // process all instructions
+            this.instructionsToNodes(instructions, ast);
+
+        } catch (err) {
+            const token = this._currentToken ?? {} as Token
+            throw new JspyParserError(ast.name, getStartLine(token), getStartColumn(token), err.message)
+        }
         return ast;
     }
 
@@ -75,143 +82,134 @@ export class Parser {
 
             const firstToken = instruction.tokens[0];
             const secondToken = instruction.tokens.length > 1 ? instruction.tokens[1] : null;
+            this._currentToken = firstToken;
 
-            try {
-                const assignTokens = splitTokens(instruction.tokens, '=');
+            const assignTokens = splitTokens(instruction.tokens, '=');
 
-                if (getTokenType(firstToken) === TokenTypes.Comment) {
-                    ast.body.push(new CommentNode(getTokenValue(firstToken) as string, getTokenLoc(firstToken)));
-                } else if (getTokenValue(firstToken) === 'def'
-                    || (getTokenValue(firstToken) === "async" && getTokenValue(secondToken) === "def")) {
+            if (getTokenType(firstToken) === TokenTypes.Comment) {
+                ast.body.push(new CommentNode(getTokenValue(firstToken) as string, getTokenLoc(firstToken)));
+            } else if (getTokenValue(firstToken) === 'def'
+                || (getTokenValue(firstToken) === "async" && getTokenValue(secondToken) === "def")) {
 
-                    const isAsync = getTokenValue(firstToken) === "async";
-                    const funcName = getTokenValue(instruction.tokens[isAsync ? 2 : 1]) as string;
-                    const paramsTokens = instruction.tokens.slice(
-                        instruction.tokens.findIndex(tkns => getTokenValue(tkns) === '(') + 1,
-                        instruction.tokens.findIndex(tkns => getTokenValue(tkns) === ')')
-                    );
+                const isAsync = getTokenValue(firstToken) === "async";
+                const funcName = getTokenValue(instruction.tokens[isAsync ? 2 : 1]) as string;
+                const paramsTokens = instruction.tokens.slice(
+                    instruction.tokens.findIndex(tkns => getTokenValue(tkns) === '(') + 1,
+                    instruction.tokens.findIndex(tkns => getTokenValue(tkns) === ')')
+                );
 
-                    const params = splitTokens(paramsTokens, ',').map(t => getTokenValue(t[0]) as string);
+                const params = splitTokens(paramsTokens, ',').map(t => getTokenValue(t[0]) as string);
 
-                    const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
+                const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
 
-                    if (endDefOfDef === -1) {
-                        throw (`Can't find : for def`)
-                    }
-
-                    const instructionLines = this.tokensToInstructionLines(instruction.tokens, getStartLine(instruction.tokens[endDefOfDef + 1]));
-                    const funcAst = {
-                        name: funcName,
-                        body: [] as AstNode[],
-                        funcs: [] as AstNode[]
-                    } as AstBlock;
-                    this.instructionsToNodes(instructionLines, funcAst);
-
-                    ast.funcs.push(new FunctionDefNode(funcAst, params, isAsync, getTokenLoc(instruction.tokens[0])))
-
-                } else if (getTokenValue(firstToken) === 'if') {
-
-                    const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
-
-                    if (endDefOfDef === -1) {
-                        throw (`Can't find : for if`)
-                    }
-
-                    const ifBody = getBody(instruction.tokens, endDefOfDef + 1);
-                    const conditionNode = this.createExpressionNode(instruction.tokens.slice(1, endDefOfDef))
-
-                    let elseBody: AstNode[] | undefined = undefined;
-                    if (instructions.length > i + 1
-                        && getTokenValue(instructions[i + 1].tokens[0]) === 'else'
-                        && getTokenValue(instructions[i + 1].tokens[1]) === ':') {
-                        elseBody = getBody(instructions[i + 1].tokens, 2);
-                        i++;
-                    }
-
-                    ast.body.push(new IfNode(conditionNode, ifBody, elseBody, getTokenLoc(firstToken)))
-
-                } else if (getTokenValue(firstToken) === 'continue') {
-                    ast.body.push(new ContinueNode());
-                } else if (getTokenValue(firstToken) === 'break') {
-                    ast.body.push(new BreakNode());
-                } else if (getTokenValue(firstToken) === 'return') {
-                    ast.body.push(new ReturnNode(this.createExpressionNode(instruction.tokens.slice(1)), getTokenLoc(firstToken)));
-                } else if (getTokenValue(firstToken) === 'for') {
-                    const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
-
-                    if (endDefOfDef === -1) {
-                        throw (`Can't find : for if`)
-                    }
-
-                    const itemVarName = getTokenValue(instruction.tokens[1]) as string;
-                    const sourceArray = this.createExpressionNode(instruction.tokens.slice(3, endDefOfDef))
-                    const forBody = getBody(instruction.tokens, endDefOfDef + 1);
-
-                    ast.body.push(new ForNode(sourceArray, itemVarName, forBody, getTokenLoc(firstToken)))
-
-                } else if (getTokenValue(firstToken) === 'while') {
-
-                    const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
-
-                    if (endDefOfDef === -1) {
-                        throw (`Can't find : for [while]`)
-                    }
-
-                    const condition = this.createExpressionNode(instruction.tokens.slice(1, endDefOfDef))
-                    const body = getBody(instruction.tokens, endDefOfDef + 1);
-
-                    ast.body.push(new WhileNode(condition, body, getTokenLoc(firstToken)))
-
-                } else if (getTokenValue(firstToken) === 'import') {
-                    let asIndex = findTokenValueIndex(instruction.tokens, v => v === 'as');
-                    if (asIndex < 0) {
-                        asIndex = instruction.tokens.length;
-                    }
-
-                    const module = {
-                        name: instruction.tokens.slice(1, asIndex).map(t => getTokenValue(t)).join(''),
-                        alias: instruction.tokens.slice(asIndex + 1).map(t => getTokenValue(t)).join('') || undefined
-                    } as NameAlias;
-
-                    const body = {} as AstBlock; // empty for now
-                    ast.body.push(new ImportNode(module, body, undefined, getTokenLoc(firstToken)))
-                } else if (getTokenValue(firstToken) === 'from') {
-                    let importIndex = findTokenValueIndex(instruction.tokens, v => v === 'import');
-                    if (importIndex < 0) {
-                        throw Error(`'import' must follow 'from'`);
-                    }
-
-                    const module = {
-                        name: instruction.tokens.slice(1, importIndex).map(t => getTokenValue(t)).join('')
-                    } as NameAlias;
-
-                    const parts = splitTokens(instruction.tokens.slice(importIndex + 1), ',')
-                        .map(t => {
-                            return {
-                                name: getTokenValue(t[0]),
-                                alias: (t.length === 3) ? getTokenValue(t[2]) : undefined
-                            } as NameAlias
-                        });
-
-                    const body = {} as AstBlock; // empty for now
-
-                    ast.body.push(new ImportNode(module, body, parts, getTokenLoc(firstToken)))
-                } else if (assignTokens.length > 1) {
-                    const target = this.createExpressionNode(assignTokens[0]);
-                    const source = this.createExpressionNode(assignTokens[1]);
-                    ast.body.push(new AssignNode(target, source, getTokenLoc(assignTokens[0][0]) ));
-                } else {
-                    ast.body.push(this.createExpressionNode(instruction.tokens))
+                if (endDefOfDef === -1) {
+                    throw (`Can't find : for def`)
                 }
-            }
-            catch (err) {
-                if (err instanceof JspyParserError) {
-                    throw err;
-                } else {
-                    throw new JspyParserError('mainModule', getStartLine(firstToken), getStartColumn(firstToken), err.message)
-                }
-            }
 
+                const instructionLines = this.tokensToInstructionLines(instruction.tokens, getStartLine(instruction.tokens[endDefOfDef + 1]));
+                const funcAst = {
+                    name: funcName,
+                    body: [] as AstNode[],
+                    funcs: [] as AstNode[]
+                } as AstBlock;
+                this.instructionsToNodes(instructionLines, funcAst);
+
+                ast.funcs.push(new FunctionDefNode(funcAst, params, isAsync, getTokenLoc(instruction.tokens[0])))
+
+            } else if (getTokenValue(firstToken) === 'if') {
+
+                const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
+
+                if (endDefOfDef === -1) {
+                    throw (`Can't find : for if`)
+                }
+
+                const ifBody = getBody(instruction.tokens, endDefOfDef + 1);
+                const conditionNode = this.createExpressionNode(instruction.tokens.slice(1, endDefOfDef))
+
+                let elseBody: AstNode[] | undefined = undefined;
+                if (instructions.length > i + 1
+                    && getTokenValue(instructions[i + 1].tokens[0]) === 'else'
+                    && getTokenValue(instructions[i + 1].tokens[1]) === ':') {
+                    elseBody = getBody(instructions[i + 1].tokens, 2);
+                    i++;
+                }
+
+                ast.body.push(new IfNode(conditionNode, ifBody, elseBody, getTokenLoc(firstToken)))
+
+            } else if (getTokenValue(firstToken) === 'continue') {
+                ast.body.push(new ContinueNode());
+            } else if (getTokenValue(firstToken) === 'break') {
+                ast.body.push(new BreakNode());
+            } else if (getTokenValue(firstToken) === 'return') {
+                ast.body.push(new ReturnNode(this.createExpressionNode(instruction.tokens.slice(1)), getTokenLoc(firstToken)));
+            } else if (getTokenValue(firstToken) === 'for') {
+                const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
+
+                if (endDefOfDef === -1) {
+                    throw (`Can't find : for if`)
+                }
+
+                const itemVarName = getTokenValue(instruction.tokens[1]) as string;
+                const sourceArray = this.createExpressionNode(instruction.tokens.slice(3, endDefOfDef))
+                const forBody = getBody(instruction.tokens, endDefOfDef + 1);
+
+                ast.body.push(new ForNode(sourceArray, itemVarName, forBody, getTokenLoc(firstToken)))
+
+            } else if (getTokenValue(firstToken) === 'while') {
+
+                const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
+
+                if (endDefOfDef === -1) {
+                    throw (`Can't find : for [while]`)
+                }
+
+                const condition = this.createExpressionNode(instruction.tokens.slice(1, endDefOfDef))
+                const body = getBody(instruction.tokens, endDefOfDef + 1);
+
+                ast.body.push(new WhileNode(condition, body, getTokenLoc(firstToken)))
+
+            } else if (getTokenValue(firstToken) === 'import') {
+                let asIndex = findTokenValueIndex(instruction.tokens, v => v === 'as');
+                if (asIndex < 0) {
+                    asIndex = instruction.tokens.length;
+                }
+
+                const module = {
+                    name: instruction.tokens.slice(1, asIndex).map(t => getTokenValue(t)).join(''),
+                    alias: instruction.tokens.slice(asIndex + 1).map(t => getTokenValue(t)).join('') || undefined
+                } as NameAlias;
+
+                const body = {} as AstBlock; // empty for now
+                ast.body.push(new ImportNode(module, body, undefined, getTokenLoc(firstToken)))
+            } else if (getTokenValue(firstToken) === 'from') {
+                let importIndex = findTokenValueIndex(instruction.tokens, v => v === 'import');
+                if (importIndex < 0) {
+                    throw Error(`'import' must follow 'from'`);
+                }
+
+                const module = {
+                    name: instruction.tokens.slice(1, importIndex).map(t => getTokenValue(t)).join('')
+                } as NameAlias;
+
+                const parts = splitTokens(instruction.tokens.slice(importIndex + 1), ',')
+                    .map(t => {
+                        return {
+                            name: getTokenValue(t[0]),
+                            alias: (t.length === 3) ? getTokenValue(t[2]) : undefined
+                        } as NameAlias
+                    });
+
+                const body = {} as AstBlock; // empty for now
+
+                ast.body.push(new ImportNode(module, body, parts, getTokenLoc(firstToken)))
+            } else if (assignTokens.length > 1) {
+                const target = this.createExpressionNode(assignTokens[0]);
+                const source = this.createExpressionNode(assignTokens[1]);
+                ast.body.push(new AssignNode(target, source, getTokenLoc(assignTokens[0][0])));
+            } else {
+                ast.body.push(this.createExpressionNode(instruction.tokens))
+            }
         }
     }
 
@@ -222,10 +220,12 @@ export class Parser {
         let currentLine = startLine;
         let line = new InstructionLine();
         for (let i = 0; i < tokens.length; i++) {
-            const token = tokens[i];
+            const token = tokens[i];            
             const sLine = getStartLine(token);
             const sColumn = getStartColumn(token);
             const value = getTokenValue(token);
+            this._currentToken = token;
+            
             if (sLine >= startLine) {
 
                 if (currentLine !== sLine) {
@@ -265,6 +265,8 @@ export class Parser {
             throw new Error(`Tokens length can't empty.`)
         }
 
+        this._currentToken = tokens[0];
+
         // const or variable
         if (tokens.length === 1
             || (tokens.length === 2 && getTokenValue(tokens[1]) === '?')
@@ -280,7 +282,6 @@ export class Parser {
 
             throw Error(`Unhandled single token: '${JSON.stringify(firstToken)}'`);
         }
-
 
         // arrow function
         const arrowFuncParts = splitTokens(tokens, '=>');
@@ -427,6 +428,6 @@ export class Parser {
             return new BracketObjectAccessNode(name, paramsNodes, false, getTokenLoc(tokens[0]));
         }
 
-        throw new JspyParserError('mainModule', getStartLine(tokens[0]), getStartColumn(tokens[0]), `Undefined node '${getTokenValue(tokens[0])}'.`);
+        throw Error(`Undefined node '${getTokenValue(tokens[0])}'.`);
     }
 }

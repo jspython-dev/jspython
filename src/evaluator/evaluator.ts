@@ -9,7 +9,7 @@ import { BlockContext, Scope } from './scope';
 
 export class Evaluator {
 
-    static evalBlock(ast: AstBlock, blockContext: BlockContext): unknown {
+    evalBlock(ast: AstBlock, blockContext: BlockContext): unknown {
         let lastResult = null;
 
         for (let node of ast?.funcs || []) {
@@ -19,14 +19,14 @@ export class Evaluator {
             const newScope = blockContext.blockScope;
 
             newScope.set(funcDef.funcAst.name,
-                (...args: unknown[]): unknown => Evaluator.jspyFuncInvoker(funcDef, blockContext, ...args)
+                (...args: unknown[]): unknown => this.jspyFuncInvoker(funcDef, blockContext, ...args)
             );
         }
 
         for (const node of ast.body) {
             if (node.type === 'comment') { continue; }
             try {
-                lastResult = Evaluator.evalNode(node, blockContext);
+                lastResult = this.evalNode(node, blockContext);
 
                 if (blockContext.returnCalled) {
                     const res = blockContext.returnObject;
@@ -50,7 +50,7 @@ export class Evaluator {
                     throw err;
                 } else {
                     const loc = node.loc ? node.loc : [0, 0]
-                    throw new JspyEvalError('mainModule', loc[0], loc[1], err.message)
+                    throw new JspyEvalError(ast.name, loc[0], loc[1], err.message)
                 }
             }
 
@@ -59,13 +59,13 @@ export class Evaluator {
         return lastResult;
     }
 
-    static jspyFuncInvoker(funcDef: FuncDefNode, context: BlockContext, ...args: unknown[]): unknown {
+    jspyFuncInvoker(funcDef: FuncDefNode, context: BlockContext, ...args: unknown[]): unknown {
 
         const ast = Object.assign({}, funcDef.funcAst);
         ast.type = 'func';
 
         const blockContext = {
-            namelessFuncsCount: 0,
+            moduleName: context.moduleName,
             blockScope: context.blockScope.clone()
         } as BlockContext;
 
@@ -78,10 +78,10 @@ export class Evaluator {
             blockContext.blockScope.set(funcDef.params[i], args[i]);
         }
 
-        return Evaluator.evalBlock(ast, blockContext);
+        return this.evalBlock(ast, blockContext);
     }
 
-    private static invokeFunction(func: (...args: unknown[]) => unknown, fps: unknown[]): unknown {
+    private invokeFunction(func: (...args: unknown[]) => unknown, fps: unknown[]): unknown {
         if (fps.length === 0) { return func(); }
         if (fps.length === 1) { return func(fps[0]); }
         if (fps.length === 2) { return func(fps[0], fps[1]); }
@@ -118,7 +118,7 @@ export class Evaluator {
         }
     }
 
-    private static evalNode(node: AstNode, blockContext: BlockContext): unknown {
+    private evalNode(node: AstNode, blockContext: BlockContext): unknown {
         if (node.type === 'import') {
             // skip this for now. As modules are implemented externally
             return null;
@@ -130,10 +130,10 @@ export class Evaluator {
 
         if (node.type === 'if') {
             const ifNode = node as IfNode;
-            if (Evaluator.evalNode(ifNode.conditionNode, blockContext)) {
-                Evaluator.evalBlock({ type: 'if', body: ifNode.ifBody } as AstBlock, blockContext);
+            if (this.evalNode(ifNode.conditionNode, blockContext)) {
+                this.evalBlock({ type: 'if', body: ifNode.ifBody } as AstBlock, blockContext);
             } else if (ifNode.elseBody) {
-                Evaluator.evalBlock({ type: 'if', body: ifNode.elseBody } as AstBlock, blockContext);
+                this.evalBlock({ type: 'if', body: ifNode.elseBody } as AstBlock, blockContext);
             }
 
             return;
@@ -143,7 +143,7 @@ export class Evaluator {
             const returnNode = node as ReturnNode;
             blockContext.returnCalled = true;
             blockContext.returnObject = returnNode.returnValue ?
-                Evaluator.evalNode(returnNode.returnValue, blockContext)
+                this.evalNode(returnNode.returnValue, blockContext)
                 : null;
 
             return blockContext.returnObject;
@@ -162,11 +162,11 @@ export class Evaluator {
         if (node.type === 'for') {
             const forNode = node as ForNode;
 
-            const array = Evaluator.evalNode(forNode.sourceArray, blockContext) as unknown[] | string;
+            const array = this.evalNode(forNode.sourceArray, blockContext) as unknown[] | string;
 
             for (let item of array) {
                 blockContext.blockScope.set(forNode.itemVarName, item);
-                Evaluator.evalBlock({ type: 'for', body: forNode.body } as AstBlock, blockContext);
+                this.evalBlock({ type: 'for', body: forNode.body } as AstBlock, blockContext);
                 if (blockContext.continueCalled) { blockContext.continueCalled = false; }
                 if (blockContext.breakCalled) { break; }
             }
@@ -177,8 +177,8 @@ export class Evaluator {
         if (node.type === 'while') {
             const whileNode = node as WhileNode;
 
-            while (Evaluator.evalNode(whileNode.condition, blockContext)) {
-                Evaluator.evalBlock({ type: 'while', body: whileNode.body } as AstBlock, blockContext);
+            while (this.evalNode(whileNode.condition, blockContext)) {
+                this.evalBlock({ type: 'while', body: whileNode.body } as AstBlock, blockContext);
 
                 if (blockContext.continueCalled) { blockContext.continueCalled = false; }
                 if (blockContext.breakCalled) { break; }
@@ -198,23 +198,23 @@ export class Evaluator {
 
         if (node.type === "binOp") {
             const binOpNode = (node as BinOpNode);
-            var left = Evaluator.evalNode(binOpNode.left, blockContext);
-            var right = Evaluator.evalNode(binOpNode.right, blockContext);
+            var left = this.evalNode(binOpNode.left, blockContext);
+            var right = this.evalNode(binOpNode.right, blockContext);
             return OperationFuncs[binOpNode.op](left as Primitive, right as Primitive);
         }
 
         if (node.type === "arrowFuncDef") {
             const arrowFuncDef = node as ArrowFuncDefNode;
 
-            return (...args: unknown[]): unknown => Evaluator.jspyFuncInvoker(arrowFuncDef, blockContext, ...args);
+            return (...args: unknown[]): unknown => this.jspyFuncInvoker(arrowFuncDef, blockContext, ...args);
         }
 
         if (node.type === "funcCall") {
             const funcCallNode = node as FunctionCallNode;
             const func = blockContext.blockScope.get(funcCallNode.name) as (...args: unknown[]) => unknown;
-            const pms = funcCallNode.paramNodes?.map(n => Evaluator.evalNode(n, blockContext)) || []
+            const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || []
 
-            return Evaluator.invokeFunction(func, pms);
+            return this.invokeFunction(func, pms);
         }
 
         if (node.type === "assign") {
@@ -222,26 +222,26 @@ export class Evaluator {
 
             if (assignNode.target.type === 'getSingleVar') {
                 const node = assignNode.target as SetSingleVarNode;
-                blockContext.blockScope.set(node.name, Evaluator.evalNode(assignNode.source, blockContext));
+                blockContext.blockScope.set(node.name, this.evalNode(assignNode.source, blockContext));
             } else if (assignNode.target.type === 'dotObjectAccess') {
                 const targetNode = assignNode.target as DotObjectAccessNode;
 
                 // create a node for all but last property token
                 // potentially it can go to parser
                 const targetObjectNode = new DotObjectAccessNode(targetNode.nestedProps.slice(0, targetNode.nestedProps.length - 1), targetNode.loc);
-                const targetObject = Evaluator.evalNode(targetObjectNode, blockContext) as Record<string, unknown>;
+                const targetObject = this.evalNode(targetObjectNode, blockContext) as Record<string, unknown>;
 
                 // not sure nested properties should be GetSingleVarNode
                 // can be factored in the parser
                 const lastPropertyName = (targetNode.nestedProps[targetNode.nestedProps.length - 1] as GetSingleVarNode).name
 
-                targetObject[lastPropertyName] = Evaluator.evalNode(assignNode.source, blockContext);
+                targetObject[lastPropertyName] = this.evalNode(assignNode.source, blockContext);
             } else if (assignNode.target.type === 'bracketObjectAccess') {
                 const targetNode = assignNode.target as BracketObjectAccessNode;
-                const keyValue = Evaluator.evalNode(targetNode.bracketBody, blockContext) as string | number;
+                const keyValue = this.evalNode(targetNode.bracketBody, blockContext) as string | number;
                 const targetObject = blockContext.blockScope.get(targetNode.propertyName as string) as Record<string, unknown>;
 
-                targetObject[keyValue] = Evaluator.evalNode(assignNode.source, blockContext);
+                targetObject[keyValue] = this.evalNode(assignNode.source, blockContext);
             } else {
                 throw Error('Not implemented Assign operation');
                 // get chaining calls
@@ -252,7 +252,7 @@ export class Evaluator {
 
         if (node.type === 'bracketObjectAccess') {
             const sbNode = node as BracketObjectAccessNode;
-            const key = Evaluator.evalNode(sbNode.bracketBody, blockContext) as string;
+            const key = this.evalNode(sbNode.bracketBody, blockContext) as string;
             const obj = blockContext.blockScope.get(sbNode.propertyName as string) as Record<string, unknown>;
             return (obj[key] === undefined) ? null : obj[key];
         }
@@ -260,7 +260,7 @@ export class Evaluator {
         if (node.type === "dotObjectAccess") {
             const dotObject = node as DotObjectAccessNode;
 
-            let startObject = Evaluator.evalNode(dotObject.nestedProps[0], blockContext) as any;
+            let startObject = this.evalNode(dotObject.nestedProps[0], blockContext) as any;
             for (let i = 1; i < dotObject.nestedProps.length; i++) {
                 const nestedProp = dotObject.nestedProps[i];
 
@@ -273,13 +273,13 @@ export class Evaluator {
                 } else if (nestedProp.type === 'bracketObjectAccess') {
                     const node = nestedProp as BracketObjectAccessNode;
                     startObject = startObject[node.propertyName] as unknown;
-                    startObject = startObject[Evaluator.evalNode(node.bracketBody, blockContext) as string] as unknown;
+                    startObject = startObject[this.evalNode(node.bracketBody, blockContext) as string] as unknown;
                 } else if (nestedProp.type === 'funcCall') {
                     const funcCallNode = nestedProp as FunctionCallNode;
                     const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
-                    const pms = funcCallNode.paramNodes?.map(n => Evaluator.evalNode(n, blockContext)) || []
+                    const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || []
 
-                    startObject = Evaluator.invokeFunction(func.bind(startObject), pms);
+                    startObject = this.invokeFunction(func.bind(startObject), pms);
 
                 } else {
                     throw Error("Can't resolve dotObjectAccess node")
@@ -295,7 +295,7 @@ export class Evaluator {
             const obj = {} as Record<string, unknown>;
 
             for (const p of createObjectNode.props) {
-                obj[Evaluator.evalNode(p.name, blockContext) as string] = Evaluator.evalNode(p.value, blockContext);
+                obj[this.evalNode(p.name, blockContext) as string] = this.evalNode(p.value, blockContext);
             }
 
             return obj;
@@ -306,7 +306,7 @@ export class Evaluator {
             const res = [] as unknown[];
 
             for (const item of arrayNode.items) {
-                res.push(Evaluator.evalNode(item, blockContext));
+                res.push(this.evalNode(item, blockContext));
             }
 
             return res;

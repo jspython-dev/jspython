@@ -32,25 +32,26 @@ export class Interpreter {
         return tokenizer.tokenize(script);
     }
 
-    parse(script: string): AstBlock {
+    parse(script: string, moduleName: string='main.jspy'): AstBlock {
         const tokenizer = new Tokenizer();
         const parser = new Parser();
-        const jspyAst = parser.parse(tokenizer.tokenize(script));
+        const jspyAst = parser.parse(tokenizer.tokenize(script), moduleName);
         return jspyAst;
     }
 
     eval(codeOrAst: string | AstBlock, scope: Record<string, unknown> = {}
-        , entryFunctionName: string = ''): unknown {
-        const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string) : codeOrAst as AstBlock;
+        , entryFunctionName: string = '', moduleName: string = 'main.jspy'): unknown {
+        const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string, moduleName) : codeOrAst as AstBlock;
         
         const blockContext = {
+            moduleName: moduleName,
             blockScope: new Scope(scope)
         } as BlockContext;
 
         blockContext.blockScope.set('printExecutionContext', () => console.log(blockContext.blockScope));
         blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope);
         
-        const result = Evaluator.evalBlock(ast, blockContext);
+        const result = new Evaluator().evalBlock(ast, blockContext);
         if (!entryFunctionName || !entryFunctionName.length) {
             return result;
         } else {
@@ -63,10 +64,11 @@ export class Interpreter {
     }
 
     async evalAsync(codeOrAst: string | AstBlock, scope: Record<string, unknown> = {}
-        , entryFunctionName: string = ''): Promise<unknown> {
-        const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string) : codeOrAst as AstBlock;
+        , entryFunctionName: string = '', moduleName: string = 'main.jspy'): Promise<unknown> {
+        const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string, moduleName) : codeOrAst as AstBlock;
         const evaluator = new EvaluatorAsync();
         const blockContext = {
+            moduleName: moduleName,
             blockScope: new Scope(scope)
         } as BlockContext;
         blockContext.blockScope.set('printExecutionContext', () => console.log(blockContext.blockScope));
@@ -89,9 +91,10 @@ export class Interpreter {
     /**
      * Compatibility method! Will be deprecated soon
      */
-    async evaluate(script: string, context: object = {}, entryFunctionName: string = ''): Promise<any> {
+    async evaluate(script: string, context: object = {}, entryFunctionName: string = ''
+        , moduleName: string = 'main.jspy'): Promise<any> {
         if (!script || !script.length) { return null; }
-        const ast = this.parse(script);
+        const ast = this.parse(script, moduleName);
 
         context = (context && typeof context === 'object') ? context : {};
         context = await this.assignLegacyImportContext(ast, context);
@@ -102,8 +105,7 @@ export class Interpreter {
         } as Record<string, unknown>;
 
         try {
-
-            return this.evalAsync(ast, this.globalScope, entryFunctionName);
+            return this.evalAsync(ast, this.globalScope, entryFunctionName, moduleName);
         } catch (error) {
             throw error;
         }

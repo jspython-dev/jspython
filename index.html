@@ -119,7 +119,7 @@ f()?.prop or 1
           }
         };
         const result = await jsPython()
-          .evaluate(scripts, scope);
+          .evaluate(scripts, scope, undefined, 'index1.jspy');
 
         // const result = jsPython()
         //   .eval(scripts, scope);

@@ -27,7 +27,7 @@ export class EvaluatorAsync {
 
             const invoker = (funcDef.isAsync) ?
                 async (...args: unknown[]): Promise<unknown> => await this.jspyFuncInvokerAsync(funcDef, blockContext, ...args)
-                : (...args: unknown[]): unknown => Evaluator.jspyFuncInvoker(funcDef, blockContext, ...args);
+                : (...args: unknown[]): unknown => new Evaluator().jspyFuncInvoker(funcDef, blockContext, ...args);
 
             newScope.set(funcDef.funcAst.name, invoker);
         }
@@ -58,7 +58,7 @@ export class EvaluatorAsync {
                     throw err;
                 } else {
                     const loc = node.loc? node.loc : [0, 0]
-                    throw new JspyEvalError('mainModule', loc[0], loc[1], err.message)
+                    throw new JspyEvalError(blockContext.moduleName, loc[0], loc[1], err.message)
                 }
             }
         }
@@ -72,7 +72,7 @@ export class EvaluatorAsync {
         ast.type = 'func';
 
         const blockContext = {
-            namelessFuncsCount: 0,
+            moduleName: context.moduleName,
             blockScope: context.blockScope.clone()
         } as BlockContext;
 
@@ -213,7 +213,7 @@ export class EvaluatorAsync {
         if (node.type === "arrowFuncDef") {
             const arrowFuncDef = node as ArrowFuncDefNode;
 
-            return (...args: unknown[]): unknown => Evaluator.jspyFuncInvoker(arrowFuncDef, blockContext, ...args);
+            return (...args: unknown[]): unknown => new Evaluator().jspyFuncInvoker(arrowFuncDef, blockContext, ...args);
         }
 
         if (node.type === "funcCall") {

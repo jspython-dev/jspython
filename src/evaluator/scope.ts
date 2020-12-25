@@ -1,11 +1,10 @@
 
 export interface BlockContext {
+    moduleName: string;
     returnCalled: boolean;
     breakCalled: boolean;
     continueCalled: boolean;
     returnObject: any;
-    currentLevel: string;
-    namelessFuncsCount: number;
     blockScope: Scope
 }
 
