@@ -3,7 +3,7 @@ import {
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
     CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode,
     getTokenLoc,
-    IfNode, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
+    IfNode, IsNullCoelsing, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
 } from '../common';
 import { JspyEvalError } from '../common/utils';
 import { Evaluator } from './evaluator';
@@ -58,7 +58,7 @@ export class EvaluatorAsync {
                     throw err;
                 } else {
                     const loc = node.loc? node.loc : [0, 0]
-                    throw new JspyEvalError(blockContext.moduleName, loc[0], loc[1], err.message)
+                    throw new JspyEvalError(blockContext.moduleName, loc[0], loc[1], err.message || err)
                 }
             }
         }
@@ -274,7 +274,7 @@ export class EvaluatorAsync {
             for (let i = 1; i < dotObject.nestedProps.length; i++) {
                 const nestedProp = dotObject.nestedProps[i];
 
-                if ((dotObject.nestedProps[i - 1] as any).nullCoelsing && !startObject) {
+                if ((dotObject.nestedProps[i - 1] as unknown as IsNullCoelsing).nullCoelsing && !startObject) {
                     startObject = {};
                 }
 
@@ -287,6 +287,11 @@ export class EvaluatorAsync {
                 } else if (nestedProp.type === 'funcCall') {
                     const funcCallNode = nestedProp as FunctionCallNode;
                     const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
+
+                    if(func === undefined 
+                        && (dotObject.nestedProps[i - 1] as unknown as IsNullCoelsing).nullCoelsing){
+                            continue;
+                    }
 
                     const pms = []
                     for (let p of funcCallNode.paramNodes || []) {

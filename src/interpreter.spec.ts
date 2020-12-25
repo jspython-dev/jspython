@@ -275,6 +275,26 @@ describe('Interpreter', () => {
     expect(e.eval(script)).toBe(5);
   });
 
+  it('long comments issue', () => {
+    const script = `
+    async def f2():
+      """
+      long comment
+      """
+      5
+
+    f2()
+    `
+    ;
+    expect(e.eval(script)).toBe(5);
+  });
+
+  it('chaining funcCall with null coelsing', () => {
+    expect(e.eval("p?.f()?.sdsd")).toBe(null);
+    //expect(e.eval("p?.f()?.sdsd or 5")).toBe(5);
+  });
+
+
 
 
 });

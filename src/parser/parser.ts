@@ -29,6 +29,7 @@ class InstructionLine {
 
 export class Parser {
     private _currentToken: Token | null = null;
+    private _moduleName = '';
 
     /**
      * Parses tokens and return Ast - Abstract Syntax Tree for jsPython code
@@ -36,6 +37,7 @@ export class Parser {
      * @param options parsing options. By default it will exclude comments and include LOC (Line of code)
      */
     parse(tokens: Token[], name = 'main.jspy', type: string = 'module'): AstBlock {
+        this._moduleName = name;
         const ast = { name, type, funcs: [], body: [] } as AstBlock;
 
         if (!tokens || !tokens.length) { return ast; }
@@ -50,7 +52,7 @@ export class Parser {
 
         } catch (err) {
             const token = this._currentToken ?? {} as Token
-            throw new JspyParserError(ast.name, getStartLine(token), getStartColumn(token), err.message)
+            throw new JspyParserError(ast.name, getStartLine(token), getStartColumn(token), err.message || err)
         }
         return ast;
     }
@@ -59,7 +61,7 @@ export class Parser {
 
         const getBody = (tokens: Token[], startTokenIndex: number): AstNode[] => {
             const instructionLines = this.tokensToInstructionLines(tokens, getStartLine(tokens[startTokenIndex]));
-            const bodyAst = { body: [] as AstNode[], funcs: [] as AstNode[] } as AstBlock;
+            const bodyAst = { name: ast.name, body: [] as AstNode[], funcs: [] as AstNode[] } as AstBlock;
             this.instructionsToNodes(instructionLines, bodyAst);
             return bodyAst.body;
         }
@@ -225,7 +227,7 @@ export class Parser {
             const sColumn = getStartColumn(token);
             const value = getTokenValue(token);
             this._currentToken = token;
-            
+
             if (sLine >= startLine) {
 
                 if (currentLine !== sLine) {
@@ -293,6 +295,7 @@ export class Parser {
 
             const instructionLines = this.tokensToInstructionLines(arrowFuncParts[1], 0);
             const funcAst = {
+                name: this._moduleName,
                 body: [] as AstNode[],
                 funcs: [] as AstNode[]
             } as AstBlock;

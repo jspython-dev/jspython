@@ -21,7 +21,6 @@ export class Interpreter {
     private packageLoader?: PackageLoader;
     private fileLoader?: FileLoader;
 
-
     constructor() { }
     static create(): Interpreter {
         return new Interpreter();
@@ -32,6 +31,7 @@ export class Interpreter {
         return tokenizer.tokenize(script);
     }
 
+    
     parse(script: string, moduleName: string='main.jspy'): AstBlock {
         const tokenizer = new Tokenizer();
         const parser = new Parser();

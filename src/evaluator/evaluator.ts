@@ -2,7 +2,7 @@ import {
     ArrowFuncDefNode,
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
     CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode,
-    IfNode, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
+    IfNode, IsNullCoelsing, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
 } from '../common';
 import { JspyEvalError } from '../common/utils';
 import { BlockContext, Scope } from './scope';
@@ -50,7 +50,7 @@ export class Evaluator {
                     throw err;
                 } else {
                     const loc = node.loc ? node.loc : [0, 0]
-                    throw new JspyEvalError(ast.name, loc[0], loc[1], err.message)
+                    throw new JspyEvalError(ast.name, loc[0], loc[1], err.message || err)
                 }
             }
 
@@ -277,8 +277,13 @@ export class Evaluator {
                 } else if (nestedProp.type === 'funcCall') {
                     const funcCallNode = nestedProp as FunctionCallNode;
                     const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
-                    const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || []
 
+                    if(func === undefined 
+                        && (dotObject.nestedProps[i - 1] as unknown as IsNullCoelsing).nullCoelsing){
+                            continue;
+                    }
+
+                    const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || []
                     startObject = this.invokeFunction(func.bind(startObject), pms);
 
                 } else {

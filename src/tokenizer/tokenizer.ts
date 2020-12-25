@@ -125,6 +125,8 @@ export class Tokenizer {
 
                 // handle """ comment """"
                 if (script[this._cursor + 1] === q && script[this._cursor + 2] === q) {
+                    const cLine = this._currentLine;
+                    const cColumn = this._currentColumn;
                     this.incrementCursor(2);
                     while (true) {
                         this.tokenText += script[this.incrementCursor()];
@@ -133,6 +135,10 @@ export class Tokenizer {
                             break;
                         }
                     }
+                    // a special case when multiline string
+                    this._startLine = cLine;
+                    this._startColumn = cColumn;
+
                     this.incrementCursor(3);
                 } else {
                     while (script[this.incrementCursor()] !== q) {
