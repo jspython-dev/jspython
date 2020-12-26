@@ -5,7 +5,7 @@ export enum OperationTypes {
 export type AssignmentOperators = "=" | "+=" | "-=" | "*=" | "/=" | "++" | "--";
 export type ArithmeticOperators = "+" | "-" | "*" | "/" | "%" | "**" | "//";
 export type ComparisonOperators = ">" | ">=" | "==" | "!=" | "<>" | "<" | "<=";
-export type LogicalOperators = "and" | "or" | "not" | "not in";
+export type LogicalOperators = "and" | "or"; // | "not" | "not in";
 export type MembershipOperators = "in";
 
 export type Operators = AssignmentOperators | ArithmeticOperators | ComparisonOperators | LogicalOperators | MembershipOperators;
@@ -29,8 +29,8 @@ export const OperatorsMap: Record<Operators, OperationTypes> = {
 
     "and": OperationTypes.Logical,
     "or": OperationTypes.Logical,
-    "not": OperationTypes.Logical,
-    "not in": OperationTypes.Logical,
+    // "not": OperationTypes.Logical,
+    // "not in": OperationTypes.Logical,
 
     "in": OperationTypes.Membership,
 
@@ -67,8 +67,8 @@ export const OperationFuncs: Record<ExpressionOperators, ExpressionOperation> = 
 
     "and": (l, r) => logicalOperation(l, r, "and"),
     "or": (l, r) => logicalOperation(l, r, "or"),
-    "not": (l, r) => logicalOperation(l, r, "not"),
-    "not in": (l, r) => logicalOperation(l, r, "not in"),
+    // "not": (l, r) => logicalOperation(l, r, "not"),
+    // "not in": (l, r) => logicalOperation(l, r, "not in"),
 
     "in": (l, r) => membershipOperation(l, r, "in")
 }

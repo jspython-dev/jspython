@@ -1,4 +1,4 @@
-import { Operators, OperatorsMap } from "./operators";
+import { OperationTypes, Operators, OperatorsMap } from "./operators";
 
 export enum TokenTypes {
     Identifier = 0,
@@ -40,7 +40,7 @@ export function getTokenType(token: Token): TokenTypes {
 }
 
 export function getTokenValue(token: Token | null): TokenValue {
-    return token? token[0] : null;
+    return token ? token[0] : null;
 }
 
 export function getTokenLoc(token: Token): Uint16Array {
@@ -120,8 +120,10 @@ export function findTokenValueIndexes(tokens: Token[], predicate: (value: TokenV
     return opIndexes;
 }
 
-export function findOperators(tokens: Token[]): number[] {
-    return findTokenValueIndexes(tokens, value => OperatorsMap[value as Operators] !== undefined);
+export function findOperators(tokens: Token[], operationType: OperationTypes | null = null): number[] {
+    return !operationType ? findTokenValueIndexes(tokens, value => OperatorsMap[value as Operators] !== undefined)
+        :
+        findTokenValueIndexes(tokens, value => OperatorsMap[value as Operators] === operationType);
 }
 
 function skipInnerBrackets(tokens: Token[], i: number, openChar: string, closeChar: string): number {

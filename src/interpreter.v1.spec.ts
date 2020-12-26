@@ -30,22 +30,21 @@ describe('Interpreter', () => {
     expect(await e.evaluate(`"""${text}"""`)).toBe(text);
   });
 
-  // // *** migration issue ***
-  // it('Triple quote string as an expression', async () => {
-  //   const text = `
-  //   1
-  //   2 3 4
-  //   5
-  //   `;
-  //   expect(await e.evaluate(`
-  //   str = """ 12345 """
-  //   str
-  //   `)).toBe(' 12345 ');
-  //   expect(await e.evaluate(`
-  //   str = """${text}"""
-  //   str
-  //   `)).toBe(text);
-  // });
+  it('Triple quote string as an expression', async () => {
+    const text = `
+    1
+    2 3 4
+    5
+    `;
+    expect(await e.evaluate(`
+    str = """ 12345 """
+    str
+    `)).toBe(' 12345 ');
+    expect(await e.evaluate(`
+    str = """${text}"""
+    str
+    `)).toBe(text);
+  });
 
   it('print(add(33, 2))', async () => {
     expect(await e.evaluate('print(add(33, 2, 45))'))
@@ -1009,24 +1008,6 @@ describe('Interpreter', () => {
     ).toBe("4,9");
   })
 
-  // ** migration issue for now
-  // it('and operator', async () => {
-  //   expect(await e.evaluate('(2 == 2) and (3 == 3)')).toBe(true)
-  //   expect(await e.evaluate('(2 == 2) and (3 == 3) and (5 == 5)')).toBe(true)
-  //   expect(await e.evaluate('(2 == 2) and (3 != 3) and 5 == 5)')).toBe(false)
-  //   expect(await e.evaluate('(2 != 2) and (3 != 3) and (5 == 5)')).toBe(false)
-  //   expect(await e.evaluate('(2 != 2) and (3 == 3) and (5 == 5)')).toBe(false)
-  //   expect(await e.evaluate('(2 == 2) and (3 == 3) and 5 != 5)')).toBe(false)
-  // })
-
-  //   it('or operator', async () => {
-  //     expect(await e.evaluate('2 == 2 or 3 == 3)')).toBe(true)
-  //     expect(await e.evaluate('2 == 2 or 3 == 3 or 5 == 5)')).toBe(true)
-  //     expect(await e.evaluate('2 != 2 or 3 != 3 or 5 != 5)')).toBe(false)
-  //     expect(await e.evaluate('2 == 2 or 3 != 3 or 5 != 5)')).toBe(true)
-  //     expect(await e.evaluate('2 == 2 or 3 == 3 and 5 != 5)')).toBe(true)
-  //   })
-
   it('(if) - else', async () => {
     expect(await e.evaluate(`
     x = 5
@@ -1573,8 +1554,6 @@ describe('Interpreter', () => {
     expect(o.p1).toBe(23);
     expect(o.x[0].d).toBe(5);
   })
-
-  //
 
   it('should return NULL gracely', async () => {
     expect(await e.evaluate(`

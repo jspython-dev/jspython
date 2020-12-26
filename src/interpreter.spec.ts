@@ -291,10 +291,36 @@ describe('Interpreter', () => {
 
   it('chaining funcCall with null coelsing', () => {
     expect(e.eval("p?.f()?.sdsd")).toBe(null);
-    //expect(e.eval("p?.f()?.sdsd or 5")).toBe(5);
+    expect(e.eval("p?.f()?.sdsd or 5")).toBe(5);
   });
 
+  it('comparison operations', () => {
+    expect(e.eval("1+2*3==7")).toBe(true);
+    expect(e.eval("1+2==2")).toBe(false);
+  });
 
+  it('comparison operations', () => {
+    expect(e.eval("1+2*3==7")).toBe(true);
+    expect(e.eval("1+2==2")).toBe(false);
+  });
+
+  // ** migration issue for now
+  it('simple and operator', async () => {
+    expect(await e.evaluate('2 == 2 and 3 == 3')).toBe(true)
+    // expect(await e.evaluate('(2 == 2) and (3 == 3) and (5 == 5)')).toBe(true)
+    // expect(await e.evaluate('(2 == 2) and (3 != 3) and 5 == 5)')).toBe(false)
+    // expect(await e.evaluate('(2 != 2) and (3 != 3) and (5 == 5)')).toBe(false)
+    // expect(await e.evaluate('(2 != 2) and (3 == 3) and (5 == 5)')).toBe(false)
+    // expect(await e.evaluate('(2 == 2) and (3 == 3) and 5 != 5)')).toBe(false)
+  })
+
+  it('simple or operator', async () => {
+    expect(await e.evaluate('2 == 2 or 3 == 3')).toBe(true)
+    // expect(await e.evaluate('2 == 2 or 3 == 3 or 5 == 5')).toBe(true)
+    // expect(await e.evaluate('2 != 2 or 3 != 3 or 5 != 5')).toBe(false)
+    // expect(await e.evaluate('2 == 2 or 3 != 3 or 5 != 5')).toBe(true)
+    // expect(await e.evaluate('2 == 2 or 3 == 3 and 5 != 5')).toBe(true)
+  })
 
 
 });

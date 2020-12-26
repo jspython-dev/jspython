@@ -3,7 +3,7 @@ import {
     GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine,
     getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode,
     findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode,
-    ExpressionOperators, IfNode, ForNode, WhileNode, ImportNode, NameAlias, ContinueNode, BreakNode, ReturnNode, CommentNode, getTokenLoc
+    ExpressionOperators, IfNode, ForNode, WhileNode, ImportNode, NameAlias, ContinueNode, BreakNode, ReturnNode, CommentNode, getTokenLoc, OperationTypes, LogicalNodeItem, LogicalOperators, LogicalOpNode, ComparisonOperators
 } from '../common';
 import { JspyParserError } from '../common/utils';
 
@@ -66,6 +66,12 @@ export class Parser {
             return bodyAst.body;
         }
 
+        const findIndexes = (tkns: Token[], operation: OperationTypes, result: number[]): boolean => {
+            result.splice(0, result.length);
+            findOperators(tkns, operation).forEach(r => result.push(r));
+            return !!result.length;
+        }
+
         for (let i = 0; i < instructions.length; i++) {
             const instruction = instructions[i];
 
@@ -85,8 +91,11 @@ export class Parser {
             const firstToken = instruction.tokens[0];
             const secondToken = instruction.tokens.length > 1 ? instruction.tokens[1] : null;
             this._currentToken = firstToken;
+            
+            const logicOpIndexes: number[] = [];
+            const comparisonOpIndexs: number[] = [];
+            const assignTokenIndexes: number[] = [];
 
-            const assignTokens = splitTokens(instruction.tokens, '=');
 
             if (getTokenType(firstToken) === TokenTypes.Comment) {
                 ast.body.push(new CommentNode(getTokenValue(firstToken) as string, getTokenLoc(firstToken)));
@@ -205,14 +214,68 @@ export class Parser {
                 const body = {} as AstBlock; // empty for now
 
                 ast.body.push(new ImportNode(module, body, parts, getTokenLoc(firstToken)))
-            } else if (assignTokens.length > 1) {
+            } else if (findIndexes(instruction.tokens, OperationTypes.Assignment, assignTokenIndexes)) {
+                const assignTokens = splitTokens(instruction.tokens, '=');
                 const target = this.createExpressionNode(assignTokens[0]);
                 const source = this.createExpressionNode(assignTokens[1]);
                 ast.body.push(new AssignNode(target, source, getTokenLoc(assignTokens[0][0])));
+            } else if (findIndexes(instruction.tokens, OperationTypes.Logical, logicOpIndexes)) {
+                ast.body.push(this.groupComparisonOperations(logicOpIndexes, instruction));
+            } else if (findIndexes(instruction.tokens, OperationTypes.Comparison, comparisonOpIndexs)) {
+                ast.body.push(this.groupComparisonOperations(comparisonOpIndexs, instruction));
             } else {
                 ast.body.push(this.createExpressionNode(instruction.tokens))
             }
+
         }
+    }
+
+    private groupComparisonOperations(indexes: number[], instruction: InstructionLine): AstNode {
+        let start = 0;
+        const slice = (a: Token[], begin: number, end: number): Token[] => {
+            // if expression is in brackets, then we need clean brackets
+            if (getTokenValue(a[begin]) === '(') {
+                begin++;
+                end--;
+            }
+
+            return a.slice(begin, end);
+        }
+
+        let leftNode: AstNode | null = null;
+        for (let i = 0; i < indexes.length; i++) {
+            const opToken = getTokenValue(instruction.tokens[indexes[i]]) as ComparisonOperators;
+            leftNode = (leftNode) ? leftNode : this.createExpressionNode(slice(instruction.tokens, start, indexes[i]))
+
+            const endInd = (i + 1 < indexes.length) ? indexes[i + 1] : instruction.tokens.length;
+            const rightNode = this.createExpressionNode(slice(instruction.tokens, indexes[i] + 1, endInd))
+
+            leftNode = new BinOpNode(leftNode, opToken, rightNode, getTokenLoc(instruction.tokens[0]));
+        }
+
+        return leftNode as AstNode;
+    }
+
+    private groupLogicalOperations(logicOp: number[], instruction: InstructionLine) {
+        let start = 0;
+        const logicItems: LogicalNodeItem[] = [];
+        for (let i = 0; i < logicOp.length; i++) {
+            const opToken = instruction.tokens[logicOp[i]];
+            const logicalSlice = instruction.tokens.slice(start, logicOp[i]);
+            logicItems.push({
+                node: this.createExpressionNode(logicalSlice),
+                op: getTokenValue(opToken) as LogicalOperators
+            });
+
+            start = logicOp[i] + 1;
+        }
+
+        logicItems.push({
+            node: this.createExpressionNode(instruction.tokens.slice(start))
+        } as LogicalNodeItem);
+
+        const lop = new LogicalOpNode(logicItems, getTokenLoc(instruction.tokens[0]));
+        return lop;
     }
 
     private tokensToInstructionLines(tokens: Token[], startLine: number): InstructionLine[] {
@@ -222,7 +285,7 @@ export class Parser {
         let currentLine = startLine;
         let line = new InstructionLine();
         for (let i = 0; i < tokens.length; i++) {
-            const token = tokens[i];            
+            const token = tokens[i];
             const sLine = getStartLine(token);
             const sColumn = getStartColumn(token);
             const value = getTokenValue(token);
@@ -304,7 +367,7 @@ export class Parser {
             return new ArrowFuncDefNode(funcAst, params, getTokenLoc(tokens[0]));
         }
 
-        // create expression
+        // create arithmetic expression
         const ops = findOperators(tokens);
         if (ops.length) {
             // create binary node here

@@ -1,7 +1,8 @@
-import { ExpressionOperators, OperationTypes, Operators } from "./operators";
+import { ExpressionOperators, LogicalOperators, OperationTypes, Operators } from "./operators";
 import { getTokenLoc, getTokenValue, Token } from "./token-types";
 
 export type AstNodeType = 'assign' | 'binOp' | 'const'
+    | 'logicalOp' 
     | 'getSingleVar' | 'setSingleVar' | 'dotObjectAccess' | 'bracketObjectAccess'
     | 'funcCall' | 'funcDef' | 'arrowFuncDef'
     | 'createObject' | 'createArray'
@@ -178,6 +179,19 @@ export class BracketObjectAccessNode extends AstNode {
         public nullCoalescing: boolean | undefined = undefined,
         public loc: Uint16Array) {
         super('bracketObjectAccess');
+        this.loc = loc;
+    }
+}
+
+export interface LogicalNodeItem {
+    node: AstNode,
+    op: LogicalOperators | undefined
+}
+
+export class LogicalOpNode extends AstNode {
+    constructor(public items: LogicalNodeItem[],
+        public loc: Uint16Array) {
+        super('logicalOp');
         this.loc = loc;
     }
 }
