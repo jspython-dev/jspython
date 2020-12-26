@@ -138,9 +138,9 @@ export class EvaluatorAsync {
         if (node.type === 'if') {
             const ifNode = node as IfNode;
             if (await this.evalNodeAsync(ifNode.conditionNode, blockContext)) {
-                await this.evalBlockAsync({ type: 'if', body: ifNode.ifBody } as AstBlock, blockContext);
+                await this.evalBlockAsync({ name: blockContext.moduleName, type: 'if', body: ifNode.ifBody } as AstBlock, blockContext);
             } else if (ifNode.elseBody) {
-                await this.evalBlockAsync({ type: 'if', body: ifNode.elseBody } as AstBlock, blockContext);
+                await this.evalBlockAsync({ name: blockContext.moduleName, type: 'if', body: ifNode.elseBody } as AstBlock, blockContext);
             }
 
             return;
@@ -173,7 +173,7 @@ export class EvaluatorAsync {
 
             for (let item of array) {
                 blockContext.blockScope.set(forNode.itemVarName, item);
-                await this.evalBlockAsync({ type: 'for', body: forNode.body } as AstBlock, blockContext);
+                await this.evalBlockAsync({ name: blockContext.moduleName, type: 'for', body: forNode.body } as AstBlock, blockContext);
                 if (blockContext.continueCalled) { blockContext.continueCalled = false; }
                 if (blockContext.breakCalled) { break; }
             }
@@ -185,7 +185,7 @@ export class EvaluatorAsync {
             const whileNode = node as WhileNode;
 
             while (await this.evalNodeAsync(whileNode.condition, blockContext)) {
-                await this.evalBlockAsync({ type: 'while', body: whileNode.body } as AstBlock, blockContext);
+                await this.evalBlockAsync({ name: blockContext.moduleName, type: 'while', body: whileNode.body } as AstBlock, blockContext);
 
                 if (blockContext.continueCalled) { blockContext.continueCalled = false; }
                 if (blockContext.breakCalled) { break; }
