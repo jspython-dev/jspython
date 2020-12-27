@@ -271,7 +271,7 @@ describe('Interpreter', () => {
 
     f()?.prop or 5
     `
-    ;
+      ;
     expect(e.eval(script)).toBe(5);
   });
 
@@ -285,7 +285,7 @@ describe('Interpreter', () => {
 
     f2()
     `
-    ;
+      ;
     expect(e.eval(script)).toBe(5);
   });
 
@@ -307,20 +307,31 @@ describe('Interpreter', () => {
   // ** migration issue for now
   it('simple and operator', async () => {
     expect(await e.evaluate('2 == 2 and 3 == 3')).toBe(true)
-    // expect(await e.evaluate('(2 == 2) and (3 == 3) and (5 == 5)')).toBe(true)
-    // expect(await e.evaluate('(2 == 2) and (3 != 3) and 5 == 5)')).toBe(false)
-    // expect(await e.evaluate('(2 != 2) and (3 != 3) and (5 == 5)')).toBe(false)
-    // expect(await e.evaluate('(2 != 2) and (3 == 3) and (5 == 5)')).toBe(false)
-    // expect(await e.evaluate('(2 == 2) and (3 == 3) and 5 != 5)')).toBe(false)
-  })
+    expect(await e.evaluate('(2 == 2) and (3 == 3) and (5 == 5)')).toBe(true)
+    expect(await e.evaluate('(2 == 2) and (3 != 3) and (5 == 5)')).toBe(false)
+    expect(await e.evaluate('(2 != 2) and (3 != 3) and (5 == 5)')).toBe(false)
+    expect(await e.evaluate('(2 != 2) and (3 == 3) and (5 == 5)')).toBe(false)
+    expect(await e.evaluate('(2 == 2) and (3 == 3) and (5 != 5)')).toBe(false)
+  });
 
   it('simple or operator', async () => {
     expect(await e.evaluate('2 == 2 or 3 == 3')).toBe(true)
-    // expect(await e.evaluate('2 == 2 or 3 == 3 or 5 == 5')).toBe(true)
-    // expect(await e.evaluate('2 != 2 or 3 != 3 or 5 != 5')).toBe(false)
-    // expect(await e.evaluate('2 == 2 or 3 != 3 or 5 != 5')).toBe(true)
-    // expect(await e.evaluate('2 == 2 or 3 == 3 and 5 != 5')).toBe(true)
-  })
+    expect(await e.evaluate('2 == 2 or 3 == 3 or 5 == 5')).toBe(true)
+    expect(await e.evaluate('2 != 2 or 3 != 3 or 5 != 5')).toBe(false)
+    expect(await e.evaluate('2 == 2 or 3 != 3 or 5 != 5')).toBe(true)
+    expect(await e.evaluate('2 == 2 or 3 == 3 and 5 != 5')).toBe(true)
+  });
 
+  it('conditionals', async () => {
+    expect(await e.evaluate('x == null')).toBe(true)
+    expect(await e.evaluate('x?.p1?.p == null')).toBe(true)
+    expect(await e.evaluate('x != null and x.length >0')).toBe(false)
+    expect(await e.evaluate('x?.p1?.p != null and x.length >0')).toBe(false)
+  });
+
+  it('arithmetic + comparison', async () => {
+    expect(await e.evaluate('1+2*3 == 5 or 1 > 3')).toBe(false)
+    expect(await e.evaluate('1+2*3 == 5 or 1 < 3')).toBe(true)
+  });
 
 });

@@ -3,7 +3,7 @@ import {
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
     CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode,
     getTokenLoc,
-    IfNode, IsNullCoelsing, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
+    IfNode, IsNullCoelsing, LogicalOpNode, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
 } from '../common';
 import { JspyEvalError } from '../common/utils';
 import { Evaluator } from './evaluator';
@@ -57,7 +57,7 @@ export class EvaluatorAsync {
                 if (err instanceof JspyEvalError) {
                     throw err;
                 } else {
-                    const loc = node.loc? node.loc : [0, 0]
+                    const loc = node.loc ? node.loc : [0, 0]
                     throw new JspyEvalError(blockContext.moduleName, loc[0], loc[1], err.message || err)
                 }
             }
@@ -200,7 +200,8 @@ export class EvaluatorAsync {
         }
 
         if (node.type === "getSingleVar") {
-            return blockContext.blockScope.get((node as GetSingleVarNode).name);
+            const value = blockContext.blockScope.get((node as GetSingleVarNode).name);
+            return value === undefined? null : value;
         }
 
         if (node.type === "binOp") {
@@ -208,6 +209,23 @@ export class EvaluatorAsync {
             var left = await this.evalNodeAsync(binOpNode.left, blockContext);
             var right = await this.evalNodeAsync(binOpNode.right, blockContext);
             return OperationFuncs[binOpNode.op](left as Primitive, right as Primitive);
+        }
+
+        if (node.type === "logicalOp") {
+            const logicalGroups = (node as LogicalOpNode);
+            let ind = 0;
+            let gResult: any = true;
+
+            while (ind < logicalGroups.items.length) {
+                const eg = logicalGroups.items[ind++];
+
+                gResult = await this.evalNodeAsync(eg.node, blockContext)
+
+                if (eg.op === 'and' && !gResult) { return false; }
+                if (eg.op === 'or' && gResult) { return gResult; }
+            }
+
+            return gResult;
         }
 
         if (node.type === "arrowFuncDef") {
@@ -288,9 +306,9 @@ export class EvaluatorAsync {
                     const funcCallNode = nestedProp as FunctionCallNode;
                     const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
 
-                    if(func === undefined 
-                        && (dotObject.nestedProps[i - 1] as unknown as IsNullCoelsing).nullCoelsing){
-                            continue;
+                    if (func === undefined
+                        && (dotObject.nestedProps[i - 1] as unknown as IsNullCoelsing).nullCoelsing) {
+                        continue;
                     }
 
                     const pms = []

@@ -91,7 +91,7 @@ export class Parser {
             const firstToken = instruction.tokens[0];
             const secondToken = instruction.tokens.length > 1 ? instruction.tokens[1] : null;
             this._currentToken = firstToken;
-            
+
             const logicOpIndexes: number[] = [];
             const comparisonOpIndexs: number[] = [];
             const assignTokenIndexes: number[] = [];
@@ -220,7 +220,7 @@ export class Parser {
                 const source = this.createExpressionNode(assignTokens[1]);
                 ast.body.push(new AssignNode(target, source, getTokenLoc(assignTokens[0][0])));
             } else if (findIndexes(instruction.tokens, OperationTypes.Logical, logicOpIndexes)) {
-                ast.body.push(this.groupComparisonOperations(logicOpIndexes, instruction));
+                ast.body.push(this.groupLogicalOperations(logicOpIndexes, instruction));
             } else if (findIndexes(instruction.tokens, OperationTypes.Comparison, comparisonOpIndexs)) {
                 ast.body.push(this.groupComparisonOperations(comparisonOpIndexs, instruction));
             } else {
@@ -230,25 +230,26 @@ export class Parser {
         }
     }
 
+    private sliceWithBrackets(a: Token[], begin: number, end: number): Token[] {
+        // if expression is in brackets, then we need clean brackets
+        if (getTokenValue(a[begin]) === '(') {
+            begin++;
+            end--;
+        }
+
+        return a.slice(begin, end);
+    }
+
     private groupComparisonOperations(indexes: number[], instruction: InstructionLine): AstNode {
         let start = 0;
-        const slice = (a: Token[], begin: number, end: number): Token[] => {
-            // if expression is in brackets, then we need clean brackets
-            if (getTokenValue(a[begin]) === '(') {
-                begin++;
-                end--;
-            }
-
-            return a.slice(begin, end);
-        }
 
         let leftNode: AstNode | null = null;
         for (let i = 0; i < indexes.length; i++) {
             const opToken = getTokenValue(instruction.tokens[indexes[i]]) as ComparisonOperators;
-            leftNode = (leftNode) ? leftNode : this.createExpressionNode(slice(instruction.tokens, start, indexes[i]))
+            leftNode = (leftNode) ? leftNode : this.createExpressionNode(this.sliceWithBrackets(instruction.tokens, start, indexes[i]))
 
             const endInd = (i + 1 < indexes.length) ? indexes[i + 1] : instruction.tokens.length;
-            const rightNode = this.createExpressionNode(slice(instruction.tokens, indexes[i] + 1, endInd))
+            const rightNode = this.createExpressionNode(this.sliceWithBrackets(instruction.tokens, indexes[i] + 1, endInd))
 
             leftNode = new BinOpNode(leftNode, opToken, rightNode, getTokenLoc(instruction.tokens[0]));
         }
@@ -261,7 +262,7 @@ export class Parser {
         const logicItems: LogicalNodeItem[] = [];
         for (let i = 0; i < logicOp.length; i++) {
             const opToken = instruction.tokens[logicOp[i]];
-            const logicalSlice = instruction.tokens.slice(start, logicOp[i]);
+            const logicalSlice = this.sliceWithBrackets(instruction.tokens, start, logicOp[i]);
             logicItems.push({
                 node: this.createExpressionNode(logicalSlice),
                 op: getTokenValue(opToken) as LogicalOperators
@@ -271,7 +272,7 @@ export class Parser {
         }
 
         logicItems.push({
-            node: this.createExpressionNode(instruction.tokens.slice(start))
+            node: this.createExpressionNode(this.sliceWithBrackets(instruction.tokens, start, instruction.tokens.length))
         } as LogicalNodeItem);
 
         const lop = new LogicalOpNode(logicItems, getTokenLoc(instruction.tokens[0]));
@@ -370,16 +371,6 @@ export class Parser {
         // create arithmetic expression
         const ops = findOperators(tokens);
         if (ops.length) {
-            // create binary node here
-            const slice = (a: Token[], begin: number, end: number): Token[] => {
-                // if expression is in brackets, then we need clean brackets
-                if (getTokenValue(a[begin]) === '(') {
-                    begin++;
-                    end--;
-                }
-
-                return a.slice(begin, end);
-            }
 
             var prevNode: AstNode | null;
             for (let i = 0; i < ops.length; i++) {
@@ -394,8 +385,8 @@ export class Parser {
                     do {
                         const nextOpIndex2 = i + 2 < ops.length ? ops[i + 2] : null;
 
-                        const leftSlice2 = slice(tokens, opIndex + 1, nextOpIndex);
-                        const rightSlice2 = slice(tokens, nextOpIndex + 1, nextOpIndex2 || tokens.length);
+                        const leftSlice2 = this.sliceWithBrackets(tokens, opIndex + 1, nextOpIndex);
+                        const rightSlice2 = this.sliceWithBrackets(tokens, nextOpIndex + 1, nextOpIndex2 || tokens.length);
 
                         const left2 = this.createExpressionNode(leftSlice2);
                         const right2 = this.createExpressionNode(rightSlice2);
@@ -409,14 +400,14 @@ export class Parser {
 
                     // add up result
                     if (prevNode === null) {
-                        const leftSlice = slice(tokens, 0, opIndex);
+                        const leftSlice = this.sliceWithBrackets(tokens, 0, opIndex);
                         prevNode = this.createExpressionNode(leftSlice);
                     }
                     prevNode = new BinOpNode(prevNode, op as ExpressionOperators, rightNode, getTokenLoc(tokens[0]))
 
                 } else {
-                    const leftSlice = prevNode ? [] : slice(tokens, 0, opIndex);
-                    const rightSlice = slice(tokens, opIndex + 1, nextOpIndex || tokens.length);
+                    const leftSlice = prevNode ? [] : this.sliceWithBrackets(tokens, 0, opIndex);
+                    const rightSlice = this.sliceWithBrackets(tokens, opIndex + 1, nextOpIndex || tokens.length);
                     const left = prevNode || this.createExpressionNode(leftSlice, prevNode);
                     const right = this.createExpressionNode(rightSlice);
                     prevNode = new BinOpNode(left, op as ExpressionOperators, right, getTokenLoc(tokens[0]));

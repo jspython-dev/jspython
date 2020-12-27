@@ -2,7 +2,7 @@ import {
     ArrowFuncDefNode,
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
     CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode,
-    IfNode, IsNullCoelsing, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
+    IfNode, IsNullCoelsing, LogicalOpNode, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
 } from '../common';
 import { JspyEvalError } from '../common/utils';
 import { BlockContext, Scope } from './scope';
@@ -193,7 +193,8 @@ export class Evaluator {
         }
 
         if (node.type === "getSingleVar") {
-            return blockContext.blockScope.get((node as GetSingleVarNode).name);
+            const value = blockContext.blockScope.get((node as GetSingleVarNode).name);
+            return value === undefined ? null : value;
         }
 
         if (node.type === "binOp") {
@@ -201,6 +202,23 @@ export class Evaluator {
             var left = this.evalNode(binOpNode.left, blockContext);
             var right = this.evalNode(binOpNode.right, blockContext);
             return OperationFuncs[binOpNode.op](left as Primitive, right as Primitive);
+        }
+
+        if (node.type === "logicalOp") {
+            const logicalGroups = (node as LogicalOpNode);
+            let ind = 0;
+            let gResult: any = true;
+
+            while (ind < logicalGroups.items.length) {
+                const eg = logicalGroups.items[ind++];
+
+                gResult = this.evalNode(eg.node, blockContext)
+
+                if (eg.op === 'and' && !gResult) { return false; }
+                if (eg.op === 'or' && gResult) { return gResult; }
+            }
+
+            return gResult;
         }
 
         if (node.type === "arrowFuncDef") {
@@ -278,9 +296,9 @@ export class Evaluator {
                     const funcCallNode = nestedProp as FunctionCallNode;
                     const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
 
-                    if(func === undefined 
-                        && (dotObject.nestedProps[i - 1] as unknown as IsNullCoelsing).nullCoelsing){
-                            continue;
+                    if (func === undefined
+                        && (dotObject.nestedProps[i - 1] as unknown as IsNullCoelsing).nullCoelsing) {
+                        continue;
                     }
 
                     const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || []
