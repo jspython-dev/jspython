@@ -3,7 +3,8 @@ import {
     GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine,
     getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode,
     findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode,
-    ExpressionOperators, IfNode, ForNode, WhileNode, ImportNode, NameAlias, ContinueNode, BreakNode, ReturnNode, CommentNode, getTokenLoc, OperationTypes, LogicalNodeItem, LogicalOperators, LogicalOpNode, ComparisonOperators
+    ExpressionOperators, IfNode, ForNode, WhileNode, ImportNode, NameAlias, ContinueNode, BreakNode, ReturnNode, CommentNode,
+    getTokenLoc, OperationTypes, LogicalNodeItem, LogicalOperators, LogicalOpNode, ComparisonOperators
 } from '../common';
 import { JspyParserError } from '../common/utils';
 
@@ -95,7 +96,6 @@ export class Parser {
             const logicOpIndexes: number[] = [];
             const comparisonOpIndexs: number[] = [];
             const assignTokenIndexes: number[] = [];
-
 
             if (getTokenType(firstToken) === TokenTypes.Comment) {
                 ast.body.push(new CommentNode(getTokenValue(firstToken) as string, getTokenLoc(firstToken)));
@@ -220,9 +220,7 @@ export class Parser {
                 const source = this.createExpressionNode(assignTokens[1]);
                 ast.body.push(new AssignNode(target, source, getTokenLoc(assignTokens[0][0])));
             } else if (findIndexes(instruction.tokens, OperationTypes.Logical, logicOpIndexes)) {
-                ast.body.push(this.groupLogicalOperations(logicOpIndexes, instruction));
-            } else if (findIndexes(instruction.tokens, OperationTypes.Comparison, comparisonOpIndexs)) {
-                ast.body.push(this.groupComparisonOperations(comparisonOpIndexs, instruction));
+                ast.body.push(this.groupLogicalOperations(logicOpIndexes, instruction.tokens));
             } else {
                 ast.body.push(this.createExpressionNode(instruction.tokens))
             }
@@ -240,29 +238,29 @@ export class Parser {
         return a.slice(begin, end);
     }
 
-    private groupComparisonOperations(indexes: number[], instruction: InstructionLine): AstNode {
+    private groupComparisonOperations(indexes: number[], tokens: Token[]): AstNode {
         let start = 0;
 
         let leftNode: AstNode | null = null;
         for (let i = 0; i < indexes.length; i++) {
-            const opToken = getTokenValue(instruction.tokens[indexes[i]]) as ComparisonOperators;
-            leftNode = (leftNode) ? leftNode : this.createExpressionNode(this.sliceWithBrackets(instruction.tokens, start, indexes[i]))
+            const opToken = getTokenValue(tokens[indexes[i]]) as ComparisonOperators;
+            leftNode = (leftNode) ? leftNode : this.createExpressionNode(this.sliceWithBrackets(tokens, start, indexes[i]))
 
-            const endInd = (i + 1 < indexes.length) ? indexes[i + 1] : instruction.tokens.length;
-            const rightNode = this.createExpressionNode(this.sliceWithBrackets(instruction.tokens, indexes[i] + 1, endInd))
+            const endInd = (i + 1 < indexes.length) ? indexes[i + 1] : tokens.length;
+            const rightNode = this.createExpressionNode(this.sliceWithBrackets(tokens, indexes[i] + 1, endInd))
 
-            leftNode = new BinOpNode(leftNode, opToken, rightNode, getTokenLoc(instruction.tokens[0]));
+            leftNode = new BinOpNode(leftNode, opToken, rightNode, getTokenLoc(tokens[0]));
         }
 
         return leftNode as AstNode;
     }
 
-    private groupLogicalOperations(logicOp: number[], instruction: InstructionLine) {
+    private groupLogicalOperations(logicOp: number[], tokens: Token[]) {
         let start = 0;
         const logicItems: LogicalNodeItem[] = [];
         for (let i = 0; i < logicOp.length; i++) {
-            const opToken = instruction.tokens[logicOp[i]];
-            const logicalSlice = this.sliceWithBrackets(instruction.tokens, start, logicOp[i]);
+            const opToken = tokens[logicOp[i]];
+            const logicalSlice = this.sliceWithBrackets(tokens, start, logicOp[i]);
             logicItems.push({
                 node: this.createExpressionNode(logicalSlice),
                 op: getTokenValue(opToken) as LogicalOperators
@@ -272,10 +270,10 @@ export class Parser {
         }
 
         logicItems.push({
-            node: this.createExpressionNode(this.sliceWithBrackets(instruction.tokens, start, instruction.tokens.length))
+            node: this.createExpressionNode(this.sliceWithBrackets(tokens, start, tokens.length))
         } as LogicalNodeItem);
 
-        const lop = new LogicalOpNode(logicItems, getTokenLoc(instruction.tokens[0]));
+        const lop = new LogicalOpNode(logicItems, getTokenLoc(tokens[0]));
         return lop;
     }
 
@@ -366,6 +364,12 @@ export class Parser {
             this.instructionsToNodes(instructionLines, funcAst);
 
             return new ArrowFuncDefNode(funcAst, params, getTokenLoc(tokens[0]));
+        }
+
+        // comparison operations
+        const comparissonIndexes = findOperators(tokens, OperationTypes.Comparison);
+        if (comparissonIndexes.length) {
+            return this.groupComparisonOperations(comparissonIndexes, tokens);
         }
 
         // create arithmetic expression

@@ -332,6 +332,9 @@ describe('Interpreter', () => {
   it('arithmetic + comparison', async () => {
     expect(await e.evaluate('1+2*3 == 5 or 1 > 3')).toBe(false)
     expect(await e.evaluate('1+2*3 == 5 or 1 < 3')).toBe(true)
-  });
 
+    expect(await e.evaluate('2 == 1/2 + 1/2 and 1/2 + 1/2 == 1')).toBe(false)
+    expect(await e.evaluate('(2 == 1/2 + 1/2) and (1/2 + 1/2 == 1)')).toBe(false)
+    expect(await e.evaluate('(2 == (1/2 + 1/2)) and ((1/2 + 1/2) == 1)')).toBe(false)
+  });  
 });
