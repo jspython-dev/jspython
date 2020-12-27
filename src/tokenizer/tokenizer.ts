@@ -1,4 +1,4 @@
-import { Token, TokenTypes } from '../common';
+import { getTokenType, getTokenValue, Token, TokenTypes } from '../common';
 
 const SeparatorsMap: Record<string, string[]> = {
     '\n': ['\n'],
@@ -85,7 +85,7 @@ export class Tokenizer {
             if (symbol == ' ' && this.tokenText.length !== 0) {
                 this.tokenText = this.processToken(this.tokenText, tokens);
                 continue;
-            } else if ((SeparatorsMap[symbol]) && !this.isPartOfNumber(symbol, this.tokenText, this._cursor)) {
+            } else if ((SeparatorsMap[symbol] !== undefined) && !this.isPartOfNumber(symbol, tokens)) {
                 // handle numbers with floating point e.g. 3.14
                 this.tokenText = this.processToken(this.tokenText, tokens);
                 this.tokenText = symbol;
@@ -242,12 +242,12 @@ export class Tokenizer {
         return !isNaN(res) ? res : null;
     }
 
-    private isPartOfNumber(symbol: string, token: string, cursor: number): boolean {
-        // '-' needs to be handled e.g. -3; 2 + -2 etc
-        // if(token.length == 0 && symbol === '-') {
-        //     return true;
-        // }
-        if (symbol === '.' && this.parseNumberOrNull(token)) {
+    private isPartOfNumber(symbol: string, currentTokens: Token[]): boolean {
+        if (symbol === '-' && !this.tokenText.length) {
+            // '-' needs to be handled e.g. -3; 2 + -2 etc
+            const prevToken = (currentTokens.length !== 0)? currentTokens[currentTokens.length - 1] : null;
+            return prevToken === null || (getTokenType(prevToken) === TokenTypes.Operator && getTokenValue(prevToken) !== ')');
+        } else if (symbol === '.' && this.parseNumberOrNull(this.tokenText) !== null) {
             return true;
         }
         return false;

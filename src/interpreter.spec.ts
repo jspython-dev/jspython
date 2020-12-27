@@ -58,8 +58,8 @@ describe('Interpreter', () => {
 
   it('1*2/4 + 2*3/6', () => {
     expect(e.eval("1*2/4 + 2*3/6")).toBe(1 * 2 / 4 + 2 * 3 / 6)
-    expect(e.eval("1*2/4 + 2*3/6-2.3")).toBe(1 * 2 / 4 + 2 * 3 / 6 - 2.3)
-    expect(e.eval("7+1*2/4 + 2*3/6-2.3")).toBe(7 + 1 * 2 / 4 + 2 * 3 / 6 - 2.3)
+    expect(e.eval("1*2/4 + 2*3/6 - 2.3")).toBe(1 * 2 / 4 + 2 * 3 / 6 - 2.3)
+    expect(e.eval("7+1*2/4 + 2*3/6 - 2.3")).toBe(7 + 1 * 2 / 4 + 2 * 3 / 6 - 2.3)
   });
 
   it('5 – (5 * (32 + 4))', () => {
@@ -329,12 +329,39 @@ describe('Interpreter', () => {
     expect(await e.evaluate('x?.p1?.p != null and x.length >0')).toBe(false)
   });
 
-  it('arithmetic + comparison', async () => {
+  it('arithmetic + comparison', async () => {    
+    expect(await e.evaluate('0.25 == 1/4')).toBe(true)
+    expect(await e.evaluate('0.25 == 1/2')).toBe(false)
+
     expect(await e.evaluate('1+2*3 == 5 or 1 > 3')).toBe(false)
     expect(await e.evaluate('1+2*3 == 5 or 1 < 3')).toBe(true)
 
     expect(await e.evaluate('2 == 1/2 + 1/2 and 1/2 + 1/2 == 1')).toBe(false)
     expect(await e.evaluate('(2 == 1/2 + 1/2) and (1/2 + 1/2 == 1)')).toBe(false)
     expect(await e.evaluate('(2 == (1/2 + 1/2)) and ((1/2 + 1/2) == 1)')).toBe(false)
-  });  
+  });
+
+  it('Negative numbers', async () => {    
+    expect(await e.evaluate('x=-1\nx')).toBe(-1)
+    expect(await e.evaluate('x=-3.14 + 3\nx')).toBe(-3.14 + 3)
+    expect(await e.evaluate('-3.14 - 3')).toBe(-3.14 - 3)
+    expect(await e.evaluate('x=5\nx*-1')).toBe(-5)
+    expect(await e.evaluate(`
+    def f(x):
+      return x
+    
+    f(-5)
+    `)).toBe(-5)
+
+    expect(await e.evaluate(`
+    def f(x):
+      return x
+    
+    f(-0.14)
+    `)).toBe(-0.14)
+
+    expect(await e.evaluate('1/2*-1 == -0.5')).toBe(true)
+
+  });
+
 });

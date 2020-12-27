@@ -15,7 +15,7 @@ describe('Parser => ', () => {
   });
 
   it('1+2-3', async () => {
-    let ast = new Parser().parse(new Tokenizer().tokenize("1+2-3"))
+    let ast = new Parser().parse(new Tokenizer().tokenize("1 + 2 - 3"))
     expect(ast.body.length).toBe(1);
     expect(ast.body[0].type).toBe("binOp");
     const binOp = ast.body[0] as BinOpNode
