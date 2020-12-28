@@ -28,7 +28,16 @@
 <body>
   <div class="container">
     <h4>JSPython development console</h4>
-    <div id="editor">x = -3.14 + 1</div>
+    <div id="editor">
+    def power(base, exponent):
+      if exponent == 0:
+        return 1
+      else:
+        return base * power(base, exponent - 1)
+    
+    "5 ** 10 = " + power(5, 10) + " == " + Math.pow(5, 10)
+          
+    </div>
     <!--
           def f(n):
             n * n

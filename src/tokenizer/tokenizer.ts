@@ -145,6 +145,9 @@ export class Tokenizer {
                         this.tokenText += script[this._cursor];
                         if (this._cursor + 1 >= script.length) break;
                     }
+
+                    //start column needs to take into account a begining quote, not just a string
+                    this._startColumn--;
                 }
 
                 // a special case when empty string

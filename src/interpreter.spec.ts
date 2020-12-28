@@ -364,4 +364,22 @@ describe('Interpreter', () => {
 
   });
 
+  it('Recursive function - power', async () => {
+  
+    const script = 
+    `
+    def power(base, exponent):
+      if exponent == 0:
+        return 1
+      else:
+        return base * power(base, exponent - 1)
+    
+    "5 ** 10 == " + power(5, 10) + " == " + Math.pow(5, 10)    
+    `
+    expect(await e.evaluate(script)).toBe('5 ** 10 == 9765625 == 9765625');   
+  });
+  
+
+
+
 });
