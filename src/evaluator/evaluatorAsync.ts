@@ -237,7 +237,12 @@ export class EvaluatorAsync {
         if (node.type === "funcCall") {
             const funcCallNode = node as FunctionCallNode;
             const func = blockContext.blockScope.get(funcCallNode.name) as (...args: unknown[]) => unknown;
-            const pms = []
+
+            if(typeof func !== 'function') {
+                throw Error(`'${funcCallNode.name}' is not a function or not defined.`)
+            }
+
+            const pms = [];
             for (let p of funcCallNode.paramNodes || []) {
                 pms.push(await this.evalNodeAsync(p, blockContext));
             }
@@ -311,6 +316,9 @@ export class EvaluatorAsync {
                         continue;
                     }
 
+                    if(typeof(func) !== 'function'){
+                        throw Error(`'${funcCallNode.name}' is not a function or not defined.`)
+                    }
                     const pms = []
                     for (let p of funcCallNode.paramNodes || []) {
                         pms.push(await this.evalNodeAsync(p, blockContext));

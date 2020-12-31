@@ -230,6 +230,10 @@ export class Evaluator {
         if (node.type === "funcCall") {
             const funcCallNode = node as FunctionCallNode;
             const func = blockContext.blockScope.get(funcCallNode.name) as (...args: unknown[]) => unknown;
+            if(typeof func !== 'function') {
+                throw Error(`'${funcCallNode.name}' is not a function or not defined.`)
+            }
+
             const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || []
 
             return this.invokeFunction(func, pms);
@@ -295,6 +299,10 @@ export class Evaluator {
                 } else if (nestedProp.type === 'funcCall') {
                     const funcCallNode = nestedProp as FunctionCallNode;
                     const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
+
+                    if(typeof func !== 'function') {
+                        throw Error(`'${funcCallNode.name}' is not a function or not defined.`)
+                    }
 
                     if (func === undefined
                         && (dotObject.nestedProps[i - 1] as unknown as IsNullCoelsing).nullCoelsing) {
