@@ -26,6 +26,10 @@ export class Interpreter {
         return new Interpreter();
     }
 
+    jsPythonInfo(){
+        return this.initialScope.jsPython();
+    }
+
     tokenize(script: string): Token[] {
         const tokenizer = new Tokenizer();
         return tokenizer.tokenize(script);

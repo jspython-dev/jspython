@@ -200,8 +200,12 @@ export class EvaluatorAsync {
         }
 
         if (node.type === "getSingleVar") {
-            const value = blockContext.blockScope.get((node as GetSingleVarNode).name);
-            return value === undefined? null : value;
+            const name = (node as GetSingleVarNode).name;
+            const value = blockContext.blockScope.get(name);
+            if(value === undefined){
+                throw new Error(`Variable ${name} is not defined.`);
+            }
+            return value;
         }
 
         if (node.type === "binOp") {

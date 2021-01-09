@@ -290,8 +290,8 @@ describe('Interpreter', () => {
   });
 
   it('chaining funcCall with null coelsing', () => {
-    expect(e.eval("p?.f()?.sdsd")).toBe(null);
-    expect(e.eval("p?.f()?.sdsd or 5")).toBe(5);
+    expect(e.eval("p={f: ()=>null}\np?.f()?.sdsd")).toBe(null);
+    expect(e.eval("p={f: ()=>null}\np?.f()?.sdsd or 5")).toBe(5);
   });
 
   it('comparison operations', () => {
@@ -323,10 +323,10 @@ describe('Interpreter', () => {
   });
 
   it('conditionals', async () => {
-    expect(await e.evaluate('x == null')).toBe(true)
-    expect(await e.evaluate('x?.p1?.p == null')).toBe(true)
-    expect(await e.evaluate('x != null and x.length >0')).toBe(false)
-    expect(await e.evaluate('x?.p1?.p != null and x.length >0')).toBe(false)
+    expect(await e.evaluate('x = null\nx == null')).toBe(true)
+    expect(await e.evaluate('x = null\nx?.p1?.p == null')).toBe(true)
+    expect(await e.evaluate('x = null\nx != null and x.length >0')).toBe(false)
+    expect(await e.evaluate('x = null\nx?.p1?.p != null and x.length >0')).toBe(false)
   });
 
   it('arithmetic + comparison', async () => {    

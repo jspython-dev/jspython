@@ -193,8 +193,13 @@ export class Evaluator {
         }
 
         if (node.type === "getSingleVar") {
+            const name = (node as GetSingleVarNode).name;
+
             const value = blockContext.blockScope.get((node as GetSingleVarNode).name);
-            return value === undefined ? null : value;
+            if(value === undefined){
+                throw new Error(`Variable ${name} is not defined.`);
+            }
+            return value;
         }
 
         if (node.type === "binOp") {
