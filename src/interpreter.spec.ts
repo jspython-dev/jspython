@@ -329,7 +329,7 @@ describe('Interpreter', () => {
     expect(await e.evaluate('x = null\nx?.p1?.p != null and x.length >0')).toBe(false)
   });
 
-  it('arithmetic + comparison', async () => {    
+  it('arithmetic + comparison', async () => {
     expect(await e.evaluate('0.25 == 1/4')).toBe(true)
     expect(await e.evaluate('0.25 == 1/2')).toBe(false)
 
@@ -341,7 +341,7 @@ describe('Interpreter', () => {
     expect(await e.evaluate('(2 == (1/2 + 1/2)) and ((1/2 + 1/2) == 1)')).toBe(false)
   });
 
-  it('Negative numbers', async () => {    
+  it('Negative numbers', async () => {
     expect(await e.evaluate('x=-1\nx')).toBe(-1)
     expect(await e.evaluate('x=-3.14 + 3\nx')).toBe(-3.14 + 3)
     expect(await e.evaluate('-3.14 - 3')).toBe(-3.14 - 3)
@@ -365,9 +365,9 @@ describe('Interpreter', () => {
   });
 
   it('Recursive function - power', async () => {
-  
-    const script = 
-    `
+
+    const script =
+      `
     def power(base, exponent):
       if exponent == 0:
         return 1
@@ -376,10 +376,104 @@ describe('Interpreter', () => {
     
     "5 ** 10 == " + power(5, 10) + " == " + Math.pow(5, 10)    
     `
-    expect(await e.evaluate(script)).toBe('5 ** 10 == 9765625 == 9765625');   
+    expect(await e.evaluate(script)).toBe('5 ** 10 == 9765625 == 9765625');
   });
-  
 
+  it('try catch error', async () => {
+    const script = `
+    x = []
+    try:
+      raise Error('Error Message')
+      x.push(1)
+    except:
+      x.push(2)
+    finally:
+      x.push(3)
+    else:
+      x.push(4)
+    x
+    `;
+    const check = (result: number[]): void => {
+      expect(result.length).toBe(2);
+      expect(result[0]).toBe(2);
+      expect(result[1]).toBe(3);
+    };
+
+    check(e.eval(script) as number[])
+    check(await e.evaluate(script));
+  })
+
+  it('try catch no error', async () => {
+    const script = `
+    x = []
+    try:
+      x.push(1)
+    except:
+      x.push(2)
+    finally:
+      x.push(3)
+    else:
+      x.push(4)
+    x
+    `;
+    const check = (result: number[]): void => {
+      expect(result.length).toBe(3);
+      expect(result[0]).toBe(1);
+      expect(result[1]).toBe(4);
+      expect(result[2]).toBe(3);
+    }
+
+    check(await e.evaluate(script))
+    check(e.eval(script) as number[])
+  })
+
+  it('try catch errorMessage', async () => {
+    const script = `
+    m = ''
+    try:
+      raise Error('My Message')
+      x.push(1)
+    except:
+      m = error.message
+    m
+    `;
+
+    expect(await e.evaluate(script)).toBe('My Message');
+    expect(e.eval(script)).toBe('My Message');
+  })
+
+  it('try catch errorMessage with alias', async () => {
+    const script = `
+    m = ''
+    try:
+      raise Error('My Message')
+      x.push(1)
+    except Error err:
+      m = err.message
+    m
+    `;
+
+    expect(await e.evaluate(script)).toBe('My Message');
+    expect(e.eval(script)).toBe('My Message');
+  })
+
+  it('try catch JS errorMessage', async () => {
+    const script = `
+    m = ''
+    try:
+      func1()
+    except:
+      m = error.message
+    m
+    `;
+
+    const jsErrorMessage = 'JS Error Message';
+    const obj = {
+      func1: () => { throw new Error(jsErrorMessage); }
+    };
+    expect(await e.evaluate(script, obj)).toBe(jsErrorMessage);
+    expect(e.eval(script, obj)).toBe(jsErrorMessage);
+  })
 
 
 });

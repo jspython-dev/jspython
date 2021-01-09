@@ -4,7 +4,7 @@ import {
     getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode,
     findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode,
     ExpressionOperators, IfNode, ForNode, WhileNode, ImportNode, NameAlias, ContinueNode, BreakNode, ReturnNode, CommentNode,
-    getTokenLoc, OperationTypes, LogicalNodeItem, LogicalOperators, LogicalOpNode, ComparisonOperators
+    getTokenLoc, OperationTypes, LogicalNodeItem, LogicalOperators, LogicalOpNode, ComparisonOperators, TryExceptNode, ExceptBody, RaiseNode
 } from '../common';
 import { JspyParserError } from '../common/utils';
 
@@ -148,12 +148,98 @@ export class Parser {
 
                 ast.body.push(new IfNode(conditionNode, ifBody, elseBody, getTokenLoc(firstToken)))
 
+            } else if (getTokenValue(firstToken) === 'try') {
+
+                if (getTokenValue(instruction.tokens[1]) !== ':') {
+                    throw (`'try' statement should be followed by ':'`)
+                }
+
+                const tryBody = getBody(instruction.tokens, 2);
+                const excepts: ExceptBody[] = [];
+
+                let elseBody: AstNode[] | undefined = undefined;
+                let finallyBody: AstNode[] | undefined = undefined;
+
+                while (instructions.length > i + 1
+                    && (
+                        getTokenValue(instructions[i + 1].tokens[0]) === 'else'
+                        || getTokenValue(instructions[i + 1].tokens[0]) === 'except'
+                        || getTokenValue(instructions[i + 1].tokens[0]) === 'finally'
+                    )
+                ) {
+                    if (getTokenValue(instructions[i + 1].tokens[0]) === 'else') {
+                        if (elseBody) {
+                            throw new Error(`Only one 'else' is allowed in a 'try'`)
+                        }
+
+                        elseBody = getBody(instructions[i + 1].tokens, 2);
+                    }
+
+                    if (getTokenValue(instructions[i + 1].tokens[0]) === 'finally') {
+                        if (finallyBody) {
+                            throw new Error(`Only one 'else' is allowed in a 'try'`)
+                        }
+
+                        finallyBody = getBody(instructions[i + 1].tokens, 2);
+                    }
+
+                    if (getTokenValue(instructions[i + 1].tokens[0]) === 'except') {
+
+                        const endIndex = findTokenValueIndex(instructions[i + 1].tokens, v => v === ':');
+                        const except = {} as ExceptBody;
+
+                        if (endIndex === 2) {
+                            except.error = { name: getTokenValue(instructions[i + 1].tokens[1]) } as NameAlias;
+                        } else if (endIndex === 3) {
+                            except.error = {
+                                name: getTokenValue(instructions[i + 1].tokens[1]),
+                                alias: getTokenValue(instructions[i + 1].tokens[2]),
+                            } as NameAlias;
+                        } else if (endIndex === 4) {
+                            except.error = {
+                                name: getTokenValue(instructions[i + 1].tokens[1]),
+                                alias: getTokenValue(instructions[i + 1].tokens[3]),
+                            } as NameAlias;
+                        } else if (endIndex !== 1) {
+                            throw new Error(`Incorrect 'except:' statement. Valid stats: (except: or except Error: or except Error as e:)`)
+                        }
+
+                        except.body = getBody(instructions[i + 1].tokens, endIndex + 1);
+
+                        excepts.push(except);
+                    }
+
+
+                    i++;
+                }
+
+                if (!excepts.length) {
+                    throw new Error('Except: is missing');
+                }
+
+                ast.body.push(new TryExceptNode(tryBody, excepts, elseBody, finallyBody, getTokenLoc(firstToken)))
+
             } else if (getTokenValue(firstToken) === 'continue') {
                 ast.body.push(new ContinueNode());
             } else if (getTokenValue(firstToken) === 'break') {
                 ast.body.push(new BreakNode());
             } else if (getTokenValue(firstToken) === 'return') {
                 ast.body.push(new ReturnNode(this.createExpressionNode(instruction.tokens.slice(1)), getTokenLoc(firstToken)));
+            } else if (getTokenValue(firstToken) === 'raise') {
+
+                if (instruction.tokens.length === 1) {
+                    throw new Error(`Incorrect 'raise' usage. Please specify error name and message `);
+                }
+                const errorName = getTokenValue(instruction.tokens[1]) as string;
+
+                const errorMessage = (
+                    instruction.tokens.length == 5
+                    && getTokenValue(instruction.tokens[2]) === "("
+                    && getTokenValue(instruction.tokens[4]) === ")"
+                ) ? getTokenValue(instruction.tokens[3]) as string
+                    : undefined;
+
+                ast.body.push(new RaiseNode(errorName, errorMessage, getTokenLoc(firstToken)));
             } else if (getTokenValue(firstToken) === 'for') {
                 const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
 

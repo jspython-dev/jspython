@@ -8,6 +8,12 @@ export interface BlockContext {
     blockScope: Scope
 }
 
+export function cloneContext(context: BlockContext): BlockContext{
+    return {
+        moduleName: context.moduleName,
+        blockScope: context.blockScope.clone()
+    } as BlockContext;    
+}
 
 export class Scope {
     private readonly scope: Record<string, unknown> = {};

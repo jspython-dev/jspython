@@ -2,12 +2,13 @@ import {
     ArrowFuncDefNode,
     AssignNode, AstBlock, AstNode, BinOpNode, BracketObjectAccessNode, ConstNode, CreateArrayNode,
     CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode,
+    getStartLine,
     getTokenLoc,
-    IfNode, IsNullCoelsing, LogicalOpNode, OperationFuncs, Primitive, ReturnNode, SetSingleVarNode, WhileNode
+    IfNode, IsNullCoelsing, LogicalOpNode, OperationFuncs, Primitive, RaiseNode, ReturnNode, SetSingleVarNode, TryExceptNode, WhileNode
 } from '../common';
-import { JspyEvalError } from '../common/utils';
+import { JspyEvalError, JspyError } from '../common/utils';
 import { Evaluator } from './evaluator';
-import { BlockContext, Scope } from './scope';
+import { BlockContext, cloneContext, Scope } from './scope';
 
 /**
  * This is copy/paste from Evaluator.
@@ -54,10 +55,12 @@ export class EvaluatorAsync {
                     break;
                 }
             } catch (err) {
-                if (err instanceof JspyEvalError) {
+                const loc = node.loc ? node.loc : [0, 0]
+                if (err instanceof JspyError) {
+                    throw err;
+                } else if (err instanceof JspyEvalError) {
                     throw err;
                 } else {
-                    const loc = node.loc ? node.loc : [0, 0]
                     throw new JspyEvalError(blockContext.moduleName, loc[0], loc[1], err.message || err)
                 }
             }
@@ -71,10 +74,7 @@ export class EvaluatorAsync {
         const ast = Object.assign({}, funcDef.funcAst);
         ast.type = 'func';
 
-        const blockContext = {
-            moduleName: context.moduleName,
-            blockScope: context.blockScope.clone()
-        } as BlockContext;
+        const blockContext = cloneContext(context);
 
         // set parameters into new scope, based incomming arguments
         for (let i = 0; i < args?.length || 0; i++) {
@@ -89,35 +89,39 @@ export class EvaluatorAsync {
     }
 
     private async invokeFunctionAsync(func: (...args: unknown[]) => unknown, fps: unknown[]): Promise<unknown> {
-        if (fps.length === 0) { return await func(); }
-        if (fps.length === 1) { return await func(fps[0]); }
-        if (fps.length === 2) { return await func(fps[0], fps[1]); }
-        if (fps.length === 3) { return await func(fps[0], fps[1], fps[2]); }
-        if (fps.length === 4) {
-            return await func(fps[0], fps[1], fps[2], fps[3]);
-        }
-        if (fps.length === 5) {
-            return await func(fps[0], fps[1], fps[2], fps[3], fps[4]);
-        }
+        try {
+            if (fps.length === 0) { return await func(); }
+            if (fps.length === 1) { return await func(fps[0]); }
+            if (fps.length === 2) { return await func(fps[0], fps[1]); }
+            if (fps.length === 3) { return await func(fps[0], fps[1], fps[2]); }
+            if (fps.length === 4) {
+                return await func(fps[0], fps[1], fps[2], fps[3]);
+            }
+            if (fps.length === 5) {
+                return await func(fps[0], fps[1], fps[2], fps[3], fps[4]);
+            }
 
-        if (fps.length === 6) {
-            return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5]);
-        }
+            if (fps.length === 6) {
+                return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5]);
+            }
 
-        if (fps.length === 7) {
-            return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6]);
-        }
+            if (fps.length === 7) {
+                return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6]);
+            }
 
-        if (fps.length === 8) {
-            return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7]);
-        }
+            if (fps.length === 8) {
+                return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7]);
+            }
 
-        if (fps.length === 9) {
-            return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8]);
-        }
+            if (fps.length === 9) {
+                return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8]);
+            }
 
-        if (fps.length === 10) {
-            return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9]);
+            if (fps.length === 10) {
+                return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9]);
+            }
+        } catch (err) {
+            throw new JspyError('FuncCall', err.message || err);
         }
 
         if (fps.length > 10) {
@@ -141,6 +145,52 @@ export class EvaluatorAsync {
                 await this.evalBlockAsync({ name: blockContext.moduleName, type: 'if', body: ifNode.ifBody } as AstBlock, blockContext);
             } else if (ifNode.elseBody) {
                 await this.evalBlockAsync({ name: blockContext.moduleName, type: 'if', body: ifNode.elseBody } as AstBlock, blockContext);
+            }
+
+            return;
+        }
+
+        if (node.type === 'raise') {
+            const raiseNode = node as RaiseNode;
+            const err = new JspyError(raiseNode.errorName, raiseNode.errorMessage || "");
+            err.line = raiseNode.loc[0];
+            err.column = raiseNode.loc[1];
+            err.moduleName = blockContext.moduleName;
+            throw err;
+        }
+
+        if (node.type === 'tryExcept') {
+            const tryNode = node as TryExceptNode;
+            try {
+                await this.evalBlockAsync({ name: blockContext.moduleName, type: 'trycatch', body: tryNode.tryBody } as AstBlock, blockContext);
+
+                if (tryNode.elseBody?.length || 0 > 0) {
+                    await this.evalBlockAsync({ name: blockContext.moduleName, type: 'trycatch', body: tryNode.elseBody } as AstBlock, blockContext);
+                }
+            }
+            catch (err) {
+                if (err instanceof JspyEvalError) {
+                    // evaluation error should not be handled
+                    throw err;
+                } else {
+                    const name = (err instanceof JspyError) ? (err as JspyError).name : typeof (err);
+                    const message = (err instanceof JspyError) ? (err as JspyError).message : err ?? err.message;
+                    const moduleName = (err instanceof JspyError) ? (err as JspyError).moduleName : 0;
+                    const line = (err instanceof JspyError) ? (err as JspyError).line : 0;
+                    const column = (err instanceof JspyError) ? (err as JspyError).column : 0;
+
+                    const firstExept = tryNode.exepts[0];
+                    const catchBody = firstExept.body;
+                    const ctx = blockContext;// cloneContext(blockContext);
+                    ctx.blockScope.set(firstExept.error?.alias || "error", { name, message, line, column, moduleName })
+                    await this.evalBlockAsync({ name: blockContext.moduleName, type: 'trycatch', body: catchBody } as AstBlock, ctx);
+                    ctx.blockScope.set(firstExept.error?.alias || "error", null);
+                }
+            }
+            finally {
+                if (tryNode.finallyBody?.length || 0 > 0) {
+                    await this.evalBlockAsync({ name: blockContext.moduleName, type: 'trycatch', body: tryNode.finallyBody } as AstBlock, blockContext);
+                }
             }
 
             return;
@@ -202,7 +252,7 @@ export class EvaluatorAsync {
         if (node.type === "getSingleVar") {
             const name = (node as GetSingleVarNode).name;
             const value = blockContext.blockScope.get(name);
-            if(value === undefined){
+            if (value === undefined) {
                 throw new Error(`Variable ${name} is not defined.`);
             }
             return value;
@@ -242,7 +292,7 @@ export class EvaluatorAsync {
             const funcCallNode = node as FunctionCallNode;
             const func = blockContext.blockScope.get(funcCallNode.name) as (...args: unknown[]) => unknown;
 
-            if(typeof func !== 'function') {
+            if (typeof func !== 'function') {
                 throw Error(`'${funcCallNode.name}' is not a function or not defined.`)
             }
 
@@ -320,7 +370,7 @@ export class EvaluatorAsync {
                         continue;
                     }
 
-                    if(typeof(func) !== 'function'){
+                    if (typeof (func) !== 'function') {
                         throw Error(`'${funcCallNode.name}' is not a function or not defined.`)
                     }
                     const pms = []

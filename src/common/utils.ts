@@ -97,3 +97,15 @@ export class JspyEvalError extends Error {
         Object.setPrototypeOf(this, JspyEvalError.prototype);
     }
 }
+
+export class JspyError extends Error {
+    public line: number = 0;
+    public column: number = 0;
+    public moduleName: string = '';
+    
+    constructor(public name: string, public message: string) {
+        super();
+        this.message = message;
+        Object.setPrototypeOf(this, JspyError.prototype);
+    }
+}
