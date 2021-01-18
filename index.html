@@ -110,10 +110,7 @@
           Math,
           dateTime: () => new Date(),
           sqrPromise: (fn) => new Promise((s, f) => setTimeout(() => s(fn * fn), 5)),
-          print: (p1, p2) => { 
-            console.log(p1);
-            return p1; 
-          },
+          print: (...args) => { console.log(...args); return args.length > 0 ? args[0] : null; },
           x: 10,
           o: {
             f1: (x, y) => { return { x, y }; },
