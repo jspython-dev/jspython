@@ -88,7 +88,8 @@ export class EvaluatorAsync {
         return await this.evalBlockAsync(ast, blockContext);
     }
 
-    private async invokeFunctionAsync(func: (...args: unknown[]) => unknown, fps: unknown[]): Promise<unknown> {
+    private async invokeFunctionAsync(func: (...args: unknown[]) => unknown, fps: unknown[], 
+            loc?: { moduleName: string, line: number, column: number }): Promise<unknown> {
         try {
             if (fps.length === 0) { return await func(); }
             if (fps.length === 1) { return await func(fps[0]); }
@@ -121,7 +122,8 @@ export class EvaluatorAsync {
                 return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9]);
             }
         } catch (err) {
-            throw new JspyError('FuncCall', err.message || err);
+            var jspyError = new JspyError(loc?.moduleName || 'js-func-error.jspy', loc?.line || 0, loc?.column || 0, 'FuncCall', err.message || err);
+            throw jspyError;
         }
 
         if (fps.length > 10) {
@@ -152,10 +154,7 @@ export class EvaluatorAsync {
 
         if (node.type === 'raise') {
             const raiseNode = node as RaiseNode;
-            const err = new JspyError(raiseNode.errorName, raiseNode.errorMessage || "");
-            err.line = raiseNode.loc[0];
-            err.column = raiseNode.loc[1];
-            err.moduleName = blockContext.moduleName;
+            const err = new JspyError(blockContext.moduleName, raiseNode.loc[0], raiseNode.loc[1], raiseNode.errorName, raiseNode.errorMessage || "");
             throw err;
         }
 
@@ -175,7 +174,7 @@ export class EvaluatorAsync {
                 } else {
                     const name = (err instanceof JspyError) ? (err as JspyError).name : typeof (err);
                     const message = (err instanceof JspyError) ? (err as JspyError).message : err ?? err.message;
-                    const moduleName = (err instanceof JspyError) ? (err as JspyError).moduleName : 0;
+                    const moduleName = (err instanceof JspyError) ? (err as JspyError).module : 0;
                     const line = (err instanceof JspyError) ? (err as JspyError).line : 0;
                     const column = (err instanceof JspyError) ? (err as JspyError).column : 0;
 
@@ -306,7 +305,11 @@ export class EvaluatorAsync {
                 pms.push(await this.evalNodeAsync(p, blockContext));
             }
 
-            return await this.invokeFunctionAsync(func, pms);
+            return await this.invokeFunctionAsync(func, pms, {
+                moduleName: blockContext.moduleName,
+                line: funcCallNode.loc[0],
+                column: funcCallNode.loc[0]
+            });
         }
 
         if (node.type === "assign") {
@@ -383,7 +386,11 @@ export class EvaluatorAsync {
                         pms.push(await this.evalNodeAsync(p, blockContext));
                     }
 
-                    startObject = await this.invokeFunctionAsync(func.bind(startObject), pms);
+                    startObject = await this.invokeFunctionAsync(func.bind(startObject), pms, {
+                        moduleName: blockContext.moduleName,
+                        line: funcCallNode.loc[0],
+                        column: funcCallNode.loc[0]
+                    });
 
                 } else {
                     throw Error("Can't resolve dotObjectAccess node")

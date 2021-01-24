@@ -438,8 +438,8 @@ describe('Interpreter', () => {
     m
     `;
 
-    expect(await e.evaluate(script)).toBe('My Message');
-    expect(e.eval(script)).toBe('My Message');
+    expect(await e.evaluate(script)).toContain('My Message');
+    expect(e.eval(script)).toContain('My Message');
   })
 
   it('try catch errorMessage with alias', async () => {
@@ -453,8 +453,8 @@ describe('Interpreter', () => {
     m
     `;
 
-    expect(await e.evaluate(script)).toBe('My Message');
-    expect(e.eval(script)).toBe('My Message');
+    expect(await e.evaluate(script)).toContain('My Message');
+    expect(e.eval(script)).toContain('My Message');
   })
 
   it('try catch JS errorMessage', async () => {
@@ -471,8 +471,8 @@ describe('Interpreter', () => {
     const obj = {
       func1: () => { throw new Error(jsErrorMessage); }
     };
-    expect(await e.evaluate(script, obj)).toBe(jsErrorMessage);
-    expect(e.eval(script, obj)).toBe(jsErrorMessage);
+    expect(await e.evaluate(script, obj)).toContain(jsErrorMessage);
+    expect(e.eval(script, obj)).toContain(jsErrorMessage);
   })
 
 

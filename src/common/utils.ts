@@ -99,13 +99,10 @@ export class JspyEvalError extends Error {
 }
 
 export class JspyError extends Error {
-    public line: number = 0;
-    public column: number = 0;
-    public moduleName: string = '';
-    
-    constructor(public name: string, public message: string) {
+   
+    constructor(public module: string, public line: number, public column: number, public name: string, public message: string) {
         super();
-        this.message = message;
+        this.message = jspyErrorMessage("JspyError", module || 'name.jspy', line, column, message);
         Object.setPrototypeOf(this, JspyError.prototype);
     }
 }

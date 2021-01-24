@@ -80,7 +80,8 @@ export class Evaluator {
         return this.evalBlock(ast, blockContext);
     }
 
-    private invokeFunction(func: (...args: unknown[]) => unknown, fps: unknown[]): unknown {
+    private invokeFunction(func: (...args: unknown[]) => unknown, fps: unknown[], 
+            loc: { moduleName: string, line: number, column: number }): unknown {
         try {
             if (fps.length === 0) { return func(); }
             if (fps.length === 1) { return func(fps[0]); }
@@ -117,7 +118,8 @@ export class Evaluator {
                 throw Error('Function has too many parameters. Current limitation is 10');
             }
         } catch (err) {
-            throw new JspyError('FuncCall', err.message || err);
+            var jspyError = new JspyError(loc?.moduleName || 'js-func-error.jspy', loc?.line || 0, loc?.column || 0, 'FuncCall', err.message || err);
+            throw jspyError;
         }
 
     }
@@ -145,10 +147,7 @@ export class Evaluator {
 
         if (node.type === 'raise') {
             const raiseNode = node as RaiseNode;
-            const err = new JspyError(raiseNode.errorName, raiseNode.errorMessage || "");
-            err.line = raiseNode.loc[0];
-            err.column = raiseNode.loc[1];
-            err.moduleName = blockContext.moduleName;
+            const err = new JspyError(blockContext.moduleName, raiseNode.loc[0], raiseNode.loc[1], raiseNode.errorName, raiseNode.errorMessage || "");
             throw err;
         }
 
@@ -168,7 +167,7 @@ export class Evaluator {
                 } else {
                     const name = (err instanceof JspyError) ? (err as JspyError).name : typeof (err);
                     const message = (err instanceof JspyError) ? (err as JspyError).message : err ?? err.message;
-                    const moduleName = (err instanceof JspyError) ? (err as JspyError).moduleName : 0;
+                    const moduleName = (err instanceof JspyError) ? (err as JspyError).module : 0;
                     const line = (err instanceof JspyError) ? (err as JspyError).line : 0;
                     const column = (err instanceof JspyError) ? (err as JspyError).column : 0;
 
@@ -295,7 +294,11 @@ export class Evaluator {
 
             const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || []
 
-            return this.invokeFunction(func, pms);
+            return this.invokeFunction(func, pms, {
+                moduleName: blockContext.moduleName,
+                line: funcCallNode.loc[0],
+                column: funcCallNode.loc[1]
+            });
         }
 
         if (node.type === "assign") {
@@ -369,7 +372,11 @@ export class Evaluator {
                     }
 
                     const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || []
-                    startObject = this.invokeFunction(func.bind(startObject), pms);
+                    startObject = this.invokeFunction(func.bind(startObject), pms, {
+                        moduleName: blockContext.moduleName,
+                        line: funcCallNode.loc[0],
+                        column: funcCallNode.loc[1]
+                    });
 
                 } else {
                     throw Error("Can't resolve dotObjectAccess node")
