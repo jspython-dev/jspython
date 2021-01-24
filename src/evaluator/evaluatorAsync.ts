@@ -252,8 +252,13 @@ export class EvaluatorAsync {
         if (node.type === "getSingleVar") {
             const name = (node as GetSingleVarNode).name;
             const value = blockContext.blockScope.get(name);
+
             if (value === undefined) {
-                throw new Error(`Variable ${name} is not defined.`);
+                if (name.charAt(name.length - 1) === ';') {
+                    throw new Error(`Unexpected ';' in the end.`);
+                } else {
+                    throw new Error(`Variable '${name}' is not defined.`);
+                }
             }
             return value;
         }

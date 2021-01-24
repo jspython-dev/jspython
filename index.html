@@ -29,16 +29,19 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
+      errorFunc(1)
+      errorFunc(3)
+      errorFunc(6)
+      errorFunc(7)
+      """
+      l = null
+      r = {price: 5}
 
-    try:
-      raise Error('sdsdss')
-      print("Hello")
-    except:
-      print("Something went wrong")
-    finally:
-      print("Something went wrong")
-    else:
-      print("Nothing went wrong")      
+      if l?.price != null and r?.price != null:
+      return 100
+
+      return 1
+      """
 
     </div>
     <!--
@@ -109,6 +112,15 @@
         const scope = {
           Math,
           dateTime: () => new Date(),
+          errorFunc: p => {
+
+            if (p === 6) {
+              throw new Error(`Don't like '6'`);
+            }
+
+            console.log('allGood');
+          },
+
           sqrPromise: (fn) => new Promise((s, f) => setTimeout(() => s(fn * fn), 5)),
           print: (...args) => { console.log(...args); return args.length > 0 ? args[0] : null; },
           x: 10,

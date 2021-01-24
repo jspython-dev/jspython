@@ -53,7 +53,7 @@ export class Interpreter {
         } as BlockContext;
 
         blockContext.blockScope.set('printExecutionContext', () => console.log(blockContext.blockScope));
-        blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope);
+        blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope.clone());
         
         const result = new Evaluator().evalBlock(ast, blockContext);
         if (!entryFunctionName || !entryFunctionName.length) {
@@ -76,7 +76,7 @@ export class Interpreter {
             blockScope: new Scope(scope)
         } as BlockContext;
         blockContext.blockScope.set('printExecutionContext', () => console.log(blockContext.blockScope));
-        blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope);
+        blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope.clone());
 
 
         const result = await evaluator.evalBlockAsync(ast, blockContext);

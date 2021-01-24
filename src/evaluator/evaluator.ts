@@ -247,7 +247,11 @@ export class Evaluator {
 
             const value = blockContext.blockScope.get((node as GetSingleVarNode).name);
             if (value === undefined) {
-                throw new Error(`Variable ${name} is not defined.`);
+                if (name.charAt(name.length - 1) === ';') {
+                    throw new Error(`Unexpected ';' in the end.`);
+                } else {
+                    throw new Error(`Variable '${name}' is not defined.`);
+                }
             }
             return value;
         }
