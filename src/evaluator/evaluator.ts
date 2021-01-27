@@ -80,46 +80,42 @@ export class Evaluator {
         return this.evalBlock(ast, blockContext);
     }
 
-    private invokeFunction(func: (...args: unknown[]) => unknown, fps: unknown[], 
-            loc: { moduleName: string, line: number, column: number }): unknown {
-        try {
-            if (fps.length === 0) { return func(); }
-            if (fps.length === 1) { return func(fps[0]); }
-            if (fps.length === 2) { return func(fps[0], fps[1]); }
-            if (fps.length === 3) { return func(fps[0], fps[1], fps[2]); }
-            if (fps.length === 4) {
-                return func(fps[0], fps[1], fps[2], fps[3]);
-            }
-            if (fps.length === 5) {
-                return func(fps[0], fps[1], fps[2], fps[3], fps[4]);
-            }
+    private invokeFunction(func: (...args: unknown[]) => unknown, fps: unknown[],
+        loc: { moduleName: string, line: number, column: number }): unknown {
 
-            if (fps.length === 6) {
-                return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5]);
-            }
+        if (fps.length === 0) { return func(); }
+        if (fps.length === 1) { return func(fps[0]); }
+        if (fps.length === 2) { return func(fps[0], fps[1]); }
+        if (fps.length === 3) { return func(fps[0], fps[1], fps[2]); }
+        if (fps.length === 4) {
+            return func(fps[0], fps[1], fps[2], fps[3]);
+        }
+        if (fps.length === 5) {
+            return func(fps[0], fps[1], fps[2], fps[3], fps[4]);
+        }
 
-            if (fps.length === 7) {
-                return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6]);
-            }
+        if (fps.length === 6) {
+            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5]);
+        }
 
-            if (fps.length === 8) {
-                return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7]);
-            }
+        if (fps.length === 7) {
+            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6]);
+        }
 
-            if (fps.length === 9) {
-                return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8]);
-            }
+        if (fps.length === 8) {
+            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7]);
+        }
 
-            if (fps.length === 10) {
-                return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9]);
-            }
+        if (fps.length === 9) {
+            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8]);
+        }
 
-            if (fps.length > 10) {
-                throw Error('Function has too many parameters. Current limitation is 10');
-            }
-        } catch (err) {
-            var jspyError = new JspyError(loc?.moduleName || 'js-func-error.jspy', loc?.line || 0, loc?.column || 0, 'FuncCall', err.message || err);
-            throw jspyError;
+        if (fps.length === 10) {
+            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9]);
+        }
+
+        if (fps.length > 10) {
+            throw Error('Function has too many parameters. Current limitation is 10');
         }
 
     }
@@ -161,23 +157,18 @@ export class Evaluator {
                 }
             }
             catch (err) {
-                if (err instanceof JspyEvalError) {
-                    // evaluation error should not be handled
-                    throw err;
-                } else {
-                    const name = (err instanceof JspyError) ? (err as JspyError).name : typeof (err);
-                    const message = (err instanceof JspyError) ? (err as JspyError).message : err ?? err.message;
-                    const moduleName = (err instanceof JspyError) ? (err as JspyError).module : 0;
-                    const line = (err instanceof JspyError) ? (err as JspyError).line : 0;
-                    const column = (err instanceof JspyError) ? (err as JspyError).column : 0;
+                const name = (err instanceof JspyError) ? (err as JspyError).name : typeof (err);
+                const message = (err instanceof JspyError) ? (err as JspyError).message : err?.message ?? String(err);
+                const moduleName = (err instanceof JspyError) ? (err as JspyError).module : 0;
+                const line = (err instanceof JspyError) ? (err as JspyError).line : 0;
+                const column = (err instanceof JspyError) ? (err as JspyError).column : 0;
 
-                    const firstExept = tryNode.exepts[0];
-                    const catchBody = firstExept.body;
-                    const ctx = blockContext;// cloneContext(blockContext);
-                    ctx.blockScope.set(firstExept.error?.alias || "error", { name, message, line, column, moduleName })
-                    this.evalBlock({ name: blockContext.moduleName, type: 'trycatch', body: catchBody } as AstBlock, ctx);
-                    ctx.blockScope.set(firstExept.error?.alias || "error", null)
-                }
+                const firstExept = tryNode.exepts[0];
+                const catchBody = firstExept.body;
+                const ctx = blockContext;// cloneContext(blockContext);
+                ctx.blockScope.set(firstExept.error?.alias || "error", { name, message, line, column, moduleName })
+                this.evalBlock({ name: blockContext.moduleName, type: 'trycatch', body: catchBody } as AstBlock, ctx);
+                ctx.blockScope.set(firstExept.error?.alias || "error", null)
             }
             finally {
                 if (tryNode.finallyBody?.length || 0 > 0) {

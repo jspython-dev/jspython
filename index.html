@@ -29,6 +29,7 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
+    async def f1():
       errorFunc(1)
       errorFunc(3)
       errorFunc(6)
@@ -42,6 +43,7 @@
 
       return 1
       """
+    f1()
 
     </div>
     <!--
@@ -111,7 +113,6 @@
       try {
         const scope = {
           Math,
-          dateTime: () => new Date(),
           errorFunc: p => {
 
             if (p === 6) {
@@ -144,7 +145,7 @@
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : String(result);
         resultEditor.getSession().setValue(data)
       } catch (err) {
-        console.error(err);
+        console.log('error', err);
         resultEditor.getSession().setValue(String(err.message))
       }
     }

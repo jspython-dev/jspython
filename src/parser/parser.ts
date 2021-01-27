@@ -415,7 +415,7 @@ export class Parser {
             throw new Error(`Tokens length can't empty.`)
         }
 
-        if (getTokenValue(tokens[tokens.length-1]) === ';') {
+        if (getTokenValue(tokens[tokens.length - 1]) === ';') {
             throw new Error(`Unexpected symbol ';' in the end`)
         }
 
@@ -578,7 +578,7 @@ export class Parser {
             const paramsNodes = this.createExpressionNode(paramsTokensSlice);
             return new BracketObjectAccessNode(name, paramsNodes, false, getTokenLoc(tokens[0]));
         }
-        
+
         throw Error(`Undefined node '${getTokenValue(tokens[0])}'.`);
     }
 }
