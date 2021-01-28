@@ -311,7 +311,7 @@ describe('Interpreter', () => {
     await Interpreter.create()
       .addFunction('setResult', r => res = r)
       .evaluate([
-        'def func1(p1, p2):',
+        'def func1():',
         '  x = p1 + p2',
         '  setResult(x)'
       ].join('\n'), { p1: 5, p2: 10 }, 'func1');

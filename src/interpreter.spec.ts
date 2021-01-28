@@ -127,6 +127,11 @@ describe('Interpreter', () => {
     expect(e.eval("x = {'m'+1: 1+2*3}\nx.m1")).toBe(7);
   });
 
+  it('json single name prop', () => {
+    expect(e.eval("pp = 't1'\nx = {pp}\nx.pp")).toBe('t1');
+    expect(e.eval("pp = 5\nx = {pp, x:10}\nx.pp + x.x")).toBe(15);
+  });
+
   it('json array', () => {
     expect(e.eval("x = [{m1: 1+2*3, m2: 'ee'}]\nx.length")).toBe(1);
     expect(e.eval("x = [1,2,3]\nx.length")).toBe(3);

@@ -76,13 +76,10 @@ export class EvaluatorAsync {
 
         const blockContext = cloneContext(context);
 
-        // set parameters into new scope, based incomming arguments
-        for (let i = 0; i < args?.length || 0; i++) {
-            if (i >= funcDef.params.length) {
-                break;
-                // throw new Error('Too much parameters provided');
-            }
-            blockContext.blockScope.set(funcDef.params[i], args[i]);
+        // set parameters into new scope, based incomming arguments        
+        for (let i = 0; i < funcDef.params?.length || 0; i++) {
+            const argValue = args?.length > i ? args[i] : null;
+            blockContext.blockScope.set(funcDef.params[i], argValue);
         }
 
         return await this.evalBlockAsync(ast, blockContext);

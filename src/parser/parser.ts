@@ -544,20 +544,27 @@ export class Parser {
             const props = [] as ObjectPropertyInfo[];
             for (let i = 0; i < keyValueTokens.length; i++) {
                 const keyValue = splitTokens(keyValueTokens[i], ':');
-                if (keyValue.length !== 2) {
+                if (keyValue.length === 1) {
+                    const pInfo = {
+                        name: new ConstNode(keyValue[0][0]),
+                        value: this.createExpressionNode(keyValue[0])
+                    } as ObjectPropertyInfo;
+
+                    props.push(pInfo);                    
+                } else if (keyValue.length === 2) {
+                    // unquoted string becomes a variable, so, we don't need it, that is why we are creating const node explicitlely
+                    const name = (keyValue[0].length === 1 && !`'"`.includes((getTokenValue(keyValue[0][0]) as string)[0]))
+                        ? new ConstNode(keyValue[0][0])
+                        : this.createExpressionNode(keyValue[0]);
+                    const pInfo = {
+                        name,
+                        value: this.createExpressionNode(keyValue[1])
+                    } as ObjectPropertyInfo;
+
+                    props.push(pInfo);
+                } else {
                     throw Error('Incorrect JSON')
                 }
-
-                // unquoted string becomes a variable, so, we don't need it, that is why we are creating const node explicitlely
-                const name = (keyValue[0].length === 1 && !`'"`.includes((getTokenValue(keyValue[0][0]) as string)[0]))
-                    ? new ConstNode(keyValue[0][0])
-                    : this.createExpressionNode(keyValue[0]);
-                const pInfo = {
-                    name,
-                    value: this.createExpressionNode(keyValue[1])
-                } as ObjectPropertyInfo;
-
-                props.push(pInfo);
             }
 
             return new CreateObjectNode(props, getTokenLoc(tokens[0]))

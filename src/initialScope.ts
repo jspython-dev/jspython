@@ -2,12 +2,15 @@ import { parseDatetimeOrNull } from "./common/utils";
 
 export const INITIAL_SCOPE = {
     jsPython(): string {
-        return [`JSPython v2.0.11`, "(c) 2021 FalconSoft Ltd. All rights reserved."].join('\n')
+        return [`JSPython v2.0.12`, "(c) 2021 FalconSoft Ltd. All rights reserved."].join('\n')
     },
     dateTime: (str: number | string | any = null) => parseDatetimeOrNull(str) || new Date(),
     range: range,
     print: (...args: any[]) => { console.log(...args); return args.length > 0 ? args[0] : null; },
     isNull: (v: any, defValue: any = null): boolean | any => defValue === null ? v === null : v || defValue,
+    isDate: (d: any): boolean => d instanceof Date,
+    isFunction: (v: any): boolean => typeof v === 'function',
+    isString: (v: any): boolean => typeof v === 'string',
     deleteProperty: (obj: any, propName: string): boolean => delete obj[propName],
     Math: Math,
     Object: Object,
