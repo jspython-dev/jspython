@@ -124,7 +124,12 @@ describe('Interpreter', () => {
   it('json obj', () => {
     expect(e.eval("x = {m1: 1+2*3, m2: 'ee'}\nx.m1")).toBe(7);
     expect(e.eval("x = {'m1': 1+2*3}\nx.m1")).toBe(7);
-    expect(e.eval("x = {'m'+1: 1+2*3}\nx.m1")).toBe(7);
+    expect(e.eval("x = {['m'+1]: 1+2*3}\nx.m1")).toBe(7);
+  });
+
+  it('json with dynamic key', () => {
+    expect(e.eval("p = 'prop'\nx = {[p + '_'+1]: 1+2*3}\nx.prop_1")).toBe(7);
+    expect(e.eval("p = {x:'prop'}\nx = {[p.x + '_'+1]: 1+2*3}\nx.prop_1")).toBe(7);
   });
 
   it('json single name prop', () => {

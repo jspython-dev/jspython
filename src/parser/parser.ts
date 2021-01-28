@@ -550,12 +550,21 @@ export class Parser {
                         value: this.createExpressionNode(keyValue[0])
                     } as ObjectPropertyInfo;
 
-                    props.push(pInfo);                    
+                    props.push(pInfo);
                 } else if (keyValue.length === 2) {
-                    // unquoted string becomes a variable, so, we don't need it, that is why we are creating const node explicitlely
-                    const name = (keyValue[0].length === 1 && !`'"`.includes((getTokenValue(keyValue[0][0]) as string)[0]))
-                        ? new ConstNode(keyValue[0][0])
-                        : this.createExpressionNode(keyValue[0]);
+
+                    let name: AstNode | null = null;
+                    const namePart = keyValue[0];
+
+                    if (namePart.length === 1) {                        
+                        name = new ConstNode(namePart[0]);
+                    } else if (getTokenValue(namePart[0]) === '['
+                        && getTokenValue(namePart[namePart.length - 1]) === ']') {
+                        name = this.createExpressionNode(namePart.slice(1, namePart.length - 1))
+                    } else {
+                        throw new Error(`Incorrect JSON. Can't resolve Key field. That should either constant or expression in []`)
+                    }
+
                     const pInfo = {
                         name,
                         value: this.createExpressionNode(keyValue[1])
