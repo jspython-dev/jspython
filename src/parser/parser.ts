@@ -136,7 +136,12 @@ export class Parser {
                 }
 
                 const ifBody = getBody(instruction.tokens, endDefOfDef + 1);
-                const conditionNode = this.createExpressionNode(instruction.tokens.slice(1, endDefOfDef))
+                const conditionTokens = instruction.tokens.slice(1, endDefOfDef);
+
+                const conditionNode = (findIndexes(conditionTokens, OperationTypes.Logical, logicOpIndexes)) ?
+                    this.groupLogicalOperations(logicOpIndexes, conditionTokens)
+                    :
+                    this.createExpressionNode(conditionTokens);
 
                 let elseBody: AstNode[] | undefined = undefined;
                 if (instructions.length > i + 1
@@ -261,10 +266,16 @@ export class Parser {
                     throw (`Can't find : for [while]`)
                 }
 
-                const condition = this.createExpressionNode(instruction.tokens.slice(1, endDefOfDef))
+
+                const conditionTokens = instruction.tokens.slice(1, endDefOfDef);
+                const conditionNode = (findIndexes(conditionTokens, OperationTypes.Logical, logicOpIndexes)) ?
+                    this.groupLogicalOperations(logicOpIndexes, conditionTokens)
+                    :
+                    this.createExpressionNode(conditionTokens);
+
                 const body = getBody(instruction.tokens, endDefOfDef + 1);
 
-                ast.body.push(new WhileNode(condition, body, getTokenLoc(firstToken)))
+                ast.body.push(new WhileNode(conditionNode, body, getTokenLoc(firstToken)));
 
             } else if (getTokenValue(firstToken) === 'import') {
                 let asIndex = findTokenValueIndex(instruction.tokens, v => v === 'as');
@@ -556,7 +567,7 @@ export class Parser {
                     let name: AstNode | null = null;
                     const namePart = keyValue[0];
 
-                    if (namePart.length === 1) {                        
+                    if (namePart.length === 1) {
                         name = new ConstNode(namePart[0]);
                     } else if (getTokenValue(namePart[0]) === '['
                         && getTokenValue(namePart[namePart.length - 1]) === ']') {

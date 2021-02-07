@@ -483,7 +483,119 @@ describe('Interpreter', () => {
     };
     expect(await e.evaluate(script, obj)).toContain(jsErrorMessage);
     expect(e.eval(script, obj)).toContain(jsErrorMessage);
-  })
+  });
+
+  it('if with AND', async () => {
+    const script = `
+      x=5
+      y=10
+      r = 0
+      
+      if x == 5 and y == 10:
+          r = x + y
+          
+      return r
+    `;
+
+    expect(await e.evaluate(script)).toBe(15);
+    expect(e.eval(script)).toBe(15);
+  }
+  );
+
+  it('if with AND nullable objects', async () => {
+    const script = `
+      l = null
+      r = {price: 5}
+      
+      if l?.price != null and r?.price != null:
+        return 100
+      
+      return 1
+    `;
+    expect(await e.evaluate(script)).toBe(1);
+    expect(e.eval(script)).toBe(1);
+  }
+  );
+
+
+  it('if with AND in brackets', async () => {
+    const script = `
+      x=5
+      y=10
+      r = 0
+      
+      if (x == 5) and (y == 10):
+          r = x + y
+          
+      return r
+      `
+    expect(await e.evaluate(script)).toBe(15);
+    expect(e.eval(script)).toBe(15);
+  }
+  );
+
+  // incorrect
+  it('passing value type to the arrow function', async () => {
+
+    const script = `
+      x = [2,3,4,5,6,7,8,9]
+
+      sum = 0
+      x.forEach(i => sum = sum + i)
+      
+      sum
+      `
+  }
+  );
+
+  it('passing value type to the for loop', async () => {
+
+    const script = `
+    x = [2,3,4,5,6,7,8,9]
+    sum = 0
+
+    for i in x:
+        sum = sum + i
+
+    sum
+      `
+    expect(await e.evaluate(script)).toBe(44);
+    expect(e.eval(script)).toBe(44);
+  }
+  );
+
+  it('passing value type to the while loop', async () => {
+
+    const script = `
+    x = [2,3,4,5,6,7,8,9]
+    sum = 0
+    i=0
+    while i < x.length:
+      val = x[i]
+      sum = sum + val
+      i = i + 1
+
+    sum
+      `
+    expect(await e.evaluate(script)).toBe(44);
+    expect(e.eval(script)).toBe(44);
+  }
+  );
+
+  it('passing value type to the arrow function', async () => {
+
+    const script = `
+    x = [2,3,4,5,6,7,8,9]
+
+    sum = {value:0}
+    x.forEach(i => sum.value = sum.value + i)
+    
+    sum.value
+    `
+    expect(await e.evaluate(script)).toBe(44);
+    expect(e.eval(script)).toBe(44);
+  }
+  );
 
 
 });

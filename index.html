@@ -29,34 +29,15 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
-    async def f1(p1, p2, p3, p4, p5):
-      errorFunc(p1 or 1)
-      errorFunc(p2 or 3)
-      errorFunc(p3 or 6)
-      errorFunc(p4 or 7)
-      
-      """
-      l = null
-      r = {price: 5}
+      x = 5
+      y = 10
 
-      if l?.price != null and r?.price != null:
-      return 100
+      if x == 5 or y == 10:
+        return 100
 
       return 1
-      """
-    f1()
-
     </div>
-    <!--
-          def f(n):
-            n * n
-          x = [2, 3, 4]
-          x.map(f)
-             
-# arr = [1,2,3]
-# arr.map(mapFunc)
 
-    -->
     <button onclick="tokenize()">Tokenize</button>
     <button onclick="parse()">Parse</button>
     <button onclick="runInterpreter()">Run</button>
