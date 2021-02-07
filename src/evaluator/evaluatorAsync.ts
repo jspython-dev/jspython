@@ -76,11 +76,20 @@ export class EvaluatorAsync {
 
         const blockContext = cloneContext(context);
 
-        // set parameters into new scope, based incomming arguments        
-        for (let i = 0; i < funcDef.params?.length || 0; i++) {
-            const argValue = args?.length > i ? args[i] : null;
-            blockContext.blockScope.set(funcDef.params[i], argValue);
+        for (let i = 0; i < args?.length || 0; i++) {
+            if (i >= funcDef.params.length) {
+                break;
+                // throw new Error('Too many parameters provided');
+            }
+            blockContext.blockScope.set(funcDef.params[i], args[i]);
         }
+
+
+        // // set parameters into new scope, based incomming arguments        
+        // for (let i = 0; i < funcDef.params?.length || 0; i++) {
+        //     const argValue = args?.length > i ? args[i] : null;
+        //     blockContext.blockScope.set(funcDef.params[i], argValue);
+        // }
 
         return await this.evalBlockAsync(ast, blockContext);
     }
@@ -208,13 +217,24 @@ export class EvaluatorAsync {
             const forNode = node as ForNode;
 
             const array = await this.evalNodeAsync(forNode.sourceArray, blockContext) as unknown[] | string;
+            try {
 
-            for (let item of array) {
-                blockContext.blockScope.set(forNode.itemVarName, item);
-                await this.evalBlockAsync({ name: blockContext.moduleName, type: 'for', body: forNode.body } as AstBlock, blockContext);
-                if (blockContext.continueCalled) { blockContext.continueCalled = false; }
-                if (blockContext.breakCalled) { break; }
+                for (let i = 0; i < array.length; i++) {
+                    const item = array[i];
+                    console.log('**DEBUG:', array.length, i);
+
+                    blockContext.blockScope.set(forNode.itemVarName, item);
+                    await this.evalBlockAsync({ name: blockContext.moduleName, type: 'for', body: forNode.body } as AstBlock, blockContext);
+                    if (blockContext.continueCalled) { blockContext.continueCalled = false; }
+                    if (blockContext.breakCalled) { break; }
+                }
+
+                console.log('**FOR finished.');
+            } catch (err) {
+                console.log('**FOR FAILED:', err?.message || err);
             }
+
+
             if (blockContext.breakCalled) { blockContext.breakCalled = false; }
             return;
         }
