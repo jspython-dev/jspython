@@ -217,23 +217,13 @@ export class EvaluatorAsync {
             const forNode = node as ForNode;
 
             const array = await this.evalNodeAsync(forNode.sourceArray, blockContext) as unknown[] | string;
-            try {
-
-                for (let i = 0; i < array.length; i++) {
-                    const item = array[i];
-                    console.log('**DEBUG:', array.length, i);
-
-                    blockContext.blockScope.set(forNode.itemVarName, item);
-                    await this.evalBlockAsync({ name: blockContext.moduleName, type: 'for', body: forNode.body } as AstBlock, blockContext);
-                    if (blockContext.continueCalled) { blockContext.continueCalled = false; }
-                    if (blockContext.breakCalled) { break; }
-                }
-
-                console.log('**FOR finished.');
-            } catch (err) {
-                console.log('**FOR FAILED:', err?.message || err);
+            for (let i = 0; i < array.length; i++) {
+                const item = array[i];
+                blockContext.blockScope.set(forNode.itemVarName, item);
+                await this.evalBlockAsync({ name: blockContext.moduleName, type: 'for', body: forNode.body } as AstBlock, blockContext);
+                if (blockContext.continueCalled) { blockContext.continueCalled = false; }
+                if (blockContext.breakCalled) { break; }
             }
-
 
             if (blockContext.breakCalled) { blockContext.breakCalled = false; }
             return;

@@ -209,20 +209,13 @@ export class Evaluator {
 
             const array = this.evalNode(forNode.sourceArray, blockContext) as unknown[] | string;
 
-            try {
-                for (let i = 0; i < array.length; i++) {
-                    const item = array[i];
-                    console.log('**DEBUG:', array.length, i);
+            for (let i = 0; i < array.length; i++) {
+                const item = array[i];
 
-                    blockContext.blockScope.set(forNode.itemVarName, item);
-                    this.evalBlock({ name: blockContext.moduleName, type: 'for', body: forNode.body } as AstBlock, blockContext);
-                    if (blockContext.continueCalled) { blockContext.continueCalled = false; }
-                    if (blockContext.breakCalled) { break; }
-                }
-
-                console.log('**FOR finished.');
-            } catch (err) {
-                console.log('**FOR FAILED:', err?.message || err);
+                blockContext.blockScope.set(forNode.itemVarName, item);
+                this.evalBlock({ name: blockContext.moduleName, type: 'for', body: forNode.body } as AstBlock, blockContext);
+                if (blockContext.continueCalled) { blockContext.continueCalled = false; }
+                if (blockContext.breakCalled) { break; }
             }
 
             if (blockContext.breakCalled) { blockContext.breakCalled = false; }
