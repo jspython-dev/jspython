@@ -8,11 +8,11 @@ export interface BlockContext {
     blockScope: Scope
 }
 
-export function cloneContext(context: BlockContext): BlockContext{
+export function cloneContext(context: BlockContext): BlockContext {
     return {
         moduleName: context.moduleName,
         blockScope: context.blockScope.clone()
-    } as BlockContext;    
+    } as BlockContext;
 }
 
 export class Scope {
@@ -20,6 +20,10 @@ export class Scope {
 
     constructor(initialScope: Record<string, unknown>) {
         this.scope = { ...initialScope };
+    }
+
+    getScope(): Record<string, unknown> {
+        return this.scope;
     }
 
     clone(): Scope {

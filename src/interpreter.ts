@@ -14,9 +14,9 @@ export function jsPython(): Interpreter {
 }
 
 export class Interpreter {
-    private readonly initialScope: { [index: string]: any } = { ...INITIAL_SCOPE };
+    private readonly initialScope: Record<string, unknown> = { ...INITIAL_SCOPE };
 
-    private globalScope: { [index: string]: any } = {};
+    private _lastExecutionContext: Record<string, unknown> | null = null;
 
     private packageLoader?: PackageLoader;
     private fileLoader?: FileLoader;
@@ -26,8 +26,20 @@ export class Interpreter {
         return new Interpreter();
     }
 
-    jsPythonInfo(){
-        return this.initialScope.jsPython();
+    get initialExecutionContext(): Record<string, unknown> {
+        return this.initialScope;
+    }
+
+    get lastExecutionContext(): Record<string, unknown> | null {
+        return this._lastExecutionContext;
+    }
+
+    cleanUp() {
+        this._lastExecutionContext = null;
+    }
+
+    jsPythonInfo() {
+        return INITIAL_SCOPE.jsPython();
     }
 
     tokenize(script: string): Token[] {
@@ -35,8 +47,7 @@ export class Interpreter {
         return tokenizer.tokenize(script);
     }
 
-    
-    parse(script: string, moduleName: string='main.jspy'): AstBlock {
+    parse(script: string, moduleName: string = 'main.jspy'): AstBlock {
         const tokenizer = new Tokenizer();
         const parser = new Parser();
         const jspyAst = parser.parse(tokenizer.tokenize(script), moduleName);
@@ -46,15 +57,16 @@ export class Interpreter {
     eval(codeOrAst: string | AstBlock, scope: Record<string, unknown> = {}
         , entryFunctionName: string = '', moduleName: string = 'main.jspy'): unknown {
         const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string, moduleName) : codeOrAst as AstBlock;
-        
+
         const blockContext = {
             moduleName: moduleName,
             blockScope: new Scope(scope)
         } as BlockContext;
 
-        blockContext.blockScope.set('printExecutionContext', () => console.log(blockContext.blockScope));
-        blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope.clone());
-        
+        blockContext.blockScope.set('printExecutionContext', () => console.log(blockContext.blockScope.getScope()));
+        blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope.getScope());
+        this._lastExecutionContext = blockContext.blockScope.getScope();
+
         const result = new Evaluator().evalBlock(ast, blockContext);
         if (!entryFunctionName || !entryFunctionName.length) {
             return result;
@@ -75,9 +87,10 @@ export class Interpreter {
             moduleName: moduleName,
             blockScope: new Scope(scope)
         } as BlockContext;
-        blockContext.blockScope.set('printExecutionContext', () => console.log(blockContext.blockScope));
-        blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope.clone());
 
+        blockContext.blockScope.set('printExecutionContext', () => console.log(blockContext.blockScope.getScope()));
+        blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope.getScope());
+        this._lastExecutionContext = blockContext.blockScope.getScope();
 
         const result = await evaluator.evalBlockAsync(ast, blockContext);
 
@@ -103,16 +116,12 @@ export class Interpreter {
         context = (context && typeof context === 'object') ? context : {};
         context = await this.assignLegacyImportContext(ast, context);
 
-        this.globalScope = {
+        const globalScope = {
             ...this.initialScope,
             ...context
         } as Record<string, unknown>;
 
-        try {
-            return this.evalAsync(ast, this.globalScope, entryFunctionName, moduleName);
-        } catch (error) {
-            throw error;
-        }
+        return await this.evalAsync(ast, globalScope, entryFunctionName, moduleName);
     }
 
 
