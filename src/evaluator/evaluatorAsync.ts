@@ -18,14 +18,14 @@ import { BlockContext, cloneContext, Scope } from './scope';
 export class EvaluatorAsync {
 
     private moduleParser: (modulePath: string) => Promise<AstBlock> = () => Promise.reject('Module parser is not registered!');
-    private blockContextFactory?: (modulePath: string) => BlockContext;
+    private blockContextFactory?: (modulePath: string, ast: AstBlock) => BlockContext;
 
     registerModuleParser(moduleParser: (modulePath: string) => Promise<AstBlock>): EvaluatorAsync {
         this.moduleParser = moduleParser;
         return this;
     }
 
-    registerBlockContextFactory(blockContextFactory: (modulePath: string) => BlockContext): EvaluatorAsync {
+    registerBlockContextFactory(blockContextFactory: (modulePath: string, ast: AstBlock) => BlockContext): EvaluatorAsync {
         this.blockContextFactory = blockContextFactory;
         return this;
     }
@@ -51,12 +51,17 @@ export class EvaluatorAsync {
             if (node.type === 'import') {
                 const importNode = node as ImportNode;
 
+                if(!importNode.module.name.startsWith('/') /* || !importNode.module.name.endsWith('.jspy')*/){
+                    // it is not JSPY imort. It is JS and should be handled externally
+                    continue;
+                }
+
                 if (typeof this.blockContextFactory !== 'function') {
                     throw new Error('blockContextFactory is not initialized');
                 }
 
                 const moduleAst = await this.moduleParser(importNode.module.name)
-                const moduleBlockContext = this.blockContextFactory(importNode.module.name);
+                const moduleBlockContext = this.blockContextFactory(importNode.module.name, moduleAst);
                 await this.evalBlockAsync(moduleAst, moduleBlockContext)
 
                 blockContext.blockScope.set(importNode.module.alias || this.defaultModuleName(importNode.module.name), moduleBlockContext.blockScope.getScope())

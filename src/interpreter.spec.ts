@@ -676,5 +676,42 @@ describe('Interpreter', () => {
     expect(res).toBe(316);
   });
 
+  it('Import with package loader', async () => {
+    const interpreter = Interpreter.create();
+
+    interpreter.registerPackagesLoader(path =>
+      (
+        path === 'service' ? {
+          add: (x, y) => x + y,
+          remove: (x, y) => x - y,
+          times: (x, y) => x * y,
+        } 
+        : null
+      )
+    );    
+
+    interpreter.registerModuleLoader((path => {
+      return Promise.resolve(`
+        from 'service' import add
+
+        def multiply(x, y):
+            x * y
+
+        def func1(x, y):
+          add(x, y) + someNumber
+        
+        someNumber = 55
+      `);
+    }));
+
+    const res = await interpreter.evaluate(`
+    import '/service.jspy' as obj
+
+    return obj.func1(2, 3)
+    `);
+
+    expect(res).toBe(60);
+  });
+
 
 });

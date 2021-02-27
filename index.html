@@ -53,7 +53,7 @@
     resultEditor.session.setMode("ace/mode/json");
 
     const interpreter = jspython.jsPython();
-    console.log({interpreter});
+    console.log({ interpreter });
 
     function tokenize() {
       tokenizer = (s) => console.log(`tokens => ${s}`, interpreter().tokenize(s))
@@ -95,14 +95,14 @@
 
         interpreter.registerModuleLoader((path => {
           return Promise.resolve(`
+            from 'service' import add
+
             def multiply(x, y):
                 x * y
 
             def func1(x, y):
-              if y == null:
-                y = 77
-
-              multiply(x, y) + someNumber
+              print('++>>>', getExecutionContext())
+              multiply(x, y) + add(x, y)
             
             name = 'test'
             someNumber = 55
@@ -111,6 +111,16 @@
           `);
         }));
 
+        interpreter.registerPackagesLoader(path =>
+          (
+            path === 'service' ? {
+              add: (x, y) => x + y,
+              remove: (x, y) => x - y,
+              times: (x, y) => x * y,
+            } 
+            : null
+          )
+        );
         const scope = {
           Math,
           errorFunc: p => {

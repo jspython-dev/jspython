@@ -93,8 +93,16 @@ export class Interpreter {
         this._lastExecutionContext = blockContext.blockScope.getScope();
 
         const result = await evaluator
-            .registerModuleParser(async (modulePath)=> await this.moduleParser(modulePath))
-            .registerBlockContextFactory((moduleName) => ({ moduleName, blockScope: new Scope(scope) }))
+            .registerModuleParser(async (modulePath) => await this.moduleParser(modulePath))
+            .registerBlockContextFactory((moduleName, ast: AstBlock) => {
+                // this line will not be required when we have move package loaders to the evaluator
+                const newContext = this.assignLegacyImportContext(ast, scope);
+
+                const moduleContext = { moduleName, blockScope: new Scope(newContext) }
+                moduleContext.blockScope.set('printExecutionContext', () => console.log(moduleContext.blockScope.getScope()));
+                moduleContext.blockScope.set('getExecutionContext', () => moduleContext.blockScope.getScope());
+                return moduleContext;
+            })
             .evalBlockAsync(ast, blockContext);
 
         if (!entryFunctionName || !entryFunctionName.length) {
@@ -117,7 +125,7 @@ export class Interpreter {
         const ast = this.parse(script, moduleName);
 
         context = (context && typeof context === 'object') ? context : {};
-        context = await this.assignLegacyImportContext(ast, context);
+        context = this.assignLegacyImportContext(ast, context);
 
         const globalScope = {
             ...this.initialScope,
@@ -128,7 +136,7 @@ export class Interpreter {
     }
 
 
-    private async assignLegacyImportContext(ast: AstBlock, context: object): Promise<object> {
+    private assignLegacyImportContext(ast: AstBlock, context: object): Record<string, unknown> {
         const importNodes = ast.body.filter(n => n.type === 'import') as ImportNode[];
 
         const jsImport = importNodes
@@ -140,7 +148,7 @@ export class Interpreter {
             context = { ...context, ...libraries };
         }
 
-        return context;
+        return context as Record<string, unknown>;
     }
 
     registerPackagesLoader(loader: PackageLoader) {
