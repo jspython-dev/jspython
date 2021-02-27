@@ -598,4 +598,83 @@ describe('Interpreter', () => {
   );
 
 
+  it('unknown property is null', async () => {
+    const script = `
+    x = {}
+
+    if x.someValue == null:
+      return true
+    else:
+      return false
+    `
+    expect(await e.evaluate(script)).toBe(true);
+    expect(e.eval(script)).toBe(true);
+  }
+  );
+
+  it('boolean value', async () => {
+    const script = `
+    x = 2 == 2
+
+    if x:
+      return true
+    else:
+      return false
+    `
+    expect(await e.evaluate(script)).toBe(true);
+    expect(e.eval(script)).toBe(true);
+  }
+  );
+
+  it('Import', async () => {
+    const interpreter = Interpreter.create();
+
+    interpreter.registerModuleLoader((path => {
+      return Promise.resolve(`
+        def multiply(x, y):
+            x * y
+
+        def func1(x, y):
+          multiply(x, y) + someNumber
+        
+        someNumber = 55
+      `);
+    }));
+
+    const res = await interpreter.evaluate(`
+    import '/service.jspy' as obj
+
+    return obj.func1(2, 3) + obj.multiply(2, 3) + obj.someNumber
+    `);
+
+    expect(res).toBe(122);
+  });
+
+
+  it('Import and calling function with default value', async () => {
+    const interpreter = Interpreter.create();
+
+    interpreter.registerModuleLoader((path => {
+      return Promise.resolve(`
+        def multiply(x, y):
+            x * y
+
+        def func1(x, y):
+          # if y is null then 100 will be passed
+          multiply(x, y or 100) + someNumber
+        
+        someNumber = 55
+      `);
+    }));
+
+    const res = await interpreter.evaluate(`
+    import '/service.jspy' as obj
+
+    return obj.func1(2) + obj.multiply(2, 3) + obj.someNumber
+    `);
+
+    expect(res).toBe(316);
+  });
+
+
 });

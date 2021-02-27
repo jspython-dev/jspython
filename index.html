@@ -29,13 +29,10 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
-      x = 5
-      y = 10
+      import '/service.jspy' as obj
+      from '/service.jspy' import func1, func2, func3
 
-      if x == 5 or y == 10:
-        return 100
-
-      return 1
+      return obj.func1(2, 3)
     </div>
 
     <button onclick="tokenize()">Tokenize</button>
@@ -55,13 +52,15 @@
     resultEditor.setTheme("ace/theme/monokai");
     resultEditor.session.setMode("ace/mode/json");
 
-    const jsPython = jspython.jsPython;
+    const interpreter = jspython.jsPython();
+    console.log({interpreter});
+
     function tokenize() {
-      tokenizer = (s) => console.log(`tokens => ${s}`, jsPython().tokenize(s))
+      tokenizer = (s) => console.log(`tokens => ${s}`, interpreter().tokenize(s))
 
       const scripts = editor.getValue();
       try {
-        const result = jsPython()
+        const result = interpreter
           .tokenize(scripts)
           .map((t, i) => `${t[1]} : '${t[0]}'`)
           .join('\n');
@@ -78,7 +77,7 @@
 
       const scripts = editor.getValue();
       try {
-        const result = jsPython()
+        const result = interpreter
           .parse(scripts);
 
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result;
@@ -93,6 +92,25 @@
 
       const scripts = editor.getValue();
       try {
+
+        interpreter.registerModuleLoader((path => {
+          return Promise.resolve(`
+            def multiply(x, y):
+                x * y
+
+            def func1(x, y):
+              if y == null:
+                y = 77
+
+              multiply(x, y) + someNumber
+            
+            name = 'test'
+            someNumber = 55
+            dateValue = dateTime()
+
+          `);
+        }));
+
         const scope = {
           Math,
           errorFunc: p => {
@@ -115,7 +133,7 @@
             }
           }
         };
-        const result = await jsPython()
+        const result = await interpreter
           .evaluate(scripts, scope, undefined, 'index1.jspy');
 
         // const result = jsPython()
@@ -125,6 +143,7 @@
         //   .evalAsync(scripts, scope);
 
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : String(result);
+
         resultEditor.getSession().setValue(data)
       } catch (err) {
         console.log('error', err);

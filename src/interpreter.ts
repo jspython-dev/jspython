@@ -7,7 +7,7 @@ import { Parser } from './parser';
 import { Tokenizer } from './tokenizer';
 
 export type PackageLoader = (packageName: string) => any;
-export type FileLoader = (filePath: string) => Promise<any>;
+export type ModuleLoader = (filePath: string) => Promise<string>;
 
 export function jsPython(): Interpreter {
     return Interpreter.create();
@@ -19,7 +19,7 @@ export class Interpreter {
     private _lastExecutionContext: Record<string, unknown> | null = null;
 
     private packageLoader?: PackageLoader;
-    private fileLoader?: FileLoader;
+    private moduleLoader?: ModuleLoader;
 
     constructor() { }
     static create(): Interpreter {
@@ -92,7 +92,10 @@ export class Interpreter {
         blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope.getScope());
         this._lastExecutionContext = blockContext.blockScope.getScope();
 
-        const result = await evaluator.evalBlockAsync(ast, blockContext);
+        const result = await evaluator
+            .registerModuleParser(async (modulePath)=> await this.moduleParser(modulePath))
+            .registerBlockContextFactory((moduleName) => ({ moduleName, blockScope: new Scope(scope) }))
+            .evalBlockAsync(ast, blockContext);
 
         if (!entryFunctionName || !entryFunctionName.length) {
             return result;
@@ -125,11 +128,6 @@ export class Interpreter {
     }
 
 
-    /**
-     * For v1 compatibility. Will be deprecated soon
-     * @param ast 
-     * @param context 
-     */
     private async assignLegacyImportContext(ast: AstBlock, context: object): Promise<object> {
         const importNodes = ast.body.filter(n => n.type === 'import') as ImportNode[];
 
@@ -137,19 +135,11 @@ export class Interpreter {
             .filter(im => !im.module.name.startsWith('/'))
             .map(im => this.nodeToPackage(im));
 
-        const jspyImport = importNodes
-            .filter(im => im.module.name.startsWith('/'))
-            .map(im => this.nodeToPackage(im));
-
         if (jsImport.length && this.packageLoader) {
             const libraries = this.packageResolver(jsImport);
             context = { ...context, ...libraries };
         }
 
-        if (jspyImport.length && this.fileLoader) {
-            const filesContent = await this.fileResolver(jspyImport);
-            context = { ...context, ...filesContent };
-        }
         return context;
     }
 
@@ -161,11 +151,11 @@ export class Interpreter {
         }
     }
 
-    registerFileLoader(loader: FileLoader) {
+    registerModuleLoader(loader: ModuleLoader) {
         if (typeof loader === 'function') {
-            this.fileLoader = loader;
+            this.moduleLoader = loader;
         } else {
-            throw Error('FileLoader should be a function');
+            throw Error('ModuleLoader should be a function');
         }
     }
 
@@ -183,11 +173,16 @@ export class Interpreter {
         return scripts.indexOf(`def ${funcName}`) > -1;
     }
 
+    private async moduleParser(modulePath: string): Promise<AstBlock> {
+        if (!this.moduleLoader) {
+            throw new Error('Module Loader is not registered')
+        }
 
-    /**
-     * Compatibility method! Will be deprecated soon
-     * @param im 
-     */
+        const content = await this.moduleLoader(modulePath);
+        return this.parse(content, modulePath);
+    }
+
+
     private nodeToPackage(im: ImportNode): PackageToImport {
         return {
             name: im.module.name,
@@ -218,40 +213,5 @@ export class Interpreter {
         });
         return libraries;
     }
-
-    private async fileResolver(packages: PackageToImport[]): Promise<object> {
-        if (!this.fileLoader) {
-            throw Error('File loader not provided.');
-        }
-        const files: any = {};
-
-        // Generates files content map
-        const asyncPacks = packages.map(pack => new Promise(async (resolve, reject) => {
-            const { name, as, properties }: PackageToImport = pack;
-            if (!this.fileLoader) {
-                reject('File loader is not register');
-            }
-            const res = await (this.fileLoader as FileLoader)(name);
-
-            if (properties?.length) {
-                properties.forEach((prop) => {
-                    files[prop.as || prop.name] = res[prop.name];
-                })
-            } else if (as) {
-                files[as] = res;
-            } else {
-                const key = ((name as string || '').split('/').pop() as string);
-                files[key] = res;
-            }
-            if (as) {
-                files[as] = res;
-            }
-            resolve(res);
-        }))
-
-        await Promise.all(asyncPacks);
-        return files;
-    }
-
 
 }

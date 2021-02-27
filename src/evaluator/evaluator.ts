@@ -25,6 +25,10 @@ export class Evaluator {
 
         for (const node of ast.body) {
             if (node.type === 'comment') { continue; }
+            if (node.type === 'import') {
+                // we can't use it here, because loader has to be promise
+                throw new Error(`Import is not support with 'eval'. Use method 'evalAsync' instead`);
+            }
             try {
                 lastResult = this.evalNode(node, blockContext);
 
@@ -67,20 +71,11 @@ export class Evaluator {
 
         const blockContext = cloneContext(context);
 
-
-        for (let i = 0; i < args?.length || 0; i++) {
-            if (i >= funcDef.params.length) {
-                break;
-                // throw new Error('Too many parameters provided');
-            }
-            blockContext.blockScope.set(funcDef.params[i], args[i]);
+        // set parameters into new scope, based incomming arguments        
+        for (let i = 0; i < funcDef.params?.length || 0; i++) {
+            const argValue = args?.length > i ? args[i] : null;
+            blockContext.blockScope.set(funcDef.params[i], argValue);
         }
-
-        // // set parameters into new scope, based incomming arguments        
-        // for (let i = 0; i < funcDef.params?.length || 0; i++) {
-        //     const argValue = args?.length > i ? args[i] : null;
-        //     blockContext.blockScope.set(funcDef.params[i], argValue);
-        // }
 
         return this.evalBlock(ast, blockContext);
     }

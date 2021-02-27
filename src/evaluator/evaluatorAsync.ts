@@ -4,7 +4,7 @@ import {
     CreateObjectNode, DotObjectAccessNode, ForNode, FuncDefNode, FunctionCallNode, FunctionDefNode, GetSingleVarNode,
     getStartLine,
     getTokenLoc,
-    IfNode, IsNullCoelsing, LogicalOpNode, OperationFuncs, Primitive, RaiseNode, ReturnNode, SetSingleVarNode, TryExceptNode, WhileNode
+    IfNode, ImportNode, IsNullCoelsing, LogicalOpNode, OperationFuncs, Primitive, RaiseNode, ReturnNode, SetSingleVarNode, TryExceptNode, WhileNode
 } from '../common';
 import { JspyEvalError, JspyError } from '../common/utils';
 import { Evaluator } from './evaluator';
@@ -16,6 +16,19 @@ import { BlockContext, cloneContext, Scope } from './scope';
  * So, any changes to this method, should be replicated in the evaluator.ts
  */
 export class EvaluatorAsync {
+
+    private moduleParser: (modulePath: string) => Promise<AstBlock> = () => Promise.reject('Module parser is not registered!');
+    private blockContextFactory?: (modulePath: string) => BlockContext;
+
+    registerModuleParser(moduleParser: (modulePath: string) => Promise<AstBlock>): EvaluatorAsync {
+        this.moduleParser = moduleParser;
+        return this;
+    }
+
+    registerBlockContextFactory(blockContextFactory: (modulePath: string) => BlockContext): EvaluatorAsync {
+        this.blockContextFactory = blockContextFactory;
+        return this;
+    }
 
     async evalBlockAsync(ast: AstBlock, blockContext: BlockContext): Promise<unknown> {
         let lastResult = null;
@@ -35,6 +48,21 @@ export class EvaluatorAsync {
 
         for (const node of ast.body) {
             if (node.type === 'comment') { continue; }
+            if (node.type === 'import') {
+                const importNode = node as ImportNode;
+
+                if (typeof this.blockContextFactory !== 'function') {
+                    throw new Error('blockContextFactory is not initialized');
+                }
+
+                const moduleAst = await this.moduleParser(importNode.module.name)
+                const moduleBlockContext = this.blockContextFactory(importNode.module.name);
+                await this.evalBlockAsync(moduleAst, moduleBlockContext)
+
+                blockContext.blockScope.set(importNode.module.alias || this.defaultModuleName(importNode.module.name), moduleBlockContext.blockScope.getScope())
+
+                continue;
+            }
 
             try {
                 lastResult = await this.evalNodeAsync(node, blockContext);
@@ -69,6 +97,10 @@ export class EvaluatorAsync {
         return lastResult;
     }
 
+    private defaultModuleName(name: string): string {
+        return name.substring(name.lastIndexOf('/') + 1, name.lastIndexOf('.'))
+    }
+
     private async jspyFuncInvokerAsync(funcDef: FuncDefNode, context: BlockContext, ...args: unknown[]): Promise<unknown> {
 
         const ast = Object.assign({}, funcDef.funcAst);
@@ -76,20 +108,11 @@ export class EvaluatorAsync {
 
         const blockContext = cloneContext(context);
 
-        for (let i = 0; i < args?.length || 0; i++) {
-            if (i >= funcDef.params.length) {
-                break;
-                // throw new Error('Too many parameters provided');
-            }
-            blockContext.blockScope.set(funcDef.params[i], args[i]);
+        // set parameters into new scope, based incomming arguments        
+        for (let i = 0; i < funcDef.params?.length || 0; i++) {
+            const argValue = args?.length > i ? args[i] : null;
+            blockContext.blockScope.set(funcDef.params[i], argValue);
         }
-
-
-        // // set parameters into new scope, based incomming arguments        
-        // for (let i = 0; i < funcDef.params?.length || 0; i++) {
-        //     const argValue = args?.length > i ? args[i] : null;
-        //     blockContext.blockScope.set(funcDef.params[i], argValue);
-        // }
 
         return await this.evalBlockAsync(ast, blockContext);
     }
@@ -135,8 +158,7 @@ export class EvaluatorAsync {
 
     private async evalNodeAsync(node: AstNode, blockContext: BlockContext): Promise<unknown> {
         if (node.type === 'import') {
-            // skip this for now. As modules are implemented externally
-            return null;
+            throw new Error('Import should be defined at the start');
         }
 
         if (node.type === 'comment') {

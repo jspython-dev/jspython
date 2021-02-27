@@ -1,11 +1,11 @@
 
 export interface BlockContext {
     moduleName: string;
-    returnCalled: boolean;
-    breakCalled: boolean;
-    continueCalled: boolean;
-    returnObject: any;
-    blockScope: Scope
+    blockScope: Scope;
+    returnCalled?: boolean;
+    breakCalled?: boolean;
+    continueCalled?: boolean;
+    returnObject?: any;
 }
 
 export function cloneContext(context: BlockContext): BlockContext {
