@@ -644,10 +644,10 @@ describe('Interpreter', () => {
     const res = await interpreter.evaluate(`
     import '/service.jspy' as obj
 
-    return obj.func1(2, 3) + obj.multiply(2, 3) + obj.someNumber
+    return obj.func1(2, 3) + obj.multiply(2, 3)
     `);
 
-    expect(res).toBe(122);
+    expect(res).toBe(67);
   });
 
 
@@ -670,10 +670,10 @@ describe('Interpreter', () => {
     const res = await interpreter.evaluate(`
     import '/service.jspy' as obj
 
-    return obj.func1(2) + obj.multiply(2, 3) + obj.someNumber
+    return obj.func1(2) + obj.multiply(2, 3)
     `);
 
-    expect(res).toBe(316);
+    expect(res).toBe(261);
   });
 
   it('Import with package loader', async () => {
@@ -682,9 +682,9 @@ describe('Interpreter', () => {
     interpreter.registerPackagesLoader(path =>
       (
         path === 'service' ? {
-          add: (x, y) => x + y,
-          remove: (x, y) => x - y,
-          times: (x, y) => x * y,
+          add: (x: number, y: number) => x + y,
+          remove: (x: number, y: number) => x - y,
+          times: (x: number, y: number) => x * y,
         } 
         : null
       )
@@ -704,13 +704,22 @@ describe('Interpreter', () => {
       `);
     }));
 
-    const res = await interpreter.evaluate(`
+    let res = await interpreter.evaluate(`
     import '/service.jspy' as obj
 
     return obj.func1(2, 3)
     `);
 
     expect(res).toBe(60);
+
+    res = await interpreter.evaluate(`
+    from '/service.jspy' import func1
+
+    return func1(2, 3)
+    `);
+
+    expect(res).toBe(60);
+
   });
 
 

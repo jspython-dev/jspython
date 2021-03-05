@@ -51,7 +51,7 @@ export class EvaluatorAsync {
             if (node.type === 'import') {
                 const importNode = node as ImportNode;
 
-                if(!importNode.module.name.startsWith('/') /* || !importNode.module.name.endsWith('.jspy')*/){
+                if (!importNode.module.name.startsWith('/') /* || !importNode.module.name.endsWith('.jspy')*/) {
                     // it is not JSPY imort. It is JS and should be handled externally
                     continue;
                 }
@@ -60,12 +60,19 @@ export class EvaluatorAsync {
                     throw new Error('blockContextFactory is not initialized');
                 }
 
-                const moduleAst = await this.moduleParser(importNode.module.name)
+                const moduleAst = await this.moduleParser(importNode.module.name);
                 const moduleBlockContext = this.blockContextFactory(importNode.module.name, moduleAst);
-                await this.evalBlockAsync(moduleAst, moduleBlockContext)
+                await this.evalBlockAsync(moduleAst, moduleBlockContext);
 
-                blockContext.blockScope.set(importNode.module.alias || this.defaultModuleName(importNode.module.name), moduleBlockContext.blockScope.getScope())
+                let scope = blockContext.blockScope.getScope();
 
+                if (!importNode.parts?.length) {
+                    // if no parts, then we need to assign to a separate object
+                    scope = {};
+                    blockContext.blockScope.set(importNode.module.alias || this.defaultModuleName(importNode.module.name), scope);
+                }
+
+                this.assignFunctionsToScope(scope, moduleBlockContext, moduleAst, importNode.parts?.map(p => p.name));
                 continue;
             }
 
@@ -100,6 +107,22 @@ export class EvaluatorAsync {
         }
 
         return lastResult;
+    }
+
+    private assignFunctionsToScope(scope: Record<string, unknown>, moduleBlockContext: BlockContext,
+        moduleAst: AstBlock, parts?: string[]): void {
+
+        const funcs = moduleAst.funcs.filter(f => !parts || parts.indexOf(f.funcAst?.name) >= 0);
+
+        for (let i = 0; i < funcs.length; i++) {
+            const funcDef = funcs[i] as FunctionDefNode;
+
+            const invoker = (funcDef.isAsync) ?
+                async (...args: unknown[]): Promise<unknown> => await this.jspyFuncInvokerAsync(funcDef, moduleBlockContext, ...args)
+                : (...args: unknown[]): unknown => new Evaluator().jspyFuncInvoker(funcDef, moduleBlockContext, ...args);
+
+            scope[funcDef.funcAst.name] = invoker;
+        }
     }
 
     private defaultModuleName(name: string): string {
@@ -156,7 +179,27 @@ export class EvaluatorAsync {
             return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9]);
         }
 
-        if (fps.length > 10) {
+        if (fps.length === 11) {
+            return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10]);
+        }
+
+        if (fps.length === 12) {
+            return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10], fps[11]);
+        }
+
+        if (fps.length === 13) {
+            return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10], fps[11], fps[12]);
+        }
+
+        if (fps.length === 14) {
+            return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10], fps[11], fps[12], fps[13]);
+        }
+
+        if (fps.length === 15) {
+            return await func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10], fps[11], fps[12], fps[13], fps[14]);
+        }
+
+        if (fps.length > 15) {
             throw Error('Function has too many parameters. Current limitation is 10');
         }
     }
