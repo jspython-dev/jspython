@@ -1,5 +1,5 @@
 # JSPython
-JSPython is a javascript implementation of Python language that runs within web browser or NodeJS environment. It does not transpile/compile your code into JavaScript, instead, it provides an interactive interpreter that reads Python code and carries out their instructions. With JSPython you should be able to safely use or interact any JavaScript libraries or API with a nice Python language.
+JSPython is a javascript implementation of Python language that runs in web browser or NodeJS environment. It does not transpile/compile your code into JavaScript, instead, it provides an interactive interpreter that reads Python code and carries out their instructions. With JSPython you should be able to safely use or interact any JavaScript libraries or API with a nice Python language.
 
 ```py
 arr = [4, 9, 16]
@@ -15,7 +15,7 @@ roots = arr.map(i => Math.sqrt(i)).join(",")
 
 ```
 ## Try out JSPython in a wild
-Interactive [Worksheet Systems JSPython editor](https://run.worksheet.systems/rest-client/jspython-editor) with an ability to query REST APIs and display results in Object Explorer, a configurable Excel-like data grid or just as a JSON or text.
+Interactive [Worksheet Systems JSPython editor](https://run.worksheet.systems/code/guest/jspy-playground?file=main.jspy) with an ability to query REST APIs and display results in Object Explorer, a configurable Excel-like data grid or just as a JSON or text.
 
 ## Why would you use it?
 You can easily embed `JSPython` into your web app and your end users will benefit from a Python like scripting facility to:
