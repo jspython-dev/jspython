@@ -5,7 +5,7 @@ import { Parser } from "./parser";
 describe('Parser => ', () => {
 
   it('1+2', async () => {
-    let ast = new Parser().parse(new Tokenizer().tokenize("1+2"))
+    const ast = new Parser().parse(new Tokenizer().tokenize("1+2"));
     expect(ast.body.length).toBe(1);
     expect(ast.body[0].type).toBe("binOp");
     const binOp = ast.body[0] as BinOpNode
@@ -15,7 +15,7 @@ describe('Parser => ', () => {
   });
 
   it('1+2-3', async () => {
-    let ast = new Parser().parse(new Tokenizer().tokenize("1 + 2 - 3"))
+    const ast = new Parser().parse(new Tokenizer().tokenize("1 + 2 - 3"))
     expect(ast.body.length).toBe(1);
     expect(ast.body[0].type).toBe("binOp");
     const binOp = ast.body[0] as BinOpNode
@@ -26,7 +26,7 @@ describe('Parser => ', () => {
 
   it('import datapipe-js-utils as utils', async () => {
     const script = `import datapipe-js-utils as utils`
-    let ast = new Parser().parse(new Tokenizer().tokenize(script))
+    const ast = new Parser().parse(new Tokenizer().tokenize(script));
     expect(ast.body.length).toBe(1);
     expect(ast.body[0].type).toBe("import");
     const importNode = (ast.body[0] as ImportNode);
@@ -36,7 +36,7 @@ describe('Parser => ', () => {
 
   it('import datapipe-js-utils', async () => {
     const script = `import datapipe-js-utils`
-    let ast = new Parser().parse(new Tokenizer().tokenize(script))
+    const ast = new Parser().parse(new Tokenizer().tokenize(script));
     expect(ast.body.length).toBe(1);
     expect(ast.body[0].type).toBe("import");
     const importNode = (ast.body[0] as ImportNode);
@@ -46,7 +46,7 @@ describe('Parser => ', () => {
 
   it('from datapipe-js-array import sort, first as f, fullJoin', async () => {
     const script = `from datapipe-js-array import sort, first as f, fullJoin`
-    let ast = new Parser().parse(new Tokenizer().tokenize(script))
+    const ast = new Parser().parse(new Tokenizer().tokenize(script));
     expect(ast.body.length).toBe(1);
     expect(ast.body[0].type).toBe("import");
     const importNode = (ast.body[0] as ImportNode);

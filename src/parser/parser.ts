@@ -37,7 +37,7 @@ export class Parser {
      * @param tokens tokens
      * @param options parsing options. By default it will exclude comments and include LOC (Line of code)
      */
-    parse(tokens: Token[], name = 'main.jspy', type: string = 'module'): AstBlock {
+    parse(tokens: Token[], name = 'main.jspy', type = 'module'): AstBlock {
         this._moduleName = name;
         const ast = { name, type, funcs: [], body: [] } as AstBlock;
 
@@ -214,7 +214,6 @@ export class Parser {
                         excepts.push(except);
                     }
 
-
                     i++;
                 }
 
@@ -229,7 +228,10 @@ export class Parser {
             } else if (getTokenValue(firstToken) === 'break') {
                 ast.body.push(new BreakNode());
             } else if (getTokenValue(firstToken) === 'return') {
-                ast.body.push(new ReturnNode(this.createExpressionNode(instruction.tokens.slice(1)), getTokenLoc(firstToken)));
+                ast.body.push(new ReturnNode(
+                    instruction.tokens.length > 1 ? this.createExpressionNode(instruction.tokens.slice(1)) : undefined,
+                    getTokenLoc(firstToken))
+                );
             } else if (getTokenValue(firstToken) === 'raise') {
 
                 if (instruction.tokens.length === 1) {
@@ -291,7 +293,7 @@ export class Parser {
                 const body = {} as AstBlock; // empty for now
                 ast.body.push(new ImportNode(module, body, undefined, getTokenLoc(firstToken)))
             } else if (getTokenValue(firstToken) === 'from') {
-                let importIndex = findTokenValueIndex(instruction.tokens, v => v === 'import');
+                const importIndex = findTokenValueIndex(instruction.tokens, v => v === 'import');
                 if (importIndex < 0) {
                     throw Error(`'import' must follow 'from'`);
                 }
@@ -336,7 +338,7 @@ export class Parser {
     }
 
     private groupComparisonOperations(indexes: number[], tokens: Token[]): AstNode {
-        let start = 0;
+        const start = 0;
 
         let leftNode: AstNode | null = null;
         for (let i = 0; i < indexes.length; i++) {
@@ -352,7 +354,7 @@ export class Parser {
         return leftNode as AstNode;
     }
 
-    private groupLogicalOperations(logicOp: number[], tokens: Token[]) {
+    private groupLogicalOperations(logicOp: number[], tokens: Token[]): LogicalOpNode {
         let start = 0;
         const logicItems: LogicalNodeItem[] = [];
         for (let i = 0; i < logicOp.length; i++) {
@@ -477,7 +479,7 @@ export class Parser {
         const ops = findOperators(tokens);
         if (ops.length) {
 
-            var prevNode: AstNode | null;
+            let prevNode: AstNode | null = null;
             for (let i = 0; i < ops.length; i++) {
                 const opIndex = ops[i];
                 const op = getTokenValue(tokens[opIndex]) as Operators;
@@ -485,7 +487,7 @@ export class Parser {
                 let nextOpIndex = i + 1 < ops.length ? ops[i + 1] : null;
                 let nextOp = nextOpIndex !== null ? getTokenValue(tokens[nextOpIndex]) : null;
                 if (nextOpIndex !== null && (nextOp === '*' || nextOp === '/')) {
-                    var rightNode: AstNode | null = null;
+                    let rightNode: AstNode | null = null;
                     // iterate through all continuous '*', '/' operations
                     do {
                         const nextOpIndex2 = i + 2 < ops.length ? ops[i + 2] : null;
@@ -513,7 +515,7 @@ export class Parser {
                 } else {
                     const leftSlice = prevNode ? [] : this.sliceWithBrackets(tokens, 0, opIndex);
                     const rightSlice = this.sliceWithBrackets(tokens, opIndex + 1, nextOpIndex || tokens.length);
-                    const left = prevNode || this.createExpressionNode(leftSlice, prevNode);
+                    const left: AstNode = prevNode || this.createExpressionNode(leftSlice, prevNode);
                     const right = this.createExpressionNode(rightSlice);
                     prevNode = new BinOpNode(left, op as ExpressionOperators, right, getTokenLoc(tokens[0]));
                 }

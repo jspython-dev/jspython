@@ -29,10 +29,10 @@ const SeparatorsMap: Record<string, string[]> = {
 const Keywords: string[] = ["async", "def", "for", "while", "if", "return", "in"];
 
 export class Tokenizer {
-    private _startLine: number = 1
-    private _startColumn: number = 1
-    private _currentLine: number = 1
-    private _currentColumn: number = 1
+    private _startLine = 1;
+    private _startColumn = 1;
+    private _currentLine = 1;
+    private _currentColumn = 1;
     private _tokenText = '';
     private _cursor = 0;
     private _script = "";
@@ -128,7 +128,8 @@ export class Tokenizer {
                     const cLine = this._currentLine;
                     const cColumn = this._currentColumn;
                     this.incrementCursor(2);
-                    while (true) {
+                    const passCond = true;
+                    while (passCond) {
                         this.tokenText += script[this.incrementCursor()];
                         if (this._cursor + 3 >= script.length
                             || (script[this._cursor + 1] === q && script[this._cursor + 2] === q && script[this._cursor + 3] === q)) {
@@ -167,7 +168,7 @@ export class Tokenizer {
         return tokens;
     }
 
-    private incrementCursor(count: number = 1): number {
+    private incrementCursor(count = 1): number {
         for (let i = 0; i < count; i++) {
             this._cursor = this._cursor + 1;
             if (this._script[this._cursor] === '\n') {
@@ -248,7 +249,7 @@ export class Tokenizer {
     private isPartOfNumber(symbol: string, currentTokens: Token[]): boolean {
         if (symbol === '-' && !this.tokenText.length) {
             // '-' needs to be handled e.g. -3; 2 + -2 etc
-            const prevToken = (currentTokens.length !== 0)? currentTokens[currentTokens.length - 1] : null;
+            const prevToken = (currentTokens.length !== 0) ? currentTokens[currentTokens.length - 1] : null;
             return prevToken === null || (getTokenType(prevToken) === TokenTypes.Operator && getTokenValue(prevToken) !== ')');
         } else if (symbol === '.' && this.parseNumberOrNull(this.tokenText) !== null) {
             return true;

@@ -134,10 +134,7 @@ export class Evaluator {
             return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10], fps[11], fps[12], fps[13], fps[14]);
         }
 
-
-        if (fps.length > 15) {
-            throw Error('Function has too many parameters. Current limitation is 10');
-        }
+        throw Error('Function has too many parameters. Current limitation is 15');
 
     }
 
@@ -377,15 +374,15 @@ export class Evaluator {
                     const funcCallNode = nestedProp as FunctionCallNode;
                     const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
 
-                    if (typeof func !== 'function') {
-                        throw Error(`'${funcCallNode.name}' is not a function or not defined.`)
-                    }
-
-                    if (func === undefined
+                    if ((func === undefined || func === null)
                         && (dotObject.nestedProps[i - 1] as unknown as IsNullCoelsing).nullCoelsing) {
+                        startObject = null;
                         continue;
                     }
 
+                    if (typeof func !== 'function') {
+                        throw Error(`'${funcCallNode.name}' is not a function or not defined.`)
+                    }
                     const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || []
                     startObject = this.invokeFunction(func.bind(startObject), pms, {
                         moduleName: blockContext.moduleName,

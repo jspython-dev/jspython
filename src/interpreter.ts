@@ -22,6 +22,7 @@ export class Interpreter {
     private moduleLoader?: ModuleLoader;
 
     constructor() { }
+
     static create(): Interpreter {
         return new Interpreter();
     }
@@ -34,11 +35,11 @@ export class Interpreter {
         return this._lastExecutionContext;
     }
 
-    cleanUp() {
+    cleanUp(): void {
         this._lastExecutionContext = null;
     }
 
-    jsPythonInfo() {
+    jsPythonInfo(): string {
         return INITIAL_SCOPE.jsPython();
     }
 
@@ -135,36 +136,23 @@ export class Interpreter {
         return await this.evalAsync(ast, globalScope, entryFunctionName, moduleName);
     }
 
-
-    private assignLegacyImportContext(ast: AstBlock, context: object): Record<string, unknown> {
-        const importNodes = ast.body.filter(n => n.type === 'import') as ImportNode[];
-
-        const jsImport = importNodes
-            .filter(im => !im.module.name.startsWith('/'))
-            .map(im => this.nodeToPackage(im));
-
-        if (jsImport.length && this.packageLoader) {
-            const libraries = this.packageResolver(jsImport);
-            context = { ...context, ...libraries };
-        }
-
-        return context as Record<string, unknown>;
-    }
-
-    registerPackagesLoader(loader: PackageLoader) {
+    registerPackagesLoader(loader: PackageLoader): Interpreter {
         if (typeof loader === 'function') {
             this.packageLoader = loader;
         } else {
             throw Error('PackagesLoader');
         }
+        return this;
     }
 
-    registerModuleLoader(loader: ModuleLoader) {
+    registerModuleLoader(loader: ModuleLoader): Interpreter {
         if (typeof loader === 'function') {
             this.moduleLoader = loader;
         } else {
             throw Error('ModuleLoader should be a function');
         }
+
+        return this;
     }
 
     addFunction(funcName: string, fn: (...args: any[]) => void | any | Promise<any>): Interpreter {
@@ -181,6 +169,30 @@ export class Interpreter {
         return scripts.indexOf(`def ${funcName}`) > -1;
     }
 
+    private assignLegacyImportContext(ast: AstBlock, context: object): Record<string, unknown> {
+
+        const nodeToPackage = (im: ImportNode): PackageToImport => {
+            return {
+                name: im.module.name,
+                as: im.module.alias,
+                properties: im.parts?.map(p => ({ name: p.name, as: p.alias }))
+            } as PackageToImport
+        }
+
+        const importNodes = ast.body.filter(n => n.type === 'import') as ImportNode[];
+
+        const jsImport = importNodes
+            .filter(im => !im.module.name.startsWith('/'))
+            .map(im => nodeToPackage(im));
+
+        if (jsImport.length && this.packageLoader) {
+            const libraries = this.packageResolver(jsImport);
+            context = { ...context, ...libraries };
+        }
+
+        return context as Record<string, unknown>;
+    }
+
     private async moduleParser(modulePath: string): Promise<AstBlock> {
         if (!this.moduleLoader) {
             throw new Error('Module Loader is not registered')
@@ -188,15 +200,6 @@ export class Interpreter {
 
         const content = await this.moduleLoader(modulePath);
         return this.parse(content, modulePath);
-    }
-
-
-    private nodeToPackage(im: ImportNode): PackageToImport {
-        return {
-            name: im.module.name,
-            as: im.module.alias,
-            properties: im.parts?.map(p => ({ name: p.name, as: p.alias }))
-        } as PackageToImport
     }
 
     private packageResolver(packages: PackageToImport[]): object {

@@ -1264,7 +1264,7 @@ describe('Interpreter', () => {
     const o = {
       value: 5,
       func: (f: (x: unknown) => unknown): number => {
-        var obj = { value: 5 };
+        const obj = { value: 5 };
         f(obj);
         return obj.value + 10;
       }

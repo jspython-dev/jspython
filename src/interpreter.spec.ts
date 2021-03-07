@@ -626,6 +626,34 @@ describe('Interpreter', () => {
   }
   );
 
+  it('null coelsing functions', async () => {
+    const script = `
+    o = {}
+
+    if o?.nonExistentFunctions(23, 43) == null:
+      return 10
+
+    return 5
+    `
+    expect(await e.evaluate(script)).toBe(10);
+    expect(e.eval(script)).toBe(10);
+  }
+  );
+
+  it('return empty', async () => {
+    const script = `
+    if 1 == 1:
+      return
+
+    return 5
+    `
+    expect(await e.evaluate(script)).toBe(null);
+    expect(e.eval(script)).toBe(null);
+  }
+  );
+
+
+
   it('Import', async () => {
     const interpreter = Interpreter.create();
 
