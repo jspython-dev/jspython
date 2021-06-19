@@ -83,6 +83,8 @@ export function splitTokens(tokens: Token[], separator: string): Token[][] {
 
 export function findTokenValueIndex(tokens: Token[], predicate: (value: TokenValue) => boolean, start = 0): number {
     for (let i = start; i < tokens.length; i++) {
+        if (getTokenType(tokens[i]) === TokenTypes.LiteralString) { continue; }
+
         if (getTokenValue(tokens[i]) === '(') {
             i = skipInnerBrackets(tokens, i, '(', ')');
         } else if (getTokenValue(tokens[i]) === '[') {

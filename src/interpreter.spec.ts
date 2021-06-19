@@ -750,5 +750,40 @@ describe('Interpreter', () => {
 
   });
 
+  it('semicolon as a string', async () => {
+    const interpreter = Interpreter.create();
+    const res = await interpreter.evaluate(`"first;second".split(';')`);
+    expect(res.length).toBe(2);
+  });
+
+
+  it('literal strings as keyword confusion', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+    s = '('
+    if s == '(':
+        return 55
+  
+    return 99
+    `;
+    expect(await interpreter.evalAsync(script)).toBe(55);
+    expect(interpreter.eval(script)).toBe(55);
+  });
+
+
+  it('literal strings as keyword confusion 2', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+    s = '()'
+    if s[0] == '(' and s[s.length - 1] == ')':
+        return 55
+  
+    return 99
+    `;
+    expect(await interpreter.evalAsync(script)).toBe(55);
+    expect(interpreter.eval(script)).toBe(55);
+  });  
 
 });

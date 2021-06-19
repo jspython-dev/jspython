@@ -329,7 +329,7 @@ export class Parser {
 
     private sliceWithBrackets(a: Token[], begin: number, end: number): Token[] {
         // if expression is in brackets, then we need clean brackets
-        if (getTokenValue(a[begin]) === '(') {
+        if (getTokenValue(a[begin]) === '(' && getTokenType(a[begin]) !== TokenTypes.LiteralString) {
             begin++;
             end--;
         }
@@ -427,8 +427,8 @@ export class Parser {
         if (tokens.length === 0) {
             throw new Error(`Tokens length can't empty.`)
         }
-
-        if (getTokenValue(tokens[tokens.length - 1]) === ';') {
+        const lastToken = tokens[tokens.length - 1];
+        if (getTokenValue(lastToken) === ';' && getTokenType(lastToken) !== TokenTypes.LiteralString) {
             throw new Error(`Unexpected symbol ';' in the end`)
         }
 
