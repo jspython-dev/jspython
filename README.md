@@ -15,7 +15,7 @@ roots = arr.map(i => Math.sqrt(i)).join(",")
 
 ```
 ## Try out JSPython in a wild
-Interactive [Worksheet Systems JSPython editor](https://run.worksheet.systems/code/guest/jspy-playground?file=main.jspy) with an ability to query REST APIs and display results in Object Explorer, a configurable Excel-like data grid or just as a JSON or text.
+Interactive [Worksheet Systems JSPython editor](https://run.worksheet.systems/data-studio/app/guest/jspy-playground?file=main.jspy) with an ability to query REST APIs and display results in Object Explorer, a configurable Excel-like data grid or just as a JSON or text.
 
 ## Why would you use it?
 You can easily embed `JSPython` into your web app and your end users will benefit from a Python like scripting facility to:
@@ -86,6 +86,11 @@ Run JS Python from your Javascript App or web page.
   // result will be a string "11,12,13"
 ```
 Also, you can provide entire JS Object or even a library.
+
+## Run JSPython in a NodeJS with JSPython-CLI
+
+[JSPython-cli](https://github.com/jspython-dev/jspython-cli) is a command line tool what allows you to run JSPython in NodeJS environment
+
 
 ## License
 A permissive [BSD 3-Clause License](https://github.com/jspython-dev/jspython/blob/master/LICENSE) (c) FalconSoft Ltd.
