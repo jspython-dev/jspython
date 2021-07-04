@@ -1,6 +1,6 @@
 import typescript from 'rollup-plugin-typescript2';
 import copy from 'rollup-plugin-copy'
-import { uglify } from "rollup-plugin-uglify";
+import { terser } from "rollup-plugin-terser";
 
 const pkg = require('./package.json');
 const input = 'src/interpreter.ts';
@@ -19,7 +19,7 @@ export default [{
         { src: 'src/assets', dest: 'dist' }
       ]
     }),
-    uglify()
+    terser()
   ]
 }, {
   input,
