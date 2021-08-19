@@ -1,5 +1,8 @@
 # JSPython
-JSPython is a javascript implementation of Python language that runs in web browser or NodeJS environment. It does not transpile/compile your code into JavaScript, instead, it provides an interactive interpreter that reads Python code and carries out their instructions. With JSPython you should be able to safely use or interact any JavaScript libraries or API with a nice Python language.
+
+JSPython is a python-like syntax interpreter implemented with javascript that runs entirely in the web browser and/or in the NodeJS environment.
+
+It does not transpile/compile your code into JavaScript, instead, it provides an interactive interpreter that reads Python code and carries out their instructions. With JSPython you should be able to safely use or interact any JavaScript libraries or API with a nice Python language.
 
 ```py
 arr = [4, 9, 16]
