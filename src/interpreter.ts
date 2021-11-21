@@ -1,4 +1,5 @@
 import { AstBlock, ImportNode, Token } from './common';
+import { getImportType } from './common/utils';
 import { Evaluator } from './evaluator';
 import { EvaluatorAsync } from './evaluator/evaluatorAsync';
 import { BlockContext, Scope } from './evaluator/scope';
@@ -94,11 +95,15 @@ export class Interpreter {
         this._lastExecutionContext = blockContext.blockScope.getScope();
 
         const result = await evaluator
+            .registerJsonFileLoader(async (modulePath: string) =>
+                await (this.moduleLoader ? this.moduleLoader(modulePath)
+                    : Promise.reject('ModuleLoader is not registered')
+                )
+            )
             .registerModuleParser(async (modulePath) => await this.moduleParser(modulePath))
             .registerBlockContextFactory((moduleName, ast: AstBlock) => {
-                // this line will not be required when we have move package loaders to the evaluator
-                const newContext = this.assignLegacyImportContext(ast, scope);
-
+                // enrich context
+                const newContext = this.assignImportContext(ast, scope);
                 const moduleContext = { moduleName, blockScope: new Scope(newContext) }
                 moduleContext.blockScope.set('printExecutionContext', () => console.log(moduleContext.blockScope.getScope()));
                 moduleContext.blockScope.set('getExecutionContext', () => moduleContext.blockScope.getScope());
@@ -118,7 +123,7 @@ export class Interpreter {
     }
 
     /**
-     * Compatibility method! Will be deprecated soon
+     * Compatibility method (with v1). !
      */
     async evaluate(script: string, context: object = {}, entryFunctionName: string = ''
         , moduleName: string = 'main.jspy'): Promise<any> {
@@ -126,7 +131,7 @@ export class Interpreter {
         const ast = this.parse(script, moduleName);
 
         context = (context && typeof context === 'object') ? context : {};
-        context = this.assignLegacyImportContext(ast, context);
+        context = this.assignImportContext(ast, context);
 
         const globalScope = {
             ...this.initialScope,
@@ -169,7 +174,7 @@ export class Interpreter {
         return scripts.indexOf(`def ${funcName}`) > -1;
     }
 
-    private assignLegacyImportContext(ast: AstBlock, context: object): Record<string, unknown> {
+    private assignImportContext(ast: AstBlock, context: object): Record<string, unknown> {
 
         const nodeToPackage = (im: ImportNode): PackageToImport => {
             return {
@@ -182,7 +187,7 @@ export class Interpreter {
         const importNodes = ast.body.filter(n => n.type === 'import') as ImportNode[];
 
         const jsImport = importNodes
-            .filter(im => !im.module.name.startsWith('/'))
+            .filter(im => getImportType(im.module.name) === 'jsPackage')
             .map(im => nodeToPackage(im));
 
         if (jsImport.length && this.packageLoader) {

@@ -696,7 +696,7 @@ describe('Interpreter', () => {
     }));
 
     const res = await interpreter.evaluate(`
-    import '/service.jspy' as obj
+    import './service.jspy' as obj
 
     return obj.func1(2) + obj.multiply(2, 3)
     `);
@@ -704,19 +704,39 @@ describe('Interpreter', () => {
     expect(res).toBe(261);
   });
 
+  it('Import JSON', async () => {
+    const interpreter = Interpreter.create();
+
+    interpreter.registerModuleLoader((path => {
+      return Promise.resolve(`
+        {"x": "test1", "n": 22}
+      `);
+    }));
+
+    const res = await interpreter.evaluate(`
+    import './some.json' as obj
+
+    return obj
+    `);
+
+    expect(res.x).toBe('test1');
+    expect(res.n).toBe(22);
+  });
+
+
   it('Import with package loader', async () => {
     const interpreter = Interpreter.create();
 
     interpreter.registerPackagesLoader(path =>
-      (
-        path === 'service' ? {
-          add: (x: number, y: number) => x + y,
-          remove: (x: number, y: number) => x - y,
-          times: (x: number, y: number) => x * y,
-        } 
+    (
+      path === 'service' ? {
+        add: (x: number, y: number) => x + y,
+        remove: (x: number, y: number) => x - y,
+        times: (x: number, y: number) => x * y,
+      }
         : null
-      )
-    );    
+    )
+    );
 
     interpreter.registerModuleLoader((path => {
       return Promise.resolve(`
@@ -784,6 +804,6 @@ describe('Interpreter', () => {
     `;
     expect(await interpreter.evalAsync(script)).toBe(55);
     expect(interpreter.eval(script)).toBe(55);
-  });  
+  });
 
 });

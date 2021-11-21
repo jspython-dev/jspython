@@ -6,7 +6,7 @@ import {
     getTokenLoc,
     IfNode, ImportNode, IsNullCoelsing, LogicalOpNode, OperationFuncs, Primitive, RaiseNode, ReturnNode, SetSingleVarNode, TryExceptNode, WhileNode
 } from '../common';
-import { JspyEvalError, JspyError } from '../common/utils';
+import { JspyEvalError, JspyError, getImportType } from '../common/utils';
 import { Evaluator } from './evaluator';
 import { BlockContext, cloneContext, Scope } from './scope';
 
@@ -18,10 +18,16 @@ import { BlockContext, cloneContext, Scope } from './scope';
 export class EvaluatorAsync {
 
     private moduleParser: (modulePath: string) => Promise<AstBlock> = () => Promise.reject('Module parser is not registered!');
+    private jsonFileLoader: (jsonFilePath: string) => Promise<string> = () => Promise.reject('{}');
     private blockContextFactory?: (modulePath: string, ast: AstBlock) => BlockContext;
 
     registerModuleParser(moduleParser: (modulePath: string) => Promise<AstBlock>): EvaluatorAsync {
         this.moduleParser = moduleParser;
+        return this;
+    }
+
+    registerJsonFileLoader(jsonFileLoader: (modulePath: string) => Promise<string>): EvaluatorAsync {
+        this.jsonFileLoader = jsonFileLoader;
         return this;
     }
 
@@ -50,9 +56,15 @@ export class EvaluatorAsync {
             if (node.type === 'comment') { continue; }
             if (node.type === 'import') {
                 const importNode = node as ImportNode;
+                const iType = getImportType(importNode.module.name);
 
-                if (!importNode.module.name.startsWith('/') /* || !importNode.module.name.endsWith('.jspy')*/) {
-                    // it is not JSPY imort. It is JS and should be handled externally
+                if (iType === 'json') {
+                    const jsonValue = JSON.parse(await this.jsonFileLoader(importNode.module.name));
+                    blockContext.blockScope
+                        .set(importNode.module.alias || this.defaultModuleName(importNode.module.name), jsonValue);
+                    continue;
+                } else if (iType !== 'jspyModule') {
+                    // it is not JSPY import. It is JS and should be handled externally
                     continue;
                 }
 

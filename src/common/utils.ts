@@ -70,6 +70,15 @@ export function parseDatetimeOrNull(value: string | Date): Date | null {
     return null;
 }
 
+export function getImportType(name: string): 'jspyModule' | 'jsPackage' | 'json' {
+
+    if (name.startsWith('/') || name.startsWith('./')) {
+        return (name.endsWith('.json')) ? 'json' : 'jspyModule';
+    }
+
+    return 'jsPackage';
+}
+
 function jspyErrorMessage(error: string, module: string, line: number, column: number, message: string): string {
     return `${error}: ${module}(${line},${column}): ${message}`;
 }
@@ -99,7 +108,7 @@ export class JspyEvalError extends Error {
 }
 
 export class JspyError extends Error {
-   
+
     constructor(public module: string, public line: number, public column: number, public name: string, public message: string) {
         super();
         this.message = jspyErrorMessage("JspyError", module || 'name.jspy', line, column, message);

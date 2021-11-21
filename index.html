@@ -29,10 +29,9 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
-      import '/service.jspy' as obj
-      from '/service.jspy' import func1, func2, func3
+import '/test.json' as obj
 
-      return obj.func1(2, 3)
+return obj.x
     </div>
 
     <button onclick="tokenize()">Tokenize</button>
@@ -95,19 +94,7 @@
 
         interpreter.registerModuleLoader((path => {
           return Promise.resolve(`
-            from 'service' import add
-
-            def multiply(x, y):
-                x * y
-
-            def func1(x, y):
-              print('++>>>', getExecutionContext())
-              multiply(x, y) + add(x, y)
-            
-            name = 'test'
-            someNumber = 55
-            dateValue = dateTime()
-
+          {"x": "test22", "n": 55}
           `);
         }));
 
