@@ -69,7 +69,7 @@ Run JS Python from your Javascript App or web page.
 ### Basic
 ```js
   jsPython()
-    .evaluate('print("Hello Worls!")')
+    .evaluate('print("Hello World!")')
     .then(
         r => console.log("Result => ", r),
         e => console.log("Error => ", error)
@@ -98,3 +98,5 @@ Also, you can provide entire JS Object or even a library.
 ## License
 A permissive [BSD 3-Clause License](https://github.com/jspython-dev/jspython/blob/master/LICENSE) (c) FalconSoft Ltd.
 
+
+lf
