@@ -6,6 +6,7 @@ export interface BlockContext {
     breakCalled?: boolean;
     continueCalled?: boolean;
     returnObject?: any;
+    cancel?: boolean;
 }
 
 export function cloneContext(context: BlockContext): BlockContext {

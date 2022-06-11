@@ -82,13 +82,18 @@ export class Interpreter {
     }
 
     async evalAsync(codeOrAst: string | AstBlock, scope: Record<string, unknown> = {}
-        , entryFunctionName: string = '', moduleName: string = 'main.jspy'): Promise<unknown> {
+        , entryFunctionName: string = '', moduleName: string = 'main.jspy'
+        , ctxInitialized?: (ctx: BlockContext) => void): Promise<unknown> {
         const ast = (typeof codeOrAst === 'string') ? this.parse(codeOrAst as string, moduleName) : codeOrAst as AstBlock;
         const evaluator = new EvaluatorAsync();
         const blockContext = {
             moduleName: moduleName,
             blockScope: new Scope(scope)
         } as BlockContext;
+
+        if(typeof ctxInitialized === 'function') {
+            ctxInitialized(blockContext);
+        }
 
         blockContext.blockScope.set('printExecutionContext', () => console.log(blockContext.blockScope.getScope()));
         blockContext.blockScope.set('getExecutionContext', () => blockContext.blockScope.getScope());
@@ -126,7 +131,7 @@ export class Interpreter {
      * Compatibility method (with v1). !
      */
     async evaluate(script: string, context: object = {}, entryFunctionName: string = ''
-        , moduleName: string = 'main.jspy'): Promise<any> {
+        , moduleName: string = 'main.jspy', ctxInitialized?: (ctx: BlockContext) => void): Promise<any> {
         if (!script || !script.length) { return null; }
         const ast = this.parse(script, moduleName);
 
@@ -138,7 +143,7 @@ export class Interpreter {
             ...context
         } as Record<string, unknown>;
 
-        return await this.evalAsync(ast, globalScope, entryFunctionName, moduleName);
+        return await this.evalAsync(ast, globalScope, entryFunctionName, moduleName, ctxInitialized);
     }
 
     registerPackagesLoader(loader: PackageLoader): Interpreter {

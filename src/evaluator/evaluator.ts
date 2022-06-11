@@ -23,7 +23,13 @@ export class Evaluator {
             );
         }
 
-        for (const node of ast.body) {
+        for(let i = 0; i < ast.body.length; i++) {
+            const node = ast.body[i];
+            if(blockContext.cancel) { 
+                const loc = node.loc || [];
+                return `Cancelled. ${blockContext.moduleName}: ${loc[0]}, ${loc[1]}`; 
+            }
+            
             if (node.type === 'comment') { continue; }
             if (node.type === 'import') {
                 // we can't use it here, because loader has to be promise
