@@ -88,60 +88,9 @@ export class Evaluator {
 
     private invokeFunction(func: (...args: unknown[]) => unknown, fps: unknown[],
         loc: { moduleName: string, line: number, column: number }): unknown {
-
-        if (fps.length === 0) { return func(); }
-        if (fps.length === 1) { return func(fps[0]); }
-        if (fps.length === 2) { return func(fps[0], fps[1]); }
-        if (fps.length === 3) { return func(fps[0], fps[1], fps[2]); }
-        if (fps.length === 4) {
-            return func(fps[0], fps[1], fps[2], fps[3]);
-        }
-        if (fps.length === 5) {
-            return func(fps[0], fps[1], fps[2], fps[3], fps[4]);
-        }
-
-        if (fps.length === 6) {
-            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5]);
-        }
-
-        if (fps.length === 7) {
-            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6]);
-        }
-
-        if (fps.length === 8) {
-            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7]);
-        }
-
-        if (fps.length === 9) {
-            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8]);
-        }
-
-        if (fps.length === 10) {
-            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9]);
-        }
-
-        if (fps.length === 11) {
-            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10]);
-        }
-
-        if (fps.length === 12) {
-            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10], fps[11]);
-        }
-
-        if (fps.length === 13) {
-            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10], fps[11], fps[12]);
-        }
-
-        if (fps.length === 14) {
-            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10], fps[11], fps[12], fps[13]);
-        }
-
-        if (fps.length === 15) {
-            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10], fps[11], fps[12], fps[13], fps[14]);
-        }
-
-        throw Error('Function has too many parameters. Current limitation is 15');
-
+        
+        return func(...args);
+        
     }
 
     private evalNode(node: AstNode, blockContext: BlockContext): unknown {
