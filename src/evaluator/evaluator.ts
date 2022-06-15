@@ -139,8 +139,12 @@ export class Evaluator {
         if (fps.length === 15) {
             return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10], fps[11], fps[12], fps[13], fps[14]);
         }
+        
+        if (fps.legth === 16) {
+            return func(fps[0], fps[1], fps[2], fps[3], fps[4], fps[5], fps[6], fps[7], fps[8], fps[9], fps[10], fps[11], fps[12], fps[13], fps[14], fps[15]);
+        }
 
-        throw Error('Function has too many parameters. Current limitation is 15');
+        throw Error('Function has too many parameters. Current limitation is 16');
 
     }
 
