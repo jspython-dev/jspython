@@ -89,7 +89,7 @@ export class Evaluator {
     private invokeFunction(func: (...args: unknown[]) => unknown, fps: unknown[],
         loc: { moduleName: string, line: number, column: number }): unknown {
         
-        return func(...args);
+        return func(...fps);
         
     }
 
