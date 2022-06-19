@@ -2,7 +2,7 @@ import { parseDatetimeOrNull } from "./common/utils";
 
 export const INITIAL_SCOPE = {
     jsPython(): string {
-        return [`JSPython v2.1.8`, "(c) 2022 FalconSoft Ltd. All rights reserved."].join('\n')
+        return `JSPython v2.1.9 (c) 2022 FalconSoft Ltd. All rights reserved.`;
     },
     dateTime: (str: number | string | any = null) => parseDatetimeOrNull(str) || new Date(),
     range: range,

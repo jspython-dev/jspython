@@ -1,18 +1,26 @@
 
+export interface CancellationToken {
+    cancel?: boolean;
+    message?: string;
+}
+
 export interface BlockContext {
     moduleName: string;
     blockScope: Scope;
+    cancellationToken: CancellationToken;
     returnCalled?: boolean;
     breakCalled?: boolean;
     continueCalled?: boolean;
     returnObject?: any;
-    cancel?: boolean;
 }
 
 export function cloneContext(context: BlockContext): BlockContext {
     return {
         moduleName: context.moduleName,
-        blockScope: context.blockScope.clone()
+        blockScope: context.blockScope.clone(),
+        // this instance should never change. Otherwise cancel won't work
+        cancellationToken: context.cancellationToken
+
     } as BlockContext;
 }
 

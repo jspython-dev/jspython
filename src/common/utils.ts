@@ -1,7 +1,8 @@
 import { Token } from "./token-types";
 
-export function parseDatetimeOrNull(value: string | Date): Date | null {
+export function parseDatetimeOrNull(value: string | number | Date): Date | null {
     if (!value) { return null; }
+    if(typeof value === 'number') { return new Date(value); }
     if (value instanceof Date && !isNaN(value.valueOf())) { return value; }
     // only string values can be converted to Date
     if (typeof value !== 'string') { return null; }

@@ -62,6 +62,7 @@ export class Interpreter {
 
         const blockContext = {
             moduleName: moduleName,
+            cancellationToken: { cancel: false },
             blockScope: new Scope(scope)
         } as BlockContext;
 
@@ -88,6 +89,7 @@ export class Interpreter {
         const evaluator = new EvaluatorAsync();
         const blockContext = {
             moduleName: moduleName,
+            cancellationToken: { cancel: false },
             blockScope: new Scope(scope)
         } as BlockContext;
 
@@ -109,7 +111,11 @@ export class Interpreter {
             .registerBlockContextFactory((moduleName, ast: AstBlock) => {
                 // enrich context
                 const newContext = this.assignImportContext(ast, scope);
-                const moduleContext = { moduleName, blockScope: new Scope(newContext) }
+                const moduleContext = { 
+                    moduleName, 
+                    blockScope: new Scope(newContext), 
+                    cancellationToken: blockContext.cancellationToken 
+                };
                 moduleContext.blockScope.set('printExecutionContext', () => console.log(moduleContext.blockScope.getScope()));
                 moduleContext.blockScope.set('getExecutionContext', () => moduleContext.blockScope.getScope());
                 return moduleContext;

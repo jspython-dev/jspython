@@ -25,9 +25,14 @@ export class Evaluator {
 
         for(let i = 0; i < ast.body.length; i++) {
             const node = ast.body[i];
-            if(blockContext.cancel) { 
+            if(blockContext.cancellationToken.cancel) { 
                 const loc = node.loc || [];
-                return `Cancelled. ${blockContext.moduleName}: ${loc[0]}, ${loc[1]}`; 
+
+                if(!blockContext.cancellationToken.message){
+                    blockContext.cancellationToken.message = `Cancelled. ${blockContext.moduleName}: ${loc[0]}, ${loc[1]}`
+                }
+
+                return blockContext.cancellationToken.message;
             }
             
             if (node.type === 'comment') { continue; }
