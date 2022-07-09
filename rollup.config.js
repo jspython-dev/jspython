@@ -1,9 +1,10 @@
 import typescript from 'rollup-plugin-typescript2';
 import copy from 'rollup-plugin-copy'
 import { terser } from "rollup-plugin-terser";
+import nodePolyfills from 'rollup-plugin-polyfill-node';
 
 const pkg = require('./package.json');
-const input = 'src/interpreter.ts';
+const input = 'src/runtime/Interpreter.ts';
 
 export default [{
   input,
@@ -27,7 +28,8 @@ export default [{
   external: [],
   plugins: [
     typescript({
-      clean: true
-    })
+      clean: true,
+    }),
+    nodePolyfills( /* options */ )
   ]
 }];

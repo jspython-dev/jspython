@@ -57,19 +57,19 @@ We haven't implemented all the features available in Python yet. However, we do 
 Zero install !
 The simplest way to get started, without anything to install, is to use the distribution available online through jsDelivr. You can choose the latest stable release :
 ```
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jspython-interpreter/dist/jspython-interpreter.min.js">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jspy-interpreter/dist/jspy-interpreter.min.js">
 </script>
 ```
 
 Or local install
 ```
-npm install jspython-interpreter
+npm install jspy-interpreter
 ```
 Run JS Python from your Javascript App or web page.
 ### Basic
 ```js
   jsPython()
-    .evaluate('print("Hello World!")')
+    .evalAsync('print("Hello World!")')
     .then(
         r => console.log("Result => ", r),
         e => console.log("Error => ", error)
@@ -85,7 +85,7 @@ Run JS Python from your Javascript App or web page.
 
   const result = await jsPython()
     .addFunction("add", (a, b) => a + b)
-    .evaluate(script, context);
+    .evalAsync(script, context);
   // result will be a string "11,12,13"
 ```
 Also, you can provide an entire JS Object or even a library.

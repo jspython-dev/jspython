@@ -11,7 +11,7 @@ var PythonHighlightRules = function() {
     );
 
     var builtinConstants = (
-        "true|false|True|False"
+        "true|false|true|false"
     );
 
     var builtinFunctions = (

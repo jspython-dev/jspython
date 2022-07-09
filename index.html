@@ -3,7 +3,7 @@
 <head>
   <title>JSPython dev</title>
   <script src="./node_modules/ace-builds/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
-  <script src="./dist/jspython-interpreter.js"></script>
+  <script src="./dist/jspy-interpreter.js"></script>
   <script src="./dist/assets/mode-jspython.js"></script>
   <style>
     .container {
@@ -29,9 +29,15 @@
   <div class="container">
     <h4>JSPython development console</h4>
     <div id="editor">
-import '/test.json' as obj
+# The code in this window is executed in the JSPython interpreter
+# It all runs in the browser.
+# You can use the JSPython interpreter to write your own code
 
-return obj.x
+def sum(a,b):
+  return a + b
+  
+sum(10,20)
+  
     </div>
 
     <button onclick="tokenize()">Tokenize</button>
@@ -55,13 +61,13 @@ return obj.x
     console.log({ interpreter });
 
     function tokenize() {
-      tokenizer = (s) => console.log(`tokens => ${s}`, interpreter().tokenize(s))
 
+      ongotpointercapture
+      tokenizer = (s) => console.log(`tokens => ${s}`, Tokenizer.getAllTokens(code))
       const scripts = editor.getValue();
       try {
-        const result = interpreter
-          .tokenize(scripts)
-          .map((t, i) => `${t[1]} : '${t[0]}'`)
+        const result = jspython.getAllTokens(scripts)
+          .map((t, i) => jspython.formatToken(t))
           .join('\n');
 
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : result;
@@ -92,52 +98,9 @@ return obj.x
       const scripts = editor.getValue();
       try {
 
-        interpreter.registerModuleLoader((path => {
-          return Promise.resolve(`
-          {"x": "test22", "n": 55}
-          `);
-        }));
 
-        interpreter.registerPackagesLoader(path =>
-          (
-            path === 'service' ? {
-              add: (x, y) => x + y,
-              remove: (x, y) => x - y,
-              times: (x, y) => x * y,
-            } 
-            : null
-          )
-        );
-        const scope = {
-          Math,
-          errorFunc: p => {
-
-            if (p === 6) {
-              throw new Error(`Don't like '6'`);
-            }
-
-            console.log('allGood');
-          },
-
-          sqrPromise: (fn) => new Promise((s, f) => setTimeout(() => s(fn * fn), 5)),
-          print: (...args) => { console.log(...args); return args.length > 0 ? args[0] : null; },
-          x: 10,
-          o: {
-            f1: (x, y) => { return { x, y }; },
-            v1: 55,
-            sub1: {
-              subValue: 88
-            }
-          }
-        };
         const result = await interpreter
-          .evaluate(scripts, scope, undefined, 'index1.jspy');
-
-        // const result = jsPython()
-        //   .eval(scripts, scope);
-
-        // const result = await jsPython()
-        //   .evalAsync(scripts, scope);
+          .evalAsync(scripts, undefined);
 
         const data = typeof result === 'object' ? JSON.stringify(result, null, '\t') : String(result);
 

@@ -4,10 +4,10 @@ import livereload from 'rollup-plugin-livereload'
 
 export default {
 
-  input: 'src/interpreter.ts',
+  input: 'src/runtime/JspyInterpreter.ts',
   output: {
     name: 'jspython',
-    file: 'dist/jspython-interpreter.js',
+    file: 'dist/jspy-interpreter.js',
     format: 'umd',
     sourcemap: true,
     globals: {}

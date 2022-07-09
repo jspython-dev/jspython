@@ -1,613 +1,296 @@
-import {
-    BinOpNode, ConstNode, AstBlock, Token, ParserOptions, AstNode, Operators, AssignNode, TokenTypes,
-    GetSingleVarNode, FunctionCallNode, getTokenType, getTokenValue, isTokenTypeLiteral, getStartLine,
-    getStartColumn, getEndColumn, getEndLine, findOperators, splitTokens, DotObjectAccessNode, BracketObjectAccessNode,
-    findTokenValueIndex, FunctionDefNode, CreateObjectNode, ObjectPropertyInfo, CreateArrayNode, ArrowFuncDefNode,
-    ExpressionOperators, IfNode, ForNode, WhileNode, ImportNode, NameAlias, ContinueNode, BreakNode, ReturnNode, CommentNode,
-    getTokenLoc, OperationTypes, LogicalNodeItem, LogicalOperators, LogicalOpNode, ComparisonOperators, TryExceptNode, ExceptBody, RaiseNode
-} from '../common';
-import { JspyParserError } from '../common/utils';
-
-class InstructionLine {
-    readonly tokens: Token[] = [];
-
-    startLine(): number {
-        return getStartLine(this.tokens[0]);
-    }
-
-    startColumn(): number {
-        return getStartColumn(this.tokens[0]);
-    }
-
-    endLine(): number {
-        return getEndLine(this.tokens[this.tokens.length - 1]);
-    }
-
-    endColumn(): number {
-        return getEndColumn(this.tokens[this.tokens.length - 1]);
-    }
-}
+import { BlockType, ObjectPropertyInfo } from '../ast/AstTypes';
+import { AstBlock } from "../ast/AstBlock";
+import { GetVariableNode as GetVariable } from "../ast/GetVariable";
+import { ConstNode } from "../ast/ConstNode";
+import { AstNode } from "../ast/AstNode";
+import { Statements } from './Operators';
+import { OperatorPrecedence } from "./OperatorPrecedence";
+import { Tokenizer } from './Tokenizer';
+import { Token, TokenType, NoLoc, LiteralToken, printable, IdentifierToken, OperatorToken, notInCurrentBlock, endOfFile } from './Tokens';
+import { JspyParserError } from './Utils';
+import { binaryOperatorsBySymbol, unaryOperatorsBySymbol } from './OperatorsMap';
 
 export class Parser {
-    private _currentToken: Token | null = null;
-    private _moduleName = '';
+    private tokenizer: Tokenizer;
+
+    private tokenizerCurrentToken: Token = endOfFile;
+    public currentToken: Token = notInCurrentBlock;
+    private currentBlock!: AstBlock
+    private previousBlocks: AstBlock[] = [];
+
+    private inExpression = 0;
+
+    constructor(tokenizerOrScript: Tokenizer | string, readonly moduleName = 'main.jspy', readonly moduleType: BlockType = "module") {
+        if (typeof tokenizerOrScript === "string") {
+            this.tokenizer = new Tokenizer(tokenizerOrScript);
+        } else this.tokenizer = tokenizerOrScript;
+        this.currentBlock = new AstBlock('unknown');
+        this.nextToken();
+    }
+
+    declareVariable(variableName: string) {
+        this.currentBlock.declareVariable(variableName);
+    }
+
+    computeCurrentToken() {
+        this.currentToken = (this.inExpression > 0 || this.tokenizerCurrentToken.startColumn >= this.currentBlock.column)
+            ? this.tokenizerCurrentToken : notInCurrentBlock;
+    }
+
+    nextToken() {
+        this.tokenizerCurrentToken = this.tokenizer.nextToken();
+        while (this.tokenizerCurrentToken.tokenType === TokenType.Comment) {
+            this.tokenizerCurrentToken = this.tokenizer.nextToken();
+        }
+        this.computeCurrentToken()
+    }
+
+    parseWholeFile(): AstBlock {
+        const result = this.parseAstBlock();
+        while (this.currentToken.tokenType !== TokenType.EndOfFile) {
+            switch (this.currentToken.tokenType) {
+                case TokenType.Comment:
+                    this.nextToken();
+                default:
+                    throw this.parsingError({ expected: "a new line or the end of the file." });
+            }
+        }
+        return result;
+
+    }
 
     /**
      * Parses tokens and return Ast - Abstract Syntax Tree for jsPython code
      * @param tokens tokens
      * @param options parsing options. By default it will exclude comments and include LOC (Line of code)
      */
-    parse(tokens: Token[], name = 'main.jspy', type = 'module'): AstBlock {
-        this._moduleName = name;
-        const ast = { name, type, funcs: [], body: [] } as AstBlock;
-
-        if (!tokens || !tokens.length) { return ast; }
-
+    parseAstBlock(): AstBlock {
         try {
-
-            // group all tokens into an Instruction lines.
-            const instructions = this.tokensToInstructionLines(tokens, 1);
-
-            // process all instructions
-            this.instructionsToNodes(instructions, ast);
-
+            return this.parseBlock(this.moduleType);
         } catch (err) {
-            const token = this._currentToken ?? {} as Token
-            throw new JspyParserError(ast.name, getStartLine(token), getStartColumn(token), err.message || err)
+            const token = this.currentToken ?? {} as Token
+            throw new JspyParserError(this.moduleName, token.startLine, token.startColumn,
+                (err as any)?.message || err)
         }
-        return ast;
     }
 
-    private instructionsToNodes(instructions: InstructionLine[], ast: AstBlock): void {
+    parseBlock(blockType: BlockType): AstBlock {
+        const startToken = this.tokenizerCurrentToken;
+        const startColumn = startToken.startColumn;
+        const astBlock: AstBlock = new AstBlock(blockType, undefined, undefined, startColumn);
 
-        const getBody = (tokens: Token[], startTokenIndex: number): AstNode[] => {
-            const instructionLines = this.tokensToInstructionLines(tokens, getStartLine(tokens[startTokenIndex]));
-            const bodyAst = { name: ast.name, body: [] as AstNode[], funcs: [] as AstNode[] } as AstBlock;
-            this.instructionsToNodes(instructionLines, bodyAst);
-            return bodyAst.body;
-        }
+        if (startColumn > this.currentBlock.column) {
+            this.previousBlocks.push(this.currentBlock);
+            this.currentBlock = astBlock;
+            this.computeCurrentToken()
 
-        const findIndexes = (tkns: Token[], operation: OperationTypes, result: number[]): boolean => {
-            result.splice(0, result.length);
-            findOperators(tkns, operation).forEach(r => result.push(r));
-            return !!result.length;
-        }
-
-        for (let i = 0; i < instructions.length; i++) {
-            const instruction = instructions[i];
-
-            // remove comments
-            let tt = 0;
-            while (tt < instruction.tokens.length) {
-                if (getTokenType(instruction.tokens[tt]) === TokenTypes.Comment) {
-                    instruction.tokens.splice(tt, 1);
-                } else {
-                    tt++;
-                }
-            }
-            if (!instruction.tokens.length) {
-                continue;
-            }
-
-            const firstToken = instruction.tokens[0];
-            const secondToken = instruction.tokens.length > 1 ? instruction.tokens[1] : null;
-            this._currentToken = firstToken;
-
-            const logicOpIndexes: number[] = [];
-            const comparisonOpIndexs: number[] = [];
-            const assignTokenIndexes: number[] = [];
-
-            if (getTokenType(firstToken) === TokenTypes.Comment) {
-                ast.body.push(new CommentNode(getTokenValue(firstToken) as string, getTokenLoc(firstToken)));
-            } else if (getTokenValue(firstToken) === 'def'
-                || (getTokenValue(firstToken) === "async" && getTokenValue(secondToken) === "def")) {
-
-                const isAsync = getTokenValue(firstToken) === "async";
-                const funcName = getTokenValue(instruction.tokens[isAsync ? 2 : 1]) as string;
-                const paramsTokens = instruction.tokens.slice(
-                    instruction.tokens.findIndex(tkns => getTokenValue(tkns) === '(') + 1,
-                    instruction.tokens.findIndex(tkns => getTokenValue(tkns) === ')')
-                );
-
-                const params = splitTokens(paramsTokens, ',').map(t => getTokenValue(t[0]) as string);
-
-                const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
-
-                if (endDefOfDef === -1) {
-                    throw (`Can't find : for def`)
-                }
-
-                const instructionLines = this.tokensToInstructionLines(instruction.tokens, getStartLine(instruction.tokens[endDefOfDef + 1]));
-                const funcAst = {
-                    name: funcName,
-                    body: [] as AstNode[],
-                    funcs: [] as AstNode[]
-                } as AstBlock;
-                this.instructionsToNodes(instructionLines, funcAst);
-
-                ast.funcs.push(new FunctionDefNode(funcAst, params, isAsync, getTokenLoc(instruction.tokens[0])))
-
-            } else if (getTokenValue(firstToken) === 'if') {
-
-                const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
-
-                if (endDefOfDef === -1) {
-                    throw (`Can't find : for if`)
-                }
-
-                const ifBody = getBody(instruction.tokens, endDefOfDef + 1);
-                const conditionTokens = instruction.tokens.slice(1, endDefOfDef);
-
-                const conditionNode = (findIndexes(conditionTokens, OperationTypes.Logical, logicOpIndexes)) ?
-                    this.groupLogicalOperations(logicOpIndexes, conditionTokens)
-                    :
-                    this.createExpressionNode(conditionTokens);
-
-                let elseBody: AstNode[] | undefined = undefined;
-                if (instructions.length > i + 1
-                    && getTokenValue(instructions[i + 1].tokens[0]) === 'else'
-                    && getTokenValue(instructions[i + 1].tokens[1]) === ':') {
-                    elseBody = getBody(instructions[i + 1].tokens, 2);
-                    i++;
-                }
-
-                ast.body.push(new IfNode(conditionNode, ifBody, elseBody, getTokenLoc(firstToken)))
-
-            } else if (getTokenValue(firstToken) === 'try') {
-
-                if (getTokenValue(instruction.tokens[1]) !== ':') {
-                    throw (`'try' statement should be followed by ':'`)
-                }
-
-                const tryBody = getBody(instruction.tokens, 2);
-                const excepts: ExceptBody[] = [];
-
-                let elseBody: AstNode[] | undefined = undefined;
-                let finallyBody: AstNode[] | undefined = undefined;
-
-                while (instructions.length > i + 1
-                    && (
-                        getTokenValue(instructions[i + 1].tokens[0]) === 'else'
-                        || getTokenValue(instructions[i + 1].tokens[0]) === 'except'
-                        || getTokenValue(instructions[i + 1].tokens[0]) === 'finally'
-                    )
-                ) {
-                    if (getTokenValue(instructions[i + 1].tokens[0]) === 'else') {
-                        if (elseBody) {
-                            throw new Error(`Only one 'else' is allowed in a 'try'`)
-                        }
-
-                        elseBody = getBody(instructions[i + 1].tokens, 2);
-                    }
-
-                    if (getTokenValue(instructions[i + 1].tokens[0]) === 'finally') {
-                        if (finallyBody) {
-                            throw new Error(`Only one 'else' is allowed in a 'try'`)
-                        }
-
-                        finallyBody = getBody(instructions[i + 1].tokens, 2);
-                    }
-
-                    if (getTokenValue(instructions[i + 1].tokens[0]) === 'except') {
-
-                        const endIndex = findTokenValueIndex(instructions[i + 1].tokens, v => v === ':');
-                        const except = {} as ExceptBody;
-
-                        if (endIndex === 2) {
-                            except.error = { name: getTokenValue(instructions[i + 1].tokens[1]) } as NameAlias;
-                        } else if (endIndex === 3) {
-                            except.error = {
-                                name: getTokenValue(instructions[i + 1].tokens[1]),
-                                alias: getTokenValue(instructions[i + 1].tokens[2]),
-                            } as NameAlias;
-                        } else if (endIndex === 4) {
-                            except.error = {
-                                name: getTokenValue(instructions[i + 1].tokens[1]),
-                                alias: getTokenValue(instructions[i + 1].tokens[3]),
-                            } as NameAlias;
-                        } else if (endIndex !== 1) {
-                            throw new Error(`Incorrect 'except:' statement. Valid stats: (except: or except Error: or except Error as e:)`)
-                        }
-
-                        except.body = getBody(instructions[i + 1].tokens, endIndex + 1);
-
-                        excepts.push(except);
-                    }
-
-                    i++;
-                }
-
-                if (!excepts.length) {
-                    throw new Error('Except: is missing');
-                }
-
-                ast.body.push(new TryExceptNode(tryBody, excepts, elseBody, finallyBody, getTokenLoc(firstToken)))
-
-            } else if (getTokenValue(firstToken) === 'continue') {
-                ast.body.push(new ContinueNode());
-            } else if (getTokenValue(firstToken) === 'break') {
-                ast.body.push(new BreakNode());
-            } else if (getTokenValue(firstToken) === 'return') {
-                ast.body.push(new ReturnNode(
-                    instruction.tokens.length > 1 ? this.createExpressionNode(instruction.tokens.slice(1)) : undefined,
-                    getTokenLoc(firstToken))
-                );
-            } else if (getTokenValue(firstToken) === 'raise') {
-
-                if (instruction.tokens.length === 1) {
-                    throw new Error(`Incorrect 'raise' usage. Please specify error name and message `);
-                }
-                const errorName = getTokenValue(instruction.tokens[1]) as string;
-
-                const errorMessage = (
-                    instruction.tokens.length == 5
-                    && getTokenValue(instruction.tokens[2]) === "("
-                    && getTokenValue(instruction.tokens[4]) === ")"
-                ) ? getTokenValue(instruction.tokens[3]) as string
-                    : undefined;
-
-                ast.body.push(new RaiseNode(errorName, errorMessage, getTokenLoc(firstToken)));
-            } else if (getTokenValue(firstToken) === 'for') {
-                const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
-
-                if (endDefOfDef === -1) {
-                    throw (`Can't find : for if`)
-                }
-
-                const itemVarName = getTokenValue(instruction.tokens[1]) as string;
-                const sourceArray = this.createExpressionNode(instruction.tokens.slice(3, endDefOfDef))
-                const forBody = getBody(instruction.tokens, endDefOfDef + 1);
-
-                ast.body.push(new ForNode(sourceArray, itemVarName, forBody, getTokenLoc(firstToken)))
-
-            } else if (getTokenValue(firstToken) === 'while') {
-
-                const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
-
-                if (endDefOfDef === -1) {
-                    throw (`Can't find : for [while]`)
-                }
-
-
-                const conditionTokens = instruction.tokens.slice(1, endDefOfDef);
-                const conditionNode = (findIndexes(conditionTokens, OperationTypes.Logical, logicOpIndexes)) ?
-                    this.groupLogicalOperations(logicOpIndexes, conditionTokens)
-                    :
-                    this.createExpressionNode(conditionTokens);
-
-                const body = getBody(instruction.tokens, endDefOfDef + 1);
-
-                ast.body.push(new WhileNode(conditionNode, body, getTokenLoc(firstToken)));
-
-            } else if (getTokenValue(firstToken) === 'import') {
-                let asIndex = findTokenValueIndex(instruction.tokens, v => v === 'as');
-                if (asIndex < 0) {
-                    asIndex = instruction.tokens.length;
-                }
-
-                const module = {
-                    name: instruction.tokens.slice(1, asIndex).map(t => getTokenValue(t)).join(''),
-                    alias: instruction.tokens.slice(asIndex + 1).map(t => getTokenValue(t)).join('') || undefined
-                } as NameAlias;
-
-                const body = {} as AstBlock; // empty for now
-                ast.body.push(new ImportNode(module, body, undefined, getTokenLoc(firstToken)))
-            } else if (getTokenValue(firstToken) === 'from') {
-                const importIndex = findTokenValueIndex(instruction.tokens, v => v === 'import');
-                if (importIndex < 0) {
-                    throw Error(`'import' must follow 'from'`);
-                }
-
-                const module = {
-                    name: instruction.tokens.slice(1, importIndex).map(t => getTokenValue(t)).join('')
-                } as NameAlias;
-
-                const parts = splitTokens(instruction.tokens.slice(importIndex + 1), ',')
-                    .map(t => {
-                        return {
-                            name: getTokenValue(t[0]),
-                            alias: (t.length === 3) ? getTokenValue(t[2]) : undefined
-                        } as NameAlias
+            while (this.currentToken.tokenType !== TokenType.EndOfFile) {
+                if (this.currentToken.startColumn < startColumn) break;
+                else if (this.currentToken.startColumn > startColumn) {
+                    if (this.inExpression > 0) break;
+                    else throw this.parsingError({
+                        errorName: 'Indentation Error',
+                        expected: `an instruction starting at column ${this.currentToken.startColumn}`
                     });
-
-                const body = {} as AstBlock; // empty for now
-
-                ast.body.push(new ImportNode(module, body, parts, getTokenLoc(firstToken)))
-            } else if (findIndexes(instruction.tokens, OperationTypes.Assignment, assignTokenIndexes)) {
-                const assignTokens = splitTokens(instruction.tokens, '=');
-                const target = this.createExpressionNode(assignTokens[0]);
-                const source = this.createExpressionNode(assignTokens[1]);
-                ast.body.push(new AssignNode(target, source, getTokenLoc(assignTokens[0][0])));
-            } else if (findIndexes(instruction.tokens, OperationTypes.Logical, logicOpIndexes)) {
-                ast.body.push(this.groupLogicalOperations(logicOpIndexes, instruction.tokens));
-            } else {
-                ast.body.push(this.createExpressionNode(instruction.tokens))
+                }
+                const statement = this.parseStatementOrExpression();
+                astBlock.nodes.push(statement);
             }
+            if (this.currentBlock !== astBlock) {
+                throw Error("Internal error, Block mismatch.");
+            }
+            this.currentBlock = this.previousBlocks.pop()!;
+            this.computeCurrentToken()
+        }
+        return astBlock;
+    }
 
+    expectNewLine() {
+        while (this.currentToken.tokenType !== TokenType.EndOfFile) {
+            switch (this.currentToken.tokenType) {
+                case TokenType.Comment:
+                    this.nextToken();
+                default:
+                    if (this.currentToken.startColumn <= this.currentBlock.column) return
+                    throw this.parsingError({ expected: "a new line or the end of the file." });
+            }
         }
     }
 
-    private sliceWithBrackets(a: Token[], begin: number, end: number): Token[] {
-        // if expression is in brackets, then we need clean brackets
-        if (getTokenValue(a[begin]) === '(' && getTokenType(a[begin]) !== TokenTypes.LiteralString) {
-            begin++;
-            end--;
-        }
 
-        return a.slice(begin, end);
+    parseStatementOrExpression(): AstNode {
+        const currentToken = this.currentToken;
+        const statement = currentToken.identifier ? (Statements as any)[currentToken.identifier] : null;
+        let result: AstNode;
+        if (statement) {
+            result = statement.parseAST(this);
+        } else {
+            result = this.parseExpression(OperatorPrecedence.Min);
+        }
+        return result;
     }
 
-    private groupComparisonOperations(indexes: number[], tokens: Token[]): AstNode {
-        const start = 0;
-
-        let leftNode: AstNode | null = null;
-        for (let i = 0; i < indexes.length; i++) {
-            const opToken = getTokenValue(tokens[indexes[i]]) as ComparisonOperators;
-            leftNode = (leftNode) ? leftNode : this.createExpressionNode(this.sliceWithBrackets(tokens, start, indexes[i]))
-
-            const endInd = (i + 1 < indexes.length) ? indexes[i + 1] : tokens.length;
-            const rightNode = this.createExpressionNode(this.sliceWithBrackets(tokens, indexes[i] + 1, endInd))
-
-            leftNode = new BinOpNode(leftNode, opToken, rightNode, getTokenLoc(tokens[0]));
+    parseExpression(minPrecedence: OperatorPrecedence = OperatorPrecedence.Min): AstNode {
+        let left = this.parseLeft();
+        while (this.currentToken.tokenType !== TokenType.EndOfFile) {
+            const opToken = this.currentToken;
+            const identifierOrOperator = opToken.operatorSymbol || opToken.identifier;
+            if (identifierOrOperator) {
+                const nextOperator = binaryOperatorsBySymbol[identifierOrOperator];
+                if (nextOperator?.precedence > minPrecedence) {
+                    left = nextOperator.parseAST(this, left, opToken, nextOperator.precedence);
+                } else return left;
+            } else return left;
         }
-
-        return leftNode as AstNode;
+        return left;
     }
 
-    private groupLogicalOperations(logicOp: number[], tokens: Token[]): LogicalOpNode {
-        let start = 0;
-        const logicItems: LogicalNodeItem[] = [];
-        for (let i = 0; i < logicOp.length; i++) {
-            const opToken = tokens[logicOp[i]];
-            const logicalSlice = this.sliceWithBrackets(tokens, start, logicOp[i]);
-            logicItems.push({
-                node: this.createExpressionNode(logicalSlice),
-                op: getTokenValue(opToken) as LogicalOperators
-            });
 
-            start = logicOp[i] + 1;
-        }
-
-        logicItems.push({
-            node: this.createExpressionNode(this.sliceWithBrackets(tokens, start, tokens.length))
-        } as LogicalNodeItem);
-
-        const lop = new LogicalOpNode(logicItems, getTokenLoc(tokens[0]));
-        return lop;
-    }
-
-    private tokensToInstructionLines(tokens: Token[], startLine: number): InstructionLine[] {
-        const lines: InstructionLine[] = [];
-
-        let column = 0;
-        let currentLine = startLine;
-        let line = new InstructionLine();
-        for (let i = 0; i < tokens.length; i++) {
-            const token = tokens[i];
-            const sLine = getStartLine(token);
-            const sColumn = getStartColumn(token);
-            const value = getTokenValue(token);
-            this._currentToken = token;
-
-            if (sLine >= startLine) {
-
-                if (currentLine !== sLine) {
-                    currentLine = sLine;
-                }
-
-                if (column === sColumn && !")}]".includes(value as string)) {
-                    currentLine = sLine;
-                    lines.push(line);
-                    line = new InstructionLine();
-                }
-
-                line.tokens.push(token);
-
-                // first line defines a minimum indent
-                if (column === 0) {
-                    column = sColumn;
-                }
-
-                // stop looping through if line has less indent
-                // it means the corrent block finished
-                if (sColumn < column) {
-                    break;
-                }
-            }
-        }
-
-        if (line.tokens.length) {
-            lines.push(line)
-        }
-
-        return lines;
-    }
-
-    private createExpressionNode(tokens: Token[], prevNode: AstNode | null = null): AstNode {
-        if (tokens.length === 0) {
-            throw new Error(`Tokens length can't empty.`)
-        }
-        const lastToken = tokens[tokens.length - 1];
-        if (getTokenValue(lastToken) === ';' && getTokenType(lastToken) !== TokenTypes.LiteralString) {
-            throw new Error(`Unexpected symbol ';' in the end`)
-        }
-
-        this._currentToken = tokens[0];
-
-        // const or variable
-        if (tokens.length === 1
-            || (tokens.length === 2 && getTokenValue(tokens[1]) === '?')
-        ) {
-            const firstToken = tokens[0];
-            const tokenType = getTokenType(firstToken);
-
-            if (isTokenTypeLiteral(tokenType)) {
-                return new ConstNode(firstToken);
-            } else if (tokenType === TokenTypes.Identifier) {
-                return new GetSingleVarNode(firstToken, tokens.length === 2 && getTokenValue(tokens[1]) === '?' || undefined);
-            }
-
-            throw Error(`Unhandled single token: '${JSON.stringify(firstToken)}'`);
-        }
-
-        // arrow function
-        const arrowFuncParts = splitTokens(tokens, '=>');
-        if (arrowFuncParts.length > 1) {
-            const pArray = getTokenValue(arrowFuncParts[0][0]) === '(' ?
-                arrowFuncParts[0].splice(1, arrowFuncParts[0].length - 2)
-                : arrowFuncParts[0];
-            const params = splitTokens(pArray, ',').map(t => getTokenValue(t[0]) as string);
-
-            const instructionLines = this.tokensToInstructionLines(arrowFuncParts[1], 0);
-            const funcAst = {
-                name: this._moduleName,
-                body: [] as AstNode[],
-                funcs: [] as AstNode[]
-            } as AstBlock;
-            this.instructionsToNodes(instructionLines, funcAst);
-
-            return new ArrowFuncDefNode(funcAst, params, getTokenLoc(tokens[0]));
-        }
-
-        // comparison operations
-        const comparissonIndexes = findOperators(tokens, OperationTypes.Comparison);
-        if (comparissonIndexes.length) {
-            return this.groupComparisonOperations(comparissonIndexes, tokens);
-        }
-
-        // create arithmetic expression
-        const ops = findOperators(tokens);
-        if (ops.length) {
-
-            let prevNode: AstNode | null = null;
-            for (let i = 0; i < ops.length; i++) {
-                const opIndex = ops[i];
-                const op = getTokenValue(tokens[opIndex]) as Operators;
-
-                let nextOpIndex = i + 1 < ops.length ? ops[i + 1] : null;
-                let nextOp = nextOpIndex !== null ? getTokenValue(tokens[nextOpIndex]) : null;
-                if (nextOpIndex !== null && (nextOp === '*' || nextOp === '/')) {
-                    let rightNode: AstNode | null = null;
-                    // iterate through all continuous '*', '/' operations
-                    do {
-                        const nextOpIndex2 = i + 2 < ops.length ? ops[i + 2] : null;
-
-                        const leftSlice2 = this.sliceWithBrackets(tokens, opIndex + 1, nextOpIndex);
-                        const rightSlice2 = this.sliceWithBrackets(tokens, nextOpIndex + 1, nextOpIndex2 || tokens.length);
-
-                        const left2 = this.createExpressionNode(leftSlice2);
-                        const right2 = this.createExpressionNode(rightSlice2);
-                        rightNode = new BinOpNode(left2, nextOp, right2, getTokenLoc(tokens[opIndex + 1]));
-
-                        i++;
-                        nextOpIndex = i + 1 < ops.length ? ops[i + 1] : null;
-                        nextOp = nextOpIndex !== null ? getTokenValue(tokens[nextOpIndex]) : null;
-                    }
-                    while (nextOpIndex !== null && (nextOp === '*' || nextOp === '/'))
-
-                    // add up result
-                    if (prevNode === null) {
-                        const leftSlice = this.sliceWithBrackets(tokens, 0, opIndex);
-                        prevNode = this.createExpressionNode(leftSlice);
-                    }
-                    prevNode = new BinOpNode(prevNode, op as ExpressionOperators, rightNode, getTokenLoc(tokens[0]))
-
-                } else {
-                    const leftSlice = prevNode ? [] : this.sliceWithBrackets(tokens, 0, opIndex);
-                    const rightSlice = this.sliceWithBrackets(tokens, opIndex + 1, nextOpIndex || tokens.length);
-                    const left: AstNode = prevNode || this.createExpressionNode(leftSlice, prevNode);
-                    const right = this.createExpressionNode(rightSlice);
-                    prevNode = new BinOpNode(left, op as ExpressionOperators, right, getTokenLoc(tokens[0]));
-                }
-            }
-
-            if (prevNode === null) {
-                throw Error(`Can't create node ...`)
-            }
-
-            return prevNode;
-        }
-
-        // create DotObjectAccessNode
-        const subObjects = splitTokens(tokens, '.');
-        if (subObjects.length > 1) {
-            return new DotObjectAccessNode(subObjects.map(tkns => this.createExpressionNode(tkns)), getTokenLoc(tokens[0]));
-        }
-
-        // create function call node
-        if (tokens.length > 2 && getTokenValue(tokens[1]) === '(') {
-
-            const isNullCoelsing = getTokenValue(tokens[tokens.length - 1]) === '?';
-            if (isNullCoelsing) {
-                // remove '?'
-                tokens.pop();
-            }
-            const name = getTokenValue(tokens[0]) as string;
-            const paramsTokensSlice = tokens.slice(2, tokens.length - 1);
-            const paramsTokens = splitTokens(paramsTokensSlice, ',')
-            const paramsNodes = paramsTokens.map(tkns => this.createExpressionNode(tkns));
-            const node = new FunctionCallNode(name, paramsNodes, getTokenLoc(tokens[0]));
-            node.nullCoelsing = isNullCoelsing || undefined;
-            return node;
-        }
-
-        // create Object Node
-        if (getTokenValue(tokens[0]) === '{' && getTokenValue(tokens[tokens.length - 1]) === '}') {
-            const keyValueTokens = splitTokens(tokens.splice(1, tokens.length - 2), ',');
-            const props = [] as ObjectPropertyInfo[];
-            for (let i = 0; i < keyValueTokens.length; i++) {
-                const keyValue = splitTokens(keyValueTokens[i], ':');
-                if (keyValue.length === 1) {
-                    const pInfo = {
-                        name: new ConstNode(keyValue[0][0]),
-                        value: this.createExpressionNode(keyValue[0])
-                    } as ObjectPropertyInfo;
-
-                    props.push(pInfo);
-                } else if (keyValue.length === 2) {
-
-                    let name: AstNode | null = null;
-                    const namePart = keyValue[0];
-
-                    if (namePart.length === 1) {
-                        name = new ConstNode(namePart[0]);
-                    } else if (getTokenValue(namePart[0]) === '['
-                        && getTokenValue(namePart[namePart.length - 1]) === ']') {
-                        name = this.createExpressionNode(namePart.slice(1, namePart.length - 1))
+    private parseLeft(): AstNode {
+        do {
+            const currentToken = this.currentToken;
+            switch (currentToken.tokenType) {
+                case TokenType.Identifier:
+                    const unaryIdentifier = unaryOperatorsBySymbol[currentToken.identifier];
+                    if (unaryIdentifier) {
+                        return unaryIdentifier.parseAST(this);
                     } else {
-                        throw new Error(`Incorrect JSON. Can't resolve Key field. That should either constant or expression in []`)
+                        this.nextToken();
+                        return new GetVariable(currentToken.identifier, { loc: this.currentToken });
                     }
-
-                    const pInfo = {
-                        name,
-                        value: this.createExpressionNode(keyValue[1])
-                    } as ObjectPropertyInfo;
-
-                    props.push(pInfo);
-                } else {
-                    throw Error('Incorrect JSON')
-                }
+                case TokenType.Operator:
+                    const unaryOperator = unaryOperatorsBySymbol[currentToken.operatorSymbol];
+                    if (unaryOperator) {
+                        return unaryOperator.parseAST(this);
+                    }
+                    else throw new Error(`Unexpected operator: ${currentToken.operatorSymbol}`);
+                case TokenType.Literal:
+                    this.nextToken();
+                    return ConstNode.fromLiteral(currentToken);
+                case TokenType.Comment:
+                    this.nextToken();
+                    break;
+                case TokenType.EndOfFile:
+                default:
+                    throw this.parsingError({
+                        expected: "A statement."
+                    });
             }
-
-            return new CreateObjectNode(props, getTokenLoc(tokens[0]))
-        }
-
-        // create Array Node
-        if (getTokenValue(tokens[0]) === '[' && getTokenValue(tokens[tokens.length - 1]) === ']') {
-            const items = splitTokens(tokens.splice(1, tokens.length - 2), ',')
-                .map(tkns => this.createExpressionNode(tkns));
-
-            return new CreateArrayNode(items, getTokenLoc(tokens[0]));
-        }
-
-        // bracket access object node
-        if (tokens.length > 2 && getTokenValue(tokens[1]) === '[') {
-            const name = getTokenValue(tokens[0]) as string;
-            const paramsTokensSlice = tokens.slice(2, tokens.length - 1);
-            const paramsNodes = this.createExpressionNode(paramsTokensSlice);
-            return new BracketObjectAccessNode(name, paramsNodes, false, getTokenLoc(tokens[0]));
-        }
-
-        throw Error(`Undefined node '${getTokenValue(tokens[0])}'.`);
+        } while (true);
     }
+
+    parseFunctionParameters(): string[] {
+        const params: string[] = [];
+        this.parseOperatorToken("(", { startsExpression: true });
+        if (this.currentToken.operatorSymbol !== ")") {
+            while (true) {
+                const identifier = this.parseIdentifier().identifier;
+                params.push(identifier);
+                if (this.currentToken.operatorSymbol === ",") {
+                    this.nextToken();
+                } else break;
+            }
+        }
+        this.parseOperatorToken(")", { endsExpression: true });
+        return params;
+    }
+
+    parseLitteral(): LiteralToken {
+        return this.parseToken(TokenType.Literal) as LiteralToken;
+    }
+
+
+    parseToken(tokenType: TokenType): Token {
+        if (this.currentToken.tokenType === tokenType) {
+            const result = this.currentToken;
+            this.nextToken();
+            return result;
+        } else throw this.parsingError({
+            expected: `a ${TokenType[tokenType]}.`
+        });
+    }
+
+    parseExpressions(startSymbol = "(", separator = ",", endSymbol = ")"): AstNode[] {
+        const result: AstNode[] = [];
+        this.parseOperatorToken(startSymbol, { startsExpression: true }); // (
+        if (this.currentToken.operatorSymbol === endSymbol) { // )
+            this.nextToken();
+            return result;
+        }
+        while (true) {
+            const expression = this.parseExpression(OperatorPrecedence.Comma);
+            result.push(expression);
+
+            if (this.currentToken.operatorSymbol === separator) { // ,
+                this.nextToken();
+            } else if (this.currentToken.operatorSymbol === endSymbol) { // )
+                this.parseOperatorToken(endSymbol, { endsExpression: true });
+                return result;
+            } else {
+                throw this.parsingError(
+                    {
+                        expected: `The character '${separator}' or '${endSymbol}'`
+                    });
+            }
+        }
+    }
+
+    parseIdentifier(expectedIdentifier?: string): IdentifierToken {
+        const curToken = this.currentToken;
+        if (expectedIdentifier) {
+            if (curToken.tokenType == TokenType.Identifier && curToken.identifier === expectedIdentifier) {
+                this.nextToken();
+                return curToken;
+            } else throw this.parsingError({ expected: `the keyword ${expectedIdentifier}` });
+        } else {
+            if (curToken.tokenType == TokenType.Identifier) {
+                this.nextToken();
+                return curToken;
+            } else throw this.parsingError({ expected: `an identifier.` });
+        }
+    }
+
+
+    parseOperatorToken(expectedOperator?: string, options: { startsExpression?: true, endsExpression?: true, startsBlock?: true } = {}): OperatorToken {
+        const curToken = this.currentToken;
+        if (options.startsExpression) this.inExpression += 1;
+        if (options.endsExpression) this.inExpression -= 1;
+        if (expectedOperator) {
+            if (curToken.operatorSymbol === expectedOperator) {
+                this.nextToken();
+                return curToken as OperatorToken;
+            } else throw this.parsingError({ expected: `The operator ${expectedOperator}` });
+        } else {
+            if (curToken.tokenType == TokenType.Operator) {
+                this.nextToken();
+                return curToken;
+            } else throw this.parsingError({ expected: `An operator.` });
+        }
+    }
+
+    nextModuleName(): string {
+        // this returns the next series of characters as an identifier.
+        // compared to nextToken() this will also allow dashes symbols and accentuated characters
+        // datapipe-js-utils
+        this.currentToken = this.tokenizer.nextModuleName();
+        if (this.currentToken.tokenType == TokenType.Identifier) {
+            const result = this.currentToken.identifier;
+            this.nextToken();
+            return result;
+        } else throw this.parsingError({ expected: "module name" });
+    }
+
+    parsingError(args: { expected?: string, errorName?: string }) {
+        return new JspyParserError(
+            this.moduleName,
+            this.currentToken.startLine,
+            this.currentToken.startColumn,
+            (args.errorName ?? 'Syntax Error') + '\n' +
+                args.expected ? (
+                'Expected ' + args.expected + '\n' +
+                'Actual ' + printable(this.currentToken)
+            ) : printable(this.currentToken));
+    }
+
 }
+
