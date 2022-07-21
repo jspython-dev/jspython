@@ -121,7 +121,8 @@ export class Evaluator {
 
         if (node.type === 'raise') {
             const raiseNode = node as RaiseNode;
-            const err = new JspyError(blockContext.moduleName, raiseNode.loc[0], raiseNode.loc[1], raiseNode.errorName, raiseNode.errorMessage || "");
+            const errorMessage = this.evalNode(raiseNode.errorMessageAst, blockContext) as string;
+            const err = new JspyError(blockContext.moduleName, raiseNode.loc[0], raiseNode.loc[1], raiseNode.errorName, errorMessage);
             throw err;
         }
 

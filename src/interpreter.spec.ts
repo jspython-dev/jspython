@@ -441,7 +441,7 @@ describe('Interpreter', () => {
     const script = `
     m = ''
     try:
-      raise Error('My Message')
+      raise 'My Message'
       x.push(1)
     except:
       m = error.message
@@ -456,7 +456,7 @@ describe('Interpreter', () => {
     const script = `
     m = ''
     try:
-      raise Error('My Message')
+      raise 'My Message'
       x.push(1)
     except Error err:
       m = err.message
@@ -465,6 +465,38 @@ describe('Interpreter', () => {
 
     expect(await e.evaluate(script)).toContain('My Message');
     expect(e.eval(script)).toContain('My Message');
+  })
+
+  it('try catch errorMessage evaluated', async () => {
+    const script = `
+    m = ''
+    dd = ' ** '
+    try:
+      raise dd + 'My Message' + dd
+      x.push(1)
+    except Error err:
+      m = err.message
+    m
+    `;
+
+    expect(await e.evaluate(script)).toContain(' ** My Message ** ');
+    expect(e.eval(script)).toContain('My Message');
+  })
+
+  it('try catch errorMessage evaluated 2', async () => {
+    const script = `
+    m = ''
+    dd = ' ** '
+    try:
+      raise dd
+      x.push(1)
+    except Error err:
+      m = err.message
+    m
+    `;
+
+    expect(await e.evaluate(script)).toContain(' ** ');
+    expect(e.eval(script)).toContain(' ** ');
   })
 
   it('try catch JS errorMessage', async () => {

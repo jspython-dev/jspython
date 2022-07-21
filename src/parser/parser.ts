@@ -246,7 +246,10 @@ export class Parser {
                 ) ? getTokenValue(instruction.tokens[3]) as string
                     : undefined;
 
-                ast.body.push(new RaiseNode(errorName, errorMessage, getTokenLoc(firstToken)));
+                const errMsg = this.createExpressionNode(instruction.tokens.slice(1))
+
+                ast.body.push(new RaiseNode(errorName, errMsg, getTokenLoc(firstToken)));
+                
             } else if (getTokenValue(firstToken) === 'for') {
                 const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
 
