@@ -611,12 +611,12 @@ export class Parser {
     const inds = findChainingCallTokensIndexes(tokens);
 
     if (inds.length > 0) {
-      const chainingGroup = splitTokensByIndexes(tokens, inds);
-      const chainingCallsNode = new ChainingCallsNode([], getTokenLoc(tokens[0]));
+      //const chainingGroup = splitTokensByIndexes(tokens, inds);
+      //const chainingCallsNode = new ChainingCallsNode([], getTokenLoc(tokens[0]));
 
-      console.log('inds ==>', inds, chainingGroup);
+      // console.log('inds ==>', inds, chainingGroup);
 
-      return chainingCallsNode;
+      // return chainingCallsNode;
     }
 
     // create DotObjectAccessNode
