@@ -1,4 +1,4 @@
 export interface ParserOptions {
-    includeComments: boolean;
-    includeLoc: boolean;
+  includeComments: boolean;
+  includeLoc: boolean;
 }

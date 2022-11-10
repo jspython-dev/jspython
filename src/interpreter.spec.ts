@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Interpreter } from './interpreter';
 
 describe('Interpreter', () => {
@@ -12,8 +13,8 @@ describe('Interpreter', () => {
   });
 
   it('1+2', () => {
-    expect(e.eval("1+2")).toBe(3);
-    expect(e.eval("1+2+3")).toBe(6);
+    expect(e.eval('1+2')).toBe(3);
+    expect(e.eval('1+2+3')).toBe(6);
   });
 
   it(`"hello" + " " + 'world'`, () => {
@@ -25,65 +26,63 @@ describe('Interpreter', () => {
   });
 
   it('(1 + 2) * 3', () => {
-    expect(e.eval("(1 + 2) * 3")).toBe(9);
-    expect(e.eval("(1 + 2) * 3 + 5")).toBe(14);
+    expect(e.eval('(1 + 2) * 3')).toBe(9);
+    expect(e.eval('(1 + 2) * 3 + 5')).toBe(14);
   });
 
   it('(1 + 2) * (3 + 5)', () => {
-    expect(e.eval("(1 + 2) * (3 + 5)")).toBe(24);
-    expect(e.eval("(1 + 2) * (3 + 4) -5")).toBe(16);
+    expect(e.eval('(1 + 2) * (3 + 5)')).toBe(24);
+    expect(e.eval('(1 + 2) * (3 + 4) -5')).toBe(16);
 
-    expect(e.eval("2*(3+4)")).toBe(14);
-    expect(e.eval("2*(3+4)+5")).toBe(19);
+    expect(e.eval('2*(3+4)')).toBe(14);
+    expect(e.eval('2*(3+4)+5')).toBe(19);
   });
 
   it('1+2*3', () => {
-    expect(e.eval("1 + 2 * 3")).toBe(1 + 2 * 3);
-    expect(e.eval("1 + 2 * 3 + 4")).toBe(1 + 2 * 3 + 4);
-  });
-
-
-  it('2 * 3 + 4 * 5', () => {
-    expect(e.eval("(1 + 2) + (3 + 4) * (5*6)")).toBe((1 + 2) + (3 + 4) * (5 * 6));
-    expect(e.eval("(1 + 2) + (3 + 4) * 5")).toBe((1 + 2) + (3 + 4) * 5);
-    expect(e.eval("2*3+4*5")).toBe(2 * 3 + 4 * 5);
-    expect(e.eval("2*(3+4)+5*6")).toBe(2 * (3 + 4) + 5 * 6);
+    expect(e.eval('1 + 2 * 3')).toBe(1 + 2 * 3);
+    expect(e.eval('1 + 2 * 3 + 4')).toBe(1 + 2 * 3 + 4);
   });
 
   it('2 * 3 + 4 * 5', () => {
-    expect(e.eval("1+2*1/4")).toBe(1 + 2 * 1 / 4)
-    expect(e.eval("1+2*1/2+3")).toBe(1 + 2 * 1 / 2 + 3)
+    expect(e.eval('(1 + 2) + (3 + 4) * (5*6)')).toBe(1 + 2 + (3 + 4) * (5 * 6));
+    expect(e.eval('(1 + 2) + (3 + 4) * 5')).toBe(1 + 2 + (3 + 4) * 5);
+    expect(e.eval('2*3+4*5')).toBe(2 * 3 + 4 * 5);
+    expect(e.eval('2*(3+4)+5*6')).toBe(2 * (3 + 4) + 5 * 6);
+  });
 
+  it('2 * 3 + 4 * 5', () => {
+    expect(e.eval('1+2*1/4')).toBe(1 + (2 * 1) / 4);
+    expect(e.eval('1+2*1/2+3')).toBe(1 + (2 * 1) / 2 + 3);
   });
 
   it('1*2/4 + 2*3/6', () => {
-    expect(e.eval("1*2/4 + 2*3/6")).toBe(1 * 2 / 4 + 2 * 3 / 6)
-    expect(e.eval("1*2/4 + 2*3/6 - 2.3")).toBe(1 * 2 / 4 + 2 * 3 / 6 - 2.3)
-    expect(e.eval("7+1*2/4 + 2*3/6 - 2.3")).toBe(7 + 1 * 2 / 4 + 2 * 3 / 6 - 2.3)
+    expect(e.eval('1*2/4 + 2*3/6')).toBe((1 * 2) / 4 + (2 * 3) / 6);
+    expect(e.eval('1*2/4 + 2*3/6 - 2.3')).toBe((1 * 2) / 4 + (2 * 3) / 6 - 2.3);
+    expect(e.eval('7+1*2/4 + 2*3/6 - 2.3')).toBe(7 + (1 * 2) / 4 + (2 * 3) / 6 - 2.3);
   });
 
   it('5 – (5 * (32 + 4))', () => {
-    expect(e.eval("5 - (5 * (32 + 4))")).toBe(5 - (5 * (32 + 4)))
-    expect(e.eval("12 * 5 - (5 * (32 + 4)) + 3")).toBe(12 * 5 - (5 * (32 + 4)) + 3)
+    expect(e.eval('5 - (5 * (32 + 4))')).toBe(5 - 5 * (32 + 4));
+    expect(e.eval('12 * 5 - (5 * (32 + 4)) + 3')).toBe(12 * 5 - 5 * (32 + 4) + 3);
   });
 
   it('o.sub1.subValue', () => {
     const obj = { o: { v1: 55, sub1: { subValue: 45 } } };
-    expect(e.eval("o.v1 + o.sub1.subValue", obj)).toBe(100)
-    expect(e.eval("o.v1 + o.sub1['sub' + 'Value']", obj)).toBe(100)
-    expect(e.eval("o.v1 + o['sub1'].subValue", obj)).toBe(100)
+    expect(e.eval('o.v1 + o.sub1.subValue', obj)).toBe(100);
+    expect(e.eval("o.v1 + o.sub1['sub' + 'Value']", obj)).toBe(100);
+    expect(e.eval("o.v1 + o['sub1'].subValue", obj)).toBe(100);
   });
 
   it('assignment o.sub1.subValue', () => {
     const obj = { o: { v1: 55, sub1: { subValue: 45 } } };
-    expect(e.eval("o.sub1.subValue2 = 10\no.sub1.subValue2", obj)).toBe(10)
+    expect(e.eval('o.sub1.subValue2 = 10\no.sub1.subValue2', obj)).toBe(10);
   });
 
   it('func call', () => {
-    const obj = { add: (x: number, y: number) => x + y };
+    const obj = { add: (x: number, y: number): number => x + y };
 
-    expect(e.eval("add(2, 3)", obj)).toBe(5)
-    expect(e.eval("add(2+10, 3)", obj)).toBe(15)
+    expect(e.eval('add(2, 3)', obj)).toBe(5);
+    expect(e.eval('add(2+10, 3)', obj)).toBe(15);
   });
 
   it(`empty or special param`, () => {
@@ -97,28 +96,34 @@ describe('Interpreter', () => {
   });
 
   it('Object call', () => {
-    const obj = { o: { add: (x: number, y: number) => x + y } };
+    const obj = { o: { add: (x: number, y: number): number => x + y } };
 
-    expect(e.eval("o.add(2, 3)", obj)).toBe(5)
-    expect(e.eval("o.add(2 * 10, 3)", obj)).toBe(23)
-    expect(e.eval(`
+    expect(e.eval('o.add(2, 3)', obj)).toBe(5);
+    expect(e.eval('o.add(2 * 10, 3)', obj)).toBe(23);
+    expect(
+      e.eval(
+        `
     o.add(
       2 * 10,
       3
-      )`, obj)).toBe(23)
-
+      )`,
+        obj
+      )
+    ).toBe(23);
   });
 
   it('Object call2', () => {
     const obj = {
       o: {
-        add: (x: number, y: number) => x + y,
-        getObject: (p: string) => { return { p } }
+        add: (x: number, y: number): number => x + y,
+        getObject: (p: string): Record<string, unknown> => {
+          return { p };
+        }
       }
     };
 
-    expect(e.eval("o.getObject(5).p", obj)).toBe(5)
-    expect(e.eval("x = o.getObject(5)\nx.p * x.p", obj)).toBe(25)
+    expect(e.eval('o.getObject(5).p', obj)).toBe(5);
+    expect(e.eval('x = o.getObject(5)\nx.p * x.p', obj)).toBe(25);
   });
 
   it('json obj', () => {
@@ -134,15 +139,17 @@ describe('Interpreter', () => {
 
   it('json single name prop', () => {
     expect(e.eval("pp = 't1'\nx = {pp}\nx.pp")).toBe('t1');
-    expect(e.eval("pp = 5\nx = {pp, x:10}\nx.pp + x.x")).toBe(15);
+    expect(e.eval('pp = 5\nx = {pp, x:10}\nx.pp + x.x')).toBe(15);
   });
 
   it('json array', () => {
     expect(e.eval("x = [{m1: 1+2*3, m2: 'ee'}]\nx.length")).toBe(1);
-    expect(e.eval("x = [1,2,3]\nx.length")).toBe(3);
-    expect(e.eval("x = [1,2,3]\nx[1]")).toBe(2);
-    expect(e.eval("x = [{f1:1, f2:12}, {f1:2, f2:22}, {f1:3, f2:32}]\nx[1].f2")).toBe(22);
-    expect(e.eval("x = [{f1:1, f2:12}, {f1:2, f2:22}, {f1:3, f2:32}]\nx[1].f2 = 55\nx[1].f2")).toBe(55);
+    expect(e.eval('x = [1,2,3]\nx.length')).toBe(3);
+    expect(e.eval('x = [1,2,3]\nx[1]')).toBe(2);
+    expect(e.eval('x = [{f1:1, f2:12}, {f1:2, f2:22}, {f1:3, f2:32}]\nx[1].f2')).toBe(22);
+    expect(e.eval('x = [{f1:1, f2:12}, {f1:2, f2:22}, {f1:3, f2:32}]\nx[1].f2 = 55\nx[1].f2')).toBe(
+      55
+    );
   });
 
   it('array map', () => {
@@ -156,10 +163,10 @@ describe('Interpreter', () => {
     arr = [1,2,3]
     arr.map(map)     
     `;
-    const res = e.eval(script) as { t1: number, t2: number }[];
+    const res = e.eval(script) as { t1: number; t2: number }[];
 
     expect(res.length).toBe(3);
-    expect(res.map(o => o.t1 + o.t2).join(',')).toBe("5,10,15");
+    expect(res.map(o => o.t1 + o.t2).join(',')).toBe('5,10,15');
   });
 
   it('array map 2', () => {
@@ -180,7 +187,7 @@ describe('Interpreter', () => {
       .map(map2)
       .join(",")
       `;
-    expect(e.eval(script)).toBe("5,10,15");
+    expect(e.eval(script)).toBe('5,10,15');
   });
 
   it('arrow functions', () => {
@@ -197,7 +204,7 @@ describe('Interpreter', () => {
         .map(r => r.t1 * 8)
         .join(',')     
       `;
-    expect(e.eval(script)).toBe("32,64,96");
+    expect(e.eval(script)).toBe('32,64,96');
   });
 
   it('arrow functions with filter', () => {
@@ -214,9 +221,8 @@ describe('Interpreter', () => {
       .map(r => r.t1 * r.t2)
       .join(',')
         `;
-    expect(e.eval(script)).toBe("96,216");
+    expect(e.eval(script)).toBe('96,216');
   });
-
 
   it('print empty string', () => {
     const script = `
@@ -225,11 +231,9 @@ describe('Interpreter', () => {
     )
     `;
     expect(e.eval(script, { print: (v: string) => v })).toBe('');
-  }
-
-  );
+  });
   it('if condition', () => {
-    const script = (p: number) => `
+    const script = (p: number): string => `
     x = 1
     if x == ${p}:
       x = 5
@@ -247,7 +251,7 @@ describe('Interpreter', () => {
     x.o1.ov1?.someProp or 32
     `;
     expect(e.eval(script)).toBe(32);
-    expect(e.eval("x={}\nx?.p1?.ff")).toBe(null);
+    expect(e.eval('x={}\nx?.p1?.ff')).toBe(null);
   });
 
   it('simple for', () => {
@@ -280,8 +284,7 @@ describe('Interpreter', () => {
       null
 
     f()?.prop or 5
-    `
-      ;
+    `;
     expect(e.eval(script)).toBe(5);
   });
 
@@ -294,90 +297,90 @@ describe('Interpreter', () => {
       5
 
     f2()
-    `
-      ;
+    `;
     expect(e.eval(script)).toBe(5);
   });
 
   it('chaining funcCall with null coelsing', () => {
-    expect(e.eval("p={f: ()=>null}\np?.f()?.sdsd")).toBe(null);
-    expect(e.eval("p={f: ()=>null}\np?.f()?.sdsd or 5")).toBe(5);
+    expect(e.eval('p={f: ()=>null}\np?.f()?.sdsd')).toBe(null);
+    expect(e.eval('p={f: ()=>null}\np?.f()?.sdsd or 5')).toBe(5);
   });
 
   it('comparison operations', () => {
-    expect(e.eval("1+2*3==7")).toBe(true);
-    expect(e.eval("1+2==2")).toBe(false);
+    expect(e.eval('1+2*3==7')).toBe(true);
+    expect(e.eval('1+2==2')).toBe(false);
   });
 
   it('comparison operations', () => {
-    expect(e.eval("1+2*3==7")).toBe(true);
-    expect(e.eval("1+2==2")).toBe(false);
+    expect(e.eval('1+2*3==7')).toBe(true);
+    expect(e.eval('1+2==2')).toBe(false);
   });
 
   // ** migration issue for now
   it('simple and operator', async () => {
-    expect(await e.evaluate('2 == 2 and 3 == 3')).toBe(true)
-    expect(await e.evaluate('(2 == 2) and (3 == 3) and (5 == 5)')).toBe(true)
-    expect(await e.evaluate('(2 == 2) and (3 != 3) and (5 == 5)')).toBe(false)
-    expect(await e.evaluate('(2 != 2) and (3 != 3) and (5 == 5)')).toBe(false)
-    expect(await e.evaluate('(2 != 2) and (3 == 3) and (5 == 5)')).toBe(false)
-    expect(await e.evaluate('(2 == 2) and (3 == 3) and (5 != 5)')).toBe(false)
+    expect(await e.evaluate('2 == 2 and 3 == 3')).toBe(true);
+    expect(await e.evaluate('(2 == 2) and (3 == 3) and (5 == 5)')).toBe(true);
+    expect(await e.evaluate('(2 == 2) and (3 != 3) and (5 == 5)')).toBe(false);
+    expect(await e.evaluate('(2 != 2) and (3 != 3) and (5 == 5)')).toBe(false);
+    expect(await e.evaluate('(2 != 2) and (3 == 3) and (5 == 5)')).toBe(false);
+    expect(await e.evaluate('(2 == 2) and (3 == 3) and (5 != 5)')).toBe(false);
   });
 
   it('simple or operator', async () => {
-    expect(await e.evaluate('2 == 2 or 3 == 3')).toBe(true)
-    expect(await e.evaluate('2 == 2 or 3 == 3 or 5 == 5')).toBe(true)
-    expect(await e.evaluate('2 != 2 or 3 != 3 or 5 != 5')).toBe(false)
-    expect(await e.evaluate('2 == 2 or 3 != 3 or 5 != 5')).toBe(true)
-    expect(await e.evaluate('2 == 2 or 3 == 3 and 5 != 5')).toBe(true)
+    expect(await e.evaluate('2 == 2 or 3 == 3')).toBe(true);
+    expect(await e.evaluate('2 == 2 or 3 == 3 or 5 == 5')).toBe(true);
+    expect(await e.evaluate('2 != 2 or 3 != 3 or 5 != 5')).toBe(false);
+    expect(await e.evaluate('2 == 2 or 3 != 3 or 5 != 5')).toBe(true);
+    expect(await e.evaluate('2 == 2 or 3 == 3 and 5 != 5')).toBe(true);
   });
 
   it('conditionals', async () => {
-    expect(await e.evaluate('x = null\nx == null')).toBe(true)
-    expect(await e.evaluate('x = null\nx?.p1?.p == null')).toBe(true)
-    expect(await e.evaluate('x = null\nx != null and x.length >0')).toBe(false)
-    expect(await e.evaluate('x = null\nx?.p1?.p != null and x.length >0')).toBe(false)
+    expect(await e.evaluate('x = null\nx == null')).toBe(true);
+    expect(await e.evaluate('x = null\nx?.p1?.p == null')).toBe(true);
+    expect(await e.evaluate('x = null\nx != null and x.length >0')).toBe(false);
+    expect(await e.evaluate('x = null\nx?.p1?.p != null and x.length >0')).toBe(false);
   });
 
   it('arithmetic + comparison', async () => {
-    expect(await e.evaluate('0.25 == 1/4')).toBe(true)
-    expect(await e.evaluate('0.25 == 1/2')).toBe(false)
+    expect(await e.evaluate('0.25 == 1/4')).toBe(true);
+    expect(await e.evaluate('0.25 == 1/2')).toBe(false);
 
-    expect(await e.evaluate('1+2*3 == 5 or 1 > 3')).toBe(false)
-    expect(await e.evaluate('1+2*3 == 5 or 1 < 3')).toBe(true)
+    expect(await e.evaluate('1+2*3 == 5 or 1 > 3')).toBe(false);
+    expect(await e.evaluate('1+2*3 == 5 or 1 < 3')).toBe(true);
 
-    expect(await e.evaluate('2 == 1/2 + 1/2 and 1/2 + 1/2 == 1')).toBe(false)
-    expect(await e.evaluate('(2 == 1/2 + 1/2) and (1/2 + 1/2 == 1)')).toBe(false)
-    expect(await e.evaluate('(2 == (1/2 + 1/2)) and ((1/2 + 1/2) == 1)')).toBe(false)
+    expect(await e.evaluate('2 == 1/2 + 1/2 and 1/2 + 1/2 == 1')).toBe(false);
+    expect(await e.evaluate('(2 == 1/2 + 1/2) and (1/2 + 1/2 == 1)')).toBe(false);
+    expect(await e.evaluate('(2 == (1/2 + 1/2)) and ((1/2 + 1/2) == 1)')).toBe(false);
   });
 
   it('Negative numbers', async () => {
-    expect(await e.evaluate('x=-1\nx')).toBe(-1)
-    expect(await e.evaluate('x=-3.14 + 3\nx')).toBe(-3.14 + 3)
-    expect(await e.evaluate('-3.14 - 3')).toBe(-3.14 - 3)
-    expect(await e.evaluate('x=5\nx*-1')).toBe(-5)
-    expect(await e.evaluate(`
+    expect(await e.evaluate('x=-1\nx')).toBe(-1);
+    expect(await e.evaluate('x=-3.14 + 3\nx')).toBe(-3.14 + 3);
+    expect(await e.evaluate('-3.14 - 3')).toBe(-3.14 - 3);
+    expect(await e.evaluate('x=5\nx*-1')).toBe(-5);
+    expect(
+      await e.evaluate(`
     def f(x):
       return x
     
     f(-5)
-    `)).toBe(-5)
+    `)
+    ).toBe(-5);
 
-    expect(await e.evaluate(`
+    expect(
+      await e.evaluate(`
     def f(x):
       return x
     
     f(-0.14)
-    `)).toBe(-0.14)
+    `)
+    ).toBe(-0.14);
 
-    expect(await e.evaluate('1/2*-1 == -0.5')).toBe(true)
-
+    expect(await e.evaluate('1/2*-1 == -0.5')).toBe(true);
   });
 
   it('Recursive function - power', async () => {
-
-    const script =
-      `
+    const script = `
     def power(base, exponent):
       if exponent == 0:
         return 1
@@ -385,7 +388,7 @@ describe('Interpreter', () => {
         return base * power(base, exponent - 1)
     
     "5 ** 10 == " + power(5, 10) + " == " + Math.pow(5, 10)    
-    `
+    `;
     expect(await e.evaluate(script)).toBe('5 ** 10 == 9765625 == 9765625');
   });
 
@@ -409,9 +412,9 @@ describe('Interpreter', () => {
       expect(result[1]).toBe(3);
     };
 
-    check(e.eval(script) as number[])
-    check(await e.evaluate(script));
-  })
+    check(e.eval(script) as number[]);
+    check(await e.evaluate(script) as any);
+  });
 
   it('try catch no error', async () => {
     const script = `
@@ -431,11 +434,11 @@ describe('Interpreter', () => {
       expect(result[0]).toBe(1);
       expect(result[1]).toBe(4);
       expect(result[2]).toBe(3);
-    }
+    };
 
-    check(await e.evaluate(script))
-    check(e.eval(script) as number[])
-  })
+    check(await e.evaluate(script) as any);
+    check(e.eval(script) as number[]);
+  });
 
   it('try catch errorMessage', async () => {
     const script = `
@@ -450,7 +453,7 @@ describe('Interpreter', () => {
 
     expect(await e.evaluate(script)).toContain('My Message');
     expect(e.eval(script)).toContain('My Message');
-  })
+  });
 
   it('try catch errorMessage with alias', async () => {
     const script = `
@@ -465,7 +468,7 @@ describe('Interpreter', () => {
 
     expect(await e.evaluate(script)).toContain('My Message');
     expect(e.eval(script)).toContain('My Message');
-  })
+  });
 
   it('try catch errorMessage evaluated', async () => {
     const script = `
@@ -481,7 +484,7 @@ describe('Interpreter', () => {
 
     expect(await e.evaluate(script)).toContain(' ** My Message ** ');
     expect(e.eval(script)).toContain('My Message');
-  })
+  });
 
   it('try catch errorMessage evaluated 2', async () => {
     const script = `
@@ -497,7 +500,7 @@ describe('Interpreter', () => {
 
     expect(await e.evaluate(script)).toContain(' ** ');
     expect(e.eval(script)).toContain(' ** ');
-  })
+  });
 
   it('try catch JS errorMessage', async () => {
     const script = `
@@ -511,7 +514,9 @@ describe('Interpreter', () => {
 
     const jsErrorMessage = 'JS Error Message';
     const obj = {
-      func1: () => { throw new Error(jsErrorMessage); }
+      func1: (): void => {
+        throw new Error(jsErrorMessage);
+      }
     };
     expect(await e.evaluate(script, obj)).toContain(jsErrorMessage);
     expect(e.eval(script, obj)).toContain(jsErrorMessage);
@@ -531,8 +536,7 @@ describe('Interpreter', () => {
 
     expect(await e.evaluate(script)).toBe(15);
     expect(e.eval(script)).toBe(15);
-  }
-  );
+  });
 
   it('if with AND nullable objects', async () => {
     const script = `
@@ -546,9 +550,7 @@ describe('Interpreter', () => {
     `;
     expect(await e.evaluate(script)).toBe(1);
     expect(e.eval(script)).toBe(1);
-  }
-  );
-
+  });
 
   it('if with AND in brackets', async () => {
     const script = `
@@ -560,28 +562,22 @@ describe('Interpreter', () => {
           r = x + y
           
       return r
-      `
+      `;
     expect(await e.evaluate(script)).toBe(15);
     expect(e.eval(script)).toBe(15);
-  }
-  );
+  });
 
   // incorrect
   it('passing value type to the arrow function', async () => {
-
-    const script = `
-      x = [2,3,4,5,6,7,8,9]
-
-      sum = 0
-      x.forEach(i => sum = sum + i)
-      
-      sum
-      `
-  }
-  );
+    // const script = `
+    //   x = [2,3,4,5,6,7,8,9]
+    //   sum = 0
+    //   x.forEach(i => sum = sum + i)
+    //   sum
+    //   `;
+  });
 
   it('passing value type to the for loop', async () => {
-
     const script = `
     x = [2,3,4,5,6,7,8,9]
     sum = 0
@@ -590,14 +586,12 @@ describe('Interpreter', () => {
         sum = sum + i
 
     sum
-      `
+      `;
     expect(await e.evaluate(script)).toBe(44);
     expect(e.eval(script)).toBe(44);
-  }
-  );
+  });
 
   it('passing value type to the while loop', async () => {
-
     const script = `
     x = [2,3,4,5,6,7,8,9]
     sum = 0
@@ -608,14 +602,12 @@ describe('Interpreter', () => {
       i = i + 1
 
     sum
-      `
+      `;
     expect(await e.evaluate(script)).toBe(44);
     expect(e.eval(script)).toBe(44);
-  }
-  );
+  });
 
   it('passing value type to the arrow function', async () => {
-
     const script = `
     x = [2,3,4,5,6,7,8,9]
 
@@ -623,12 +615,10 @@ describe('Interpreter', () => {
     x.forEach(i => sum.value = sum.value + i)
     
     sum.value
-    `
+    `;
     expect(await e.evaluate(script)).toBe(44);
     expect(e.eval(script)).toBe(44);
-  }
-  );
-
+  });
 
   it('unknown property is null', async () => {
     const script = `
@@ -638,11 +628,10 @@ describe('Interpreter', () => {
       return true
     else:
       return false
-    `
+    `;
     expect(await e.evaluate(script)).toBe(true);
     expect(e.eval(script)).toBe(true);
-  }
-  );
+  });
 
   it('boolean value', async () => {
     const script = `
@@ -652,11 +641,10 @@ describe('Interpreter', () => {
       return true
     else:
       return false
-    `
+    `;
     expect(await e.evaluate(script)).toBe(true);
     expect(e.eval(script)).toBe(true);
-  }
-  );
+  });
 
   it('null coelsing functions', async () => {
     const script = `
@@ -666,11 +654,10 @@ describe('Interpreter', () => {
       return 10
 
     return 5
-    `
+    `;
     expect(await e.evaluate(script)).toBe(10);
     expect(e.eval(script)).toBe(10);
-  }
-  );
+  });
 
   it('return empty', async () => {
     const script = `
@@ -678,18 +665,15 @@ describe('Interpreter', () => {
       return
 
     return 5
-    `
+    `;
     expect(await e.evaluate(script)).toBe(null);
     expect(e.eval(script)).toBe(null);
-  }
-  );
-
-
+  });
 
   it('Import', async () => {
     const interpreter = Interpreter.create();
 
-    interpreter.registerModuleLoader((path => {
+    interpreter.registerModuleLoader(() => {
       return Promise.resolve(`
         def multiply(x, y):
             x * y
@@ -699,7 +683,7 @@ describe('Interpreter', () => {
         
         someNumber = 55
       `);
-    }));
+    });
 
     const res = await interpreter.evaluate(`
     import '/service.jspy' as obj
@@ -710,11 +694,10 @@ describe('Interpreter', () => {
     expect(res).toBe(67);
   });
 
-
   it('Import and calling function with default value', async () => {
     const interpreter = Interpreter.create();
 
-    interpreter.registerModuleLoader((path => {
+    interpreter.registerModuleLoader(() => {
       return Promise.resolve(`
         def multiply(x, y):
             x * y
@@ -725,7 +708,7 @@ describe('Interpreter', () => {
         
         someNumber = 55
       `);
-    }));
+    });
 
     const res = await interpreter.evaluate(`
     import './service.jspy' as obj
@@ -739,38 +722,36 @@ describe('Interpreter', () => {
   it('Import JSON', async () => {
     const interpreter = Interpreter.create();
 
-    interpreter.registerModuleLoader((path => {
+    interpreter.registerModuleLoader(() => {
       return Promise.resolve(`
         {"x": "test1", "n": 22}
       `);
-    }));
+    });
 
     const res = await interpreter.evaluate(`
     import './some.json' as obj
 
     return obj
-    `);
+    `) as any;
 
     expect(res.x).toBe('test1');
     expect(res.n).toBe(22);
   });
 
-
   it('Import with package loader', async () => {
     const interpreter = Interpreter.create();
 
     interpreter.registerPackagesLoader(path =>
-    (
-      path === 'service' ? {
-        add: (x: number, y: number) => x + y,
-        remove: (x: number, y: number) => x - y,
-        times: (x: number, y: number) => x * y,
-      }
+      path === 'service'
+        ? {
+            add: (x: number, y: number): number => x + y,
+            remove: (x: number, y: number): number => x - y,
+            times: (x: number, y: number): number => x * y
+          }
         : null
-    )
     );
 
-    interpreter.registerModuleLoader((path => {
+    interpreter.registerModuleLoader(() => {
       return Promise.resolve(`
         from 'service' import add
 
@@ -782,7 +763,7 @@ describe('Interpreter', () => {
         
         someNumber = 55
       `);
-    }));
+    });
 
     let res = await interpreter.evaluate(`
     import '/service.jspy' as obj
@@ -799,15 +780,13 @@ describe('Interpreter', () => {
     `);
 
     expect(res).toBe(60);
-
   });
 
   it('semicolon as a string', async () => {
     const interpreter = Interpreter.create();
-    const res = await interpreter.evaluate(`"first;second".split(';')`);
+    const res = await interpreter.evaluate(`"first;second".split(';')`) as any;
     expect(res.length).toBe(2);
   });
-
 
   it('literal strings as keyword confusion', async () => {
     const interpreter = Interpreter.create();
@@ -823,7 +802,6 @@ describe('Interpreter', () => {
     expect(interpreter.eval(script)).toBe(55);
   });
 
-
   it('literal strings as keyword confusion 2', async () => {
     const interpreter = Interpreter.create();
 
@@ -837,5 +815,4 @@ describe('Interpreter', () => {
     expect(await interpreter.evalAsync(script)).toBe(55);
     expect(interpreter.eval(script)).toBe(55);
   });
-
 });
