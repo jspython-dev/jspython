@@ -44,7 +44,10 @@ import {
   ComparisonOperators,
   TryExceptNode,
   ExceptBody,
-  RaiseNode
+  RaiseNode,
+  findChainingCallTokensIndexes,
+  splitTokensByIndexes,
+  ChainingCallsNode
 } from '../common';
 import { JspyParserError } from '../common/utils';
 
@@ -602,6 +605,18 @@ export class Parser {
       }
 
       return prevNode;
+    }
+
+    // create chaining calls
+    const inds = findChainingCallTokensIndexes(tokens);
+
+    if (inds.length > 0) {
+      const chainingGroup = splitTokensByIndexes(tokens, inds);
+      const chainingCallsNode = new ChainingCallsNode([], getTokenLoc(tokens[0]));
+
+      console.log('inds ==>', inds, chainingGroup);
+
+      return chainingCallsNode;
     }
 
     // create DotObjectAccessNode

@@ -9,6 +9,7 @@ export type AstNodeType =
   | 'getSingleVar'
   | 'setSingleVar'
   | 'dotObjectAccess'
+  | 'chainingCalls'
   | 'bracketObjectAccess'
   | 'funcCall'
   | 'funcDef'
@@ -214,6 +215,13 @@ export class GetSingleVarNode extends AstNode implements IsNullCoelsing {
 export class DotObjectAccessNode extends AstNode {
   constructor(public nestedProps: AstNode[], public loc: Uint16Array) {
     super('dotObjectAccess');
+    this.loc = loc;
+  }
+}
+
+export class ChainingCallsNode extends AstNode {
+  constructor(public innerNodes: AstNode[], public loc: Uint16Array) {
+    super('chainingCalls');
     this.loc = loc;
   }
 }

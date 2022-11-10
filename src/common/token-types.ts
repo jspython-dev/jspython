@@ -65,24 +65,32 @@ export function getEndColumn(token: Token): number {
   return token[1][4];
 }
 
-export function splitTokens(tokens: Token[], separator: string): Token[][] {
+export function splitTokensByIndexes(tokens: Token[], sepIndexes: number[]): Token[][] {
   const result: Token[][] = [];
 
   if (!tokens.length) {
     return [];
   }
 
-  const sepIndexes = findTokenValueIndexes(tokens, value => value === separator);
-
   let start = 0;
   for (let i = 0; i < sepIndexes.length; i++) {
     const ind = sepIndexes[i];
-    result.push(tokens.slice(start, ind));
+    if (start !== ind) {
+      result.push(tokens.slice(start, ind));
+    }
     start = ind + 1;
   }
 
   result.push(tokens.slice(start, tokens.length));
   return result;
+}
+
+export function splitTokens(tokens: Token[], separator: string): Token[][] {
+  if (!tokens.length) {
+    return [];
+  }
+  const sepIndexes = findTokenValueIndexes(tokens, value => value === separator);
+  return splitTokensByIndexes(tokens, sepIndexes);
 }
 
 export function findTokenValueIndex(
@@ -107,6 +115,32 @@ export function findTokenValueIndex(
   }
 
   return -1;
+}
+
+export function findChainingCallTokensIndexes(tokens: Token[]): number[] {
+  const opIndexes: number[] = [];
+
+  for (let i = 0; i < tokens.length; i++) {
+    const tValue = getTokenValue(tokens[i]);
+    const tType = getTokenType(tokens[i]);
+
+    if (tType === TokenTypes.LiteralString) {
+      continue;
+    }
+
+    if (tValue === '.') {
+      opIndexes.push(i);
+    } else if (tValue === '(') {
+      i = skipInnerBrackets(tokens, i, '(', ')');
+    } else if (tValue === '[') {
+      opIndexes.push(i);
+      i = skipInnerBrackets(tokens, i, '[', ']');
+    } else if (tValue === '{') {
+      i = skipInnerBrackets(tokens, i, '{', '}');
+    }
+  }
+
+  return opIndexes;
 }
 
 export function findTokenValueIndexes(
