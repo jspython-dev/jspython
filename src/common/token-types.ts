@@ -75,12 +75,16 @@ export function splitTokensByIndexes(tokens: Token[], sepIndexes: number[]): Tok
   let start = 0;
   for (let i = 0; i < sepIndexes.length; i++) {
     const ind = sepIndexes[i];
-    if (start !== ind) {
-      result.push(tokens.slice(start, ind));
+    if (getTokenValue(tokens[start - 1]) === '[') {
+      start = start - 1;
     }
+    result.push(tokens.slice(start, ind));
     start = ind + 1;
   }
 
+  if (getTokenValue(tokens[start - 1]) === '[') {
+    start = start - 1;
+  }
   result.push(tokens.slice(start, tokens.length));
   return result;
 }
@@ -132,7 +136,7 @@ export function findChainingCallTokensIndexes(tokens: Token[]): number[] {
       opIndexes.push(i);
     } else if (tValue === '(') {
       i = skipInnerBrackets(tokens, i, '(', ')');
-    } else if (tValue === '[') {
+    } else if (tValue === '[' && i !== 0) {
       opIndexes.push(i);
       i = skipInnerBrackets(tokens, i, '[', ']');
     } else if (tValue === '{') {
