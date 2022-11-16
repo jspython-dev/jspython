@@ -4,11 +4,11 @@ import {
   AstBlock,
   AstNode,
   BinOpNode,
-  BracketObjectAccessNode,
+    ChainingCallsNode,
+  ChainingObjectAccessNode,
   ConstNode,
   CreateArrayNode,
   CreateObjectNode,
-  DotObjectAccessNode,
   ForNode,
   FuncDefNode,
   FunctionCallNode,
@@ -369,104 +369,48 @@ export class Evaluator {
 
       if (assignNode.target.type === 'getSingleVar') {
         const node = assignNode.target as SetSingleVarNode;
-        blockContext.blockScope.set(node.name, this.evalNode(assignNode.source, blockContext));
-      } else if (assignNode.target.type === 'dotObjectAccess') {
-        const targetNode = assignNode.target as DotObjectAccessNode;
+        blockContext.blockScope.set(
+          node.name,
+          this.evalNode(assignNode.source, blockContext)
+        );
+      } else if (assignNode.target.type === 'chainingCalls') {
+        const targetNode = assignNode.target as ChainingCallsNode;
 
         // create a node for all but last property token
         // potentially it can go to parser
-        const targetObjectNode = new DotObjectAccessNode(
-          targetNode.nestedProps.slice(0, targetNode.nestedProps.length - 1),
+        const targetObjectNode = new ChainingCallsNode(
+          targetNode.innerNodes.slice(0, targetNode.innerNodes.length - 1),
           targetNode.loc
         );
-        const targetObject = this.evalNode(targetObjectNode, blockContext) as Record<
+        const targetObject = (this.evalNode(targetObjectNode, blockContext)) as Record<
           string,
           unknown
         >;
 
-        // not sure nested properties should be GetSingleVarNode
-        // can be factored in the parser
-        const lastPropertyName = (
-          targetNode.nestedProps[targetNode.nestedProps.length - 1] as GetSingleVarNode
-        ).name;
+        const lastInnerNode = targetNode.innerNodes[targetNode.innerNodes.length - 1];
+
+        let lastPropertyName = '';
+        if (lastInnerNode.type === 'getSingleVar') {
+          lastPropertyName = (lastInnerNode as GetSingleVarNode).name;
+        } else if (lastInnerNode.type === 'chainingObjectAccess') {
+          lastPropertyName = (this.evalNode(
+            (lastInnerNode as ChainingObjectAccessNode).indexerBody,
+            blockContext
+          )) as string;
+        } else {
+          throw Error('Not implemented Assign operation with chaining calls');
+        }
 
         targetObject[lastPropertyName] = this.evalNode(assignNode.source, blockContext);
-      } else if (assignNode.target.type === 'bracketObjectAccess') {
-        const targetNode = assignNode.target as BracketObjectAccessNode;
-        const keyValue = this.evalNode(targetNode.bracketBody, blockContext) as string | number;
-        const targetObject = blockContext.blockScope.get(
-          targetNode.propertyName as string
-        ) as Record<string, unknown>;
-
-        targetObject[keyValue] = this.evalNode(assignNode.source, blockContext);
-      } else {
-        throw Error('Not implemented Assign operation');
-        // get chaining calls
       }
 
       return null;
     }
 
-    if (node.type === 'bracketObjectAccess') {
-      const sbNode = node as BracketObjectAccessNode;
-      const key = this.evalNode(sbNode.bracketBody, blockContext) as string;
-      const obj = blockContext.blockScope.get(sbNode.propertyName as string) as Record<
-        string,
-        unknown
-      >;
-      return obj[key] === undefined ? null : obj[key];
+    if (node.type === 'chainingCalls') {
+      return this.resolveChainingCallsNode(node as ChainingCallsNode, blockContext);
     }
 
-    if (node.type === 'dotObjectAccess') {
-      const dotObject = node as DotObjectAccessNode;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let startObject = this.evalNode(dotObject.nestedProps[0], blockContext) as any;
-      for (let i = 1; i < dotObject.nestedProps.length; i++) {
-        const nestedProp = dotObject.nestedProps[i];
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((dotObject.nestedProps[i - 1] as any).nullCoelsing && !startObject) {
-          startObject = {};
-        }
-
-        if (nestedProp.type === 'getSingleVar') {
-          startObject = startObject[(nestedProp as SetSingleVarNode).name] as unknown;
-        } else if (nestedProp.type === 'bracketObjectAccess') {
-          const node = nestedProp as BracketObjectAccessNode;
-          startObject = startObject[node.propertyName] as unknown;
-          startObject = startObject[
-            this.evalNode(node.bracketBody, blockContext) as string
-          ] as unknown;
-        } else if (nestedProp.type === 'funcCall') {
-          const funcCallNode = nestedProp as FunctionCallNode;
-          const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
-
-          if (
-            (func === undefined || func === null) &&
-            (dotObject.nestedProps[i - 1] as unknown as IsNullCoelsing).nullCoelsing
-          ) {
-            startObject = null;
-            continue;
-          }
-
-          if (typeof func !== 'function') {
-            throw Error(`'${funcCallNode.name}' is not a function or not defined.`);
-          }
-          const pms = funcCallNode.paramNodes?.map(n => this.evalNode(n, blockContext)) || [];
-          startObject = this.invokeFunction(func.bind(startObject), pms, {
-            moduleName: blockContext.moduleName,
-            line: funcCallNode.loc[0],
-            column: funcCallNode.loc[1]
-          });
-        } else {
-          throw Error("Can't resolve dotObjectAccess node");
-        }
-      }
-
-      // no undefined values, make it rather null
-      return startObject === undefined ? null : startObject;
-    }
 
     if (node.type === 'createObject') {
       const createObjectNode = node as CreateObjectNode;
@@ -490,4 +434,60 @@ export class Evaluator {
       return res;
     }
   }
+
+  private resolveChainingCallsNode(
+    chNode: ChainingCallsNode,
+    blockContext: BlockContext
+  ): unknown {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let startObject = (this.evalNode(chNode.innerNodes[0], blockContext)) as any;
+
+    for (let i = 1; i < chNode.innerNodes.length; i++) {
+      const nestedProp = chNode.innerNodes[i];
+
+      if ((chNode.innerNodes[i - 1] as unknown as IsNullCoelsing).nullCoelsing && !startObject) {
+        startObject = {};
+      }
+
+      if (nestedProp.type === 'getSingleVar') {
+        startObject = startObject[(nestedProp as SetSingleVarNode).name] as unknown;
+      } else if (nestedProp.type === 'chainingObjectAccess') {
+        const node = nestedProp as ChainingObjectAccessNode;
+        // startObject = startObject[node.] as unknown;
+        startObject = startObject[
+          (this.evalNode(node.indexerBody, blockContext)) as string
+        ] as unknown;
+      } else if (nestedProp.type === 'funcCall') {
+        const funcCallNode = nestedProp as FunctionCallNode;
+        const func = startObject[funcCallNode.name] as (...args: unknown[]) => unknown;
+
+        if (
+          (func === undefined || func === null) &&
+          (chNode.innerNodes[i - 1] as unknown as IsNullCoelsing).nullCoelsing
+        ) {
+          startObject = null;
+          continue;
+        }
+
+        if (typeof func !== 'function') {
+          throw Error(`'${funcCallNode.name}' is not a function or not defined.`);
+        }
+        const pms = [];
+        for (const p of funcCallNode.paramNodes || []) {
+          pms.push(this.evalNode(p, blockContext));
+        }
+
+        startObject = this.invokeFunction(func.bind(startObject), pms, {
+          moduleName: blockContext.moduleName,
+          line: funcCallNode.loc[0],
+          column: funcCallNode.loc[0]
+        });
+      } else {
+        throw Error("Can't resolve chainingCalls node");
+      }
+    }
+
+    return startObject === undefined ? null : startObject;
+  }
+
 }

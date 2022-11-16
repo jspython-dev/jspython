@@ -18,8 +18,6 @@ import {
   getEndLine,
   findOperators,
   splitTokens,
-  DotObjectAccessNode,
-  BracketObjectAccessNode,
   findTokenValueIndex,
   FunctionDefNode,
   CreateObjectNode,
@@ -44,7 +42,11 @@ import {
   ComparisonOperators,
   TryExceptNode,
   ExceptBody,
-  RaiseNode
+  RaiseNode,
+  findChainingCallTokensIndexes,
+  splitTokensByIndexes,
+  ChainingCallsNode,
+  ChainingObjectAccessNode
 } from '../common';
 import { JspyParserError } from '../common/utils';
 
@@ -604,13 +606,39 @@ export class Parser {
       return prevNode;
     }
 
-    // create DotObjectAccessNode
-    const subObjects = splitTokens(tokens, '.');
-    if (subObjects.length > 1) {
-      return new DotObjectAccessNode(
-        subObjects.map(tkns => this.createExpressionNode(tkns)),
-        getTokenLoc(tokens[0])
-      );
+    // create chaining calls
+
+    const inds = findChainingCallTokensIndexes(tokens);
+
+    if (inds.length > 0) {
+      const chainingGroup = splitTokensByIndexes(tokens, inds);
+      const innerNodes: AstNode[] = [];
+
+      for (let i = 0; i < chainingGroup.length; i++) {
+        const chainLinkTokenks = chainingGroup[i];
+
+        if (i !== 0 && getTokenValue(chainLinkTokenks[0]) === '[') {
+          const nullCoelsing = getTokenValue(chainLinkTokenks[chainLinkTokenks.length - 1]) === '?';
+          if (nullCoelsing) {
+            chainLinkTokenks.pop();
+          }
+          const paramsTokensSlice = chainLinkTokenks.slice(1, chainLinkTokenks.length - 1);
+          const paramsNodes = this.createExpressionNode(paramsTokensSlice);
+
+          innerNodes.push(
+            new ChainingObjectAccessNode(
+              paramsNodes,
+              nullCoelsing,
+              getTokenLoc(chainLinkTokenks[0])
+            )
+          );
+          continue;
+        }
+
+        innerNodes.push(this.createExpressionNode(chainLinkTokenks));
+      }
+
+      return new ChainingCallsNode(innerNodes, getTokenLoc(tokens[0]));
     }
 
     // create function call node
@@ -680,14 +708,6 @@ export class Parser {
       );
 
       return new CreateArrayNode(items, getTokenLoc(tokens[0]));
-    }
-
-    // bracket access object node
-    if (tokens.length > 2 && getTokenValue(tokens[1]) === '[') {
-      const name = getTokenValue(tokens[0]) as string;
-      const paramsTokensSlice = tokens.slice(2, tokens.length - 1);
-      const paramsNodes = this.createExpressionNode(paramsTokensSlice);
-      return new BracketObjectAccessNode(name, paramsNodes, false, getTokenLoc(tokens[0]));
     }
 
     throw Error(`Undefined node '${getTokenValue(tokens[0])}'.`);
