@@ -136,6 +136,8 @@ export function findChainingCallTokensIndexes(tokens: Token[]): number[] {
       opIndexes.push(i);
     } else if (tValue === '(') {
       i = skipInnerBrackets(tokens, i, '(', ')');
+    } else if (tValue === '[' && i === 0) {
+      i = skipInnerBrackets(tokens, i, '[', ']');
     } else if (tValue === '[' && i !== 0) {
       opIndexes.push(i);
       i = skipInnerBrackets(tokens, i, '[', ']');

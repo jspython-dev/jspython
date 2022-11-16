@@ -413,7 +413,7 @@ describe('Interpreter', () => {
     };
 
     check(e.eval(script) as number[]);
-    check(await e.evaluate(script) as any);
+    check((await e.evaluate(script)) as any);
   });
 
   it('try catch no error', async () => {
@@ -436,7 +436,7 @@ describe('Interpreter', () => {
       expect(result[2]).toBe(3);
     };
 
-    check(await e.evaluate(script) as any);
+    check((await e.evaluate(script)) as any);
     check(e.eval(script) as number[]);
   });
 
@@ -728,11 +728,11 @@ describe('Interpreter', () => {
       `);
     });
 
-    const res = await interpreter.evaluate(`
+    const res = (await interpreter.evaluate(`
     import './some.json' as obj
 
     return obj
-    `) as any;
+    `)) as any;
 
     expect(res.x).toBe('test1');
     expect(res.n).toBe(22);
@@ -742,13 +742,13 @@ describe('Interpreter', () => {
     const interpreter = Interpreter.create();
 
     interpreter.registerPackagesLoader(path =>
-      path === 'service'
+      (path === 'service'
         ? {
             add: (x: number, y: number): number => x + y,
             remove: (x: number, y: number): number => x - y,
             times: (x: number, y: number): number => x * y
           }
-        : null
+        : null) as any
     );
 
     interpreter.registerModuleLoader(() => {
@@ -784,7 +784,7 @@ describe('Interpreter', () => {
 
   it('semicolon as a string', async () => {
     const interpreter = Interpreter.create();
-    const res = await interpreter.evaluate(`"first;second".split(';')`) as any;
+    const res = (await interpreter.evaluate(`"first;second".split(';')`)) as any;
     expect(res.length).toBe(2);
   });
 
@@ -815,4 +815,90 @@ describe('Interpreter', () => {
     expect(await interpreter.evalAsync(script)).toBe(55);
     expect(interpreter.eval(script)).toBe(55);
   });
+
+  it('complex chaining call', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+    p = {f:{}}
+    p.f.x = 9
+    p.f.o = {v: 9}
+    p["test" + p.f.x] = "test9 value"
+    return p.test9
+    `;
+    expect(await interpreter.evalAsync(script)).toBe('test9 value');
+    expect(interpreter.eval(script)).toBe('test9 value');
+  });
+
+  it('chaining calls - split', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+    "12,13,14".split(',')[1]
+    `;
+    expect(await interpreter.evalAsync(script)).toBe('13');
+    expect(interpreter.eval(script)).toBe('13');
+  });
+
+  it('chaining calls - array indexer', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+[
+    ["ss1", "ss21", 5],
+    ["ss2", "test value", 6],
+    ["ss3", "2020-03-07", 7],
+    []
+][1][1]
+    `;
+    expect(await interpreter.evalAsync(script)).toBe('test value');
+    expect(interpreter.eval(script)).toBe('test value');
+  });
+
+  it('chaining calls - array indexer with ?', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+[
+    ["ss1", "ss21", 5],
+    ["ss2", "test value", 6],
+    ["ss3", "2020-03-07", 7],
+    []
+][1]?[1]
+    `;
+    expect(await interpreter.evalAsync(script)).toBe('test value');
+    expect(interpreter.eval(script)).toBe('test value');
+  });
+
+  it('chaining calls - object indexer with ?', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+    {x: 5, y: 10}.x    
+    `;
+    expect(await interpreter.evalAsync(script)).toBe(5);
+    expect(interpreter.eval(script)).toBe(5);
+  });  
+
+  it('chaining calls - object indexer with ?', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+    {x: 5, y: 10, xy: 15}["x"+"y"]
+    `;
+    expect(await interpreter.evalAsync(script)).toBe(15);
+    expect(interpreter.eval(script)).toBe(15);
+  });  
+
+  it('chaining calls - object indexer with ?', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+    {value: "1st,2nd,3d"}["value"]?.split(',')?[1]
+    `;
+    expect(await interpreter.evalAsync(script)).toBe('2nd');
+    expect(interpreter.eval(script)).toBe('2nd');
+  });  
+
+//
 });

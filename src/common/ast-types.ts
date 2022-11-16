@@ -8,10 +8,8 @@ export type AstNodeType =
   | 'logicalOp'
   | 'getSingleVar'
   | 'setSingleVar'
-  | 'dotObjectAccess'
   | 'chainingCalls'
   | 'chainingObjectAccess'
-  | 'bracketObjectAccess'
   | 'funcCall'
   | 'funcDef'
   | 'arrowFuncDef'
@@ -213,14 +211,6 @@ export class GetSingleVarNode extends AstNode implements IsNullCoelsing {
   }
 }
 
-// should be deprecated
-export class DotObjectAccessNode extends AstNode {
-  constructor(public nestedProps: AstNode[], public loc: Uint16Array) {
-    super('dotObjectAccess');
-    this.loc = loc;
-  }
-}
-
 export class ChainingCallsNode extends AstNode {
   constructor(public innerNodes: AstNode[], public loc: Uint16Array) {
     super('chainingCalls');
@@ -238,19 +228,6 @@ export class CreateObjectNode extends AstNode {
 export class CreateArrayNode extends AstNode {
   constructor(public items: AstNode[], public loc: Uint16Array) {
     super('createArray');
-    this.loc = loc;
-  }
-}
-
-// should be deprecated
-export class BracketObjectAccessNode extends AstNode {
-  constructor(
-    public propertyName: string,
-    public bracketBody: AstNode,
-    public nullCoelsing: boolean | undefined = undefined,
-    public loc: Uint16Array
-  ) {
-    super('bracketObjectAccess');
     this.loc = loc;
   }
 }
