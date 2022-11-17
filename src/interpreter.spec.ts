@@ -741,14 +741,15 @@ describe('Interpreter', () => {
   it('Import with package loader', async () => {
     const interpreter = Interpreter.create();
 
-    interpreter.registerPackagesLoader(path =>
-      (path === 'service'
-        ? {
-            add: (x: number, y: number): number => x + y,
-            remove: (x: number, y: number): number => x - y,
-            times: (x: number, y: number): number => x * y
-          }
-        : null) as any
+    interpreter.registerPackagesLoader(
+      path =>
+        (path === 'service'
+          ? {
+              add: (x: number, y: number): number => x + y,
+              remove: (x: number, y: number): number => x - y,
+              times: (x: number, y: number): number => x * y
+            }
+          : null) as any
     );
 
     interpreter.registerModuleLoader(() => {
@@ -878,7 +879,7 @@ describe('Interpreter', () => {
     `;
     expect(await interpreter.evalAsync(script)).toBe(5);
     expect(interpreter.eval(script)).toBe(5);
-  });  
+  });
 
   it('chaining calls - object indexer with ?', async () => {
     const interpreter = Interpreter.create();
@@ -888,7 +889,7 @@ describe('Interpreter', () => {
     `;
     expect(await interpreter.evalAsync(script)).toBe(15);
     expect(interpreter.eval(script)).toBe(15);
-  });  
+  });
 
   it('chaining calls - object indexer with ?', async () => {
     const interpreter = Interpreter.create();
@@ -898,7 +899,15 @@ describe('Interpreter', () => {
     `;
     expect(await interpreter.evalAsync(script)).toBe('2nd');
     expect(interpreter.eval(script)).toBe('2nd');
-  });  
+  });
 
-//
+  it('string escape chars', async () => {
+    const interpreter = Interpreter.create();
+    expect(interpreter.eval('"12\\"34"')).toBe('12"34');
+    expect(interpreter.eval(`"12\\'34"`)).toBe(`12'34`);
+    expect(interpreter.eval(`"12\\\34"`)).toBe(`12\\34`);
+    expect(interpreter.eval('"\\"12\\"34\\""')).toBe('"12"34"');
+  });
+
+  //
 });

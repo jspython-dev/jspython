@@ -26,6 +26,7 @@ const SeparatorsMap: Record<string, string[]> = {
   ']': [']']
 };
 
+const escapeChars = ['"', "'", '\\'];
 const Keywords: string[] = ['async', 'def', 'for', 'while', 'if', 'return', 'in'];
 
 export class Tokenizer {
@@ -148,6 +149,13 @@ export class Tokenizer {
           this.incrementCursor(3);
         } else {
           while (script[this.incrementCursor()] !== q) {
+            if (
+              script[this._cursor] === '\\' &&
+              escapeChars.indexOf(script[this._cursor + 1]) >= 0
+            ) {
+              this._cursor++;
+            }
+
             this.tokenText += script[this._cursor];
             if (this._cursor + 1 >= script.length) break;
           }
