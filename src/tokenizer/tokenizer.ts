@@ -157,7 +157,9 @@ export class Tokenizer {
             }
 
             this.tokenText += script[this._cursor];
-            if (this._cursor + 1 >= script.length) break;
+            if (this._cursor + 1 >= script.length) {
+              throw new Error(`Line ${this._startLine}: End of string missing.`);
+            }
           }
 
           //start column needs to take into account a begining quote, not just a string
