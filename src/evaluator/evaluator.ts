@@ -4,7 +4,7 @@ import {
   AstBlock,
   AstNode,
   BinOpNode,
-    ChainingCallsNode,
+  ChainingCallsNode,
   ChainingObjectAccessNode,
   ConstNode,
   CreateArrayNode,
@@ -139,12 +139,29 @@ export class Evaluator {
 
     if (node.type === 'if') {
       const ifNode = node as IfNode;
+      let doElse = true;
       if (this.evalNode(ifNode.conditionNode, blockContext)) {
         this.evalBlock(
           { name: blockContext.moduleName, type: 'if', body: ifNode.ifBody } as AstBlock,
           blockContext
         );
-      } else if (ifNode.elseBody) {
+        doElse = false;
+      } else if (ifNode.elifs?.length) {
+        for (let i = 0; i < ifNode.elifs.length; i++) {
+          const elIfNode = ifNode.elifs[i];
+
+          if (this.evalNode(elIfNode.conditionNode, blockContext)) {
+            this.evalBlock(
+              { name: blockContext.moduleName, type: 'if', body: elIfNode.elifBody } as AstBlock,
+              blockContext
+            );
+            doElse = false;
+            break;
+          }
+        }
+      }
+      
+      if (doElse && ifNode.elseBody) {
         this.evalBlock(
           { name: blockContext.moduleName, type: 'if', body: ifNode.elseBody } as AstBlock,
           blockContext
@@ -369,10 +386,7 @@ export class Evaluator {
 
       if (assignNode.target.type === 'getSingleVar') {
         const node = assignNode.target as SetSingleVarNode;
-        blockContext.blockScope.set(
-          node.name,
-          this.evalNode(assignNode.source, blockContext)
-        );
+        blockContext.blockScope.set(node.name, this.evalNode(assignNode.source, blockContext));
       } else if (assignNode.target.type === 'chainingCalls') {
         const targetNode = assignNode.target as ChainingCallsNode;
 
@@ -382,7 +396,7 @@ export class Evaluator {
           targetNode.innerNodes.slice(0, targetNode.innerNodes.length - 1),
           targetNode.loc
         );
-        const targetObject = (this.evalNode(targetObjectNode, blockContext)) as Record<
+        const targetObject = this.evalNode(targetObjectNode, blockContext) as Record<
           string,
           unknown
         >;
@@ -393,10 +407,10 @@ export class Evaluator {
         if (lastInnerNode.type === 'getSingleVar') {
           lastPropertyName = (lastInnerNode as GetSingleVarNode).name;
         } else if (lastInnerNode.type === 'chainingObjectAccess') {
-          lastPropertyName = (this.evalNode(
+          lastPropertyName = this.evalNode(
             (lastInnerNode as ChainingObjectAccessNode).indexerBody,
             blockContext
-          )) as string;
+          ) as string;
         } else {
           throw Error('Not implemented Assign operation with chaining calls');
         }
@@ -410,7 +424,6 @@ export class Evaluator {
     if (node.type === 'chainingCalls') {
       return this.resolveChainingCallsNode(node as ChainingCallsNode, blockContext);
     }
-
 
     if (node.type === 'createObject') {
       const createObjectNode = node as CreateObjectNode;
@@ -435,12 +448,9 @@ export class Evaluator {
     }
   }
 
-  private resolveChainingCallsNode(
-    chNode: ChainingCallsNode,
-    blockContext: BlockContext
-  ): unknown {
+  private resolveChainingCallsNode(chNode: ChainingCallsNode, blockContext: BlockContext): unknown {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let startObject = (this.evalNode(chNode.innerNodes[0], blockContext)) as any;
+    let startObject = this.evalNode(chNode.innerNodes[0], blockContext) as any;
 
     for (let i = 1; i < chNode.innerNodes.length; i++) {
       const nestedProp = chNode.innerNodes[i];
@@ -455,7 +465,7 @@ export class Evaluator {
         const node = nestedProp as ChainingObjectAccessNode;
         // startObject = startObject[node.] as unknown;
         startObject = startObject[
-          (this.evalNode(node.indexerBody, blockContext)) as string
+          this.evalNode(node.indexerBody, blockContext) as string
         ] as unknown;
       } else if (nestedProp.type === 'funcCall') {
         const funcCallNode = nestedProp as FunctionCallNode;
@@ -489,5 +499,4 @@ export class Evaluator {
 
     return startObject === undefined ? null : startObject;
   }
-
 }

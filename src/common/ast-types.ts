@@ -16,6 +16,7 @@ export type AstNodeType =
   | 'createObject'
   | 'createArray'
   | 'if'
+  | 'elif'
   | 'for'
   | 'while'
   | 'tryExcept'
@@ -142,12 +143,24 @@ export class ArrowFuncDefNode extends AstNode implements FuncDefNode {
   }
 }
 
+export class ElifNode extends AstNode {
+  constructor(
+    public conditionNode: AstNode,
+    public elifBody: AstNode[],
+    public loc: Uint16Array
+  ) {
+    super('elif');
+    this.loc = loc;
+  }
+}
+
 export class IfNode extends AstNode {
   constructor(
     public conditionNode: AstNode,
     public ifBody: AstNode[],
+    public elifs: ElifNode[] | undefined = undefined,
     public elseBody: AstNode[] | undefined = undefined,
-    public loc: Uint16Array
+    public loc: Uint16Array,
   ) {
     super('if');
     this.loc = loc;
@@ -242,7 +255,6 @@ export class ChainingObjectAccessNode extends AstNode {
     this.loc = loc;
   }
 }
-
 
 export interface LogicalNodeItem {
   node: AstNode;

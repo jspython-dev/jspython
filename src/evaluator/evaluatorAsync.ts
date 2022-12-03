@@ -238,12 +238,30 @@ export class EvaluatorAsync {
 
     if (node.type === 'if') {
       const ifNode = node as IfNode;
+      let doElse = true;
+
       if (await this.evalNodeAsync(ifNode.conditionNode, blockContext)) {
         await this.evalBlockAsync(
           { name: blockContext.moduleName, type: 'if', body: ifNode.ifBody } as AstBlock,
           blockContext
         );
-      } else if (ifNode.elseBody) {
+        doElse = false;
+      } else if (ifNode.elifs?.length) {
+        for (let i = 0; i < ifNode.elifs.length; i++) {
+          const elIfNode = ifNode.elifs[i];
+
+          if (await this.evalNodeAsync(elIfNode.conditionNode, blockContext)) {
+            await this.evalBlockAsync(
+              { name: blockContext.moduleName, type: 'if', body: elIfNode.elifBody } as AstBlock,
+              blockContext
+            );
+            doElse = false;
+            break;
+          }
+        }
+      }
+
+      if (doElse && ifNode.elseBody) {
         await this.evalBlockAsync(
           { name: blockContext.moduleName, type: 'if', body: ifNode.elseBody } as AstBlock,
           blockContext

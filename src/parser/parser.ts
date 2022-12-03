@@ -46,7 +46,8 @@ import {
   findChainingCallTokensIndexes,
   splitTokensByIndexes,
   ChainingCallsNode,
-  ChainingObjectAccessNode
+  ChainingObjectAccessNode,
+  ElifNode
 } from '../common';
 import { JspyParserError } from '../common/utils';
 
@@ -197,6 +198,31 @@ export class Parser {
           ? this.groupLogicalOperations(logicOpIndexes, conditionTokens)
           : this.createExpressionNode(conditionTokens);
 
+        // elifs
+        const elifNodes: ElifNode[] = [];
+        while (
+          instructions.length > i + 1 &&
+          getTokenValue(instructions[i + 1].tokens[0]) === 'elif'
+        ) {
+
+          const elifInstruction = instructions[++i];
+
+          const endOfElif = findTokenValueIndex(elifInstruction.tokens, v => v === ':');
+
+          const conditionTokens = elifInstruction.tokens.slice(1, endDefOfDef);
+
+          const elifConditionNode = findIndexes(conditionTokens, OperationTypes.Logical, logicOpIndexes)
+            ? this.groupLogicalOperations(logicOpIndexes, conditionTokens)
+            : this.createExpressionNode(conditionTokens);
+  
+          const elifBody = getBody(elifInstruction.tokens, endOfElif+1);
+          elifNodes.push(
+            new ElifNode(elifConditionNode, elifBody, getTokenLoc(elifInstruction.tokens[0]))
+          );
+          
+        }
+
+        // else
         let elseBody: AstNode[] | undefined = undefined;
         if (
           instructions.length > i + 1 &&
@@ -207,7 +233,9 @@ export class Parser {
           i++;
         }
 
-        ast.body.push(new IfNode(conditionNode, ifBody, elseBody, getTokenLoc(firstToken)));
+        ast.body.push(
+          new IfNode(conditionNode, ifBody, elifNodes, elseBody, getTokenLoc(firstToken))
+        );
       } else if (getTokenValue(firstToken) === 'try') {
         if (getTokenValue(instruction.tokens[1]) !== ':') {
           throw `'try' statement should be followed by ':'`;

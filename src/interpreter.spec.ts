@@ -909,5 +909,77 @@ describe('Interpreter', () => {
     expect(interpreter.eval('"\\"12\\"34\\""')).toBe('"12"34"');
   });
 
+  it('- elif 1', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+    x = 5
+    if x == 6:
+      x = 20
+    elif x == 5:
+      x = 10
+    else:
+      x = 30
+
+    return x
+    `;
+    expect(await interpreter.evalAsync(script)).toBe(10);
+    expect(interpreter.eval(script)).toBe(10);
+  });
+
+  it('- elif 2', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+    x = 6
+    if x == 6:
+      x = 20
+    elif x == 5:
+      x = 10
+    else:
+      x = 30
+
+    return x
+    `;
+    expect(await interpreter.evalAsync(script)).toBe(20);
+    expect(interpreter.eval(script)).toBe(20);
+  });
+
+  it('- elif 3', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+    x = 11
+    if x == 6:
+      x = 20
+    elif x == 5:
+      x = 10
+    else:
+      x = 30
+    return x
+    `;
+    expect(await interpreter.evalAsync(script)).toBe(30);
+    expect(interpreter.eval(script)).toBe(30);
+  });
+
+  it('- elif 4', async () => {
+    const interpreter = Interpreter.create();
+
+    const script = `
+    x = 11
+    if x == 6:
+      x = 20
+    elif x == 11:
+      x = 11
+    elif x == 5:
+      x = 10
+    else:
+      x = 30
+    return x
+    `;
+    expect(await interpreter.evalAsync(script)).toBe(11);
+    expect(interpreter.eval(script)).toBe(11);
+  });  
+
   //
 });
