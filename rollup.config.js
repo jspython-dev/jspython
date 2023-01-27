@@ -1,13 +1,15 @@
 import typescript from 'rollup-plugin-typescript2';
 import copy from 'rollup-plugin-copy'
-import { terser } from "rollup-plugin-terser";
+import terser from "@rollup/plugin-terser";
 
-const pkg = require('./package.json');
 const input = 'src/interpreter.ts';
+
+const pkgMain = 'dist/jspython-interpreter.min.js';
+const pkgModule = 'dist/jspython-interpreter.esm.js';
 
 export default [{
   input,
-  output: { file: pkg.main, name: 'jspython', format: 'umd', sourcemap: true, compact: true },
+  output: { file: pkgMain, name: 'jspython', format: 'umd', sourcemap: true, compact: true },
   external: [],
   treeshake: true,
   plugins: [
@@ -23,7 +25,7 @@ export default [{
   ]
 }, {
   input,
-  output: { file: pkg.module, format: 'esm', sourcemap: true, compact: true },
+  output: { file: pkgModule, format: 'esm', sourcemap: true, compact: true },
   external: [],
   plugins: [
     typescript({
