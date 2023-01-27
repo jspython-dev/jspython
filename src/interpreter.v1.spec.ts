@@ -1376,7 +1376,8 @@ describe('Interpreter', () => {
     expect(o[1][1]).toBe('ss22');
     expect(o[1][2]).toBe(6);
 
-    expect(o[2][1].toISOString()).toBeDefined(); //.toBe(new Date('2020-03-07').toISOString());
+    expect(o[2][1]).toBeInstanceOf(Date);
+    expect((o[2][1] as Date).getFullYear()).toBe(2020);
     expect(o[3].length).toBe(0);
   });
 

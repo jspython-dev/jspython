@@ -57,7 +57,7 @@ export class Interpreter {
   eval(
     codeOrAst: string | AstBlock,
     scope: Record<string, unknown> = {},
-    entryFunctionName = '',
+    entryFunctionName: string | [string, ...unknown[]] = '',
     moduleName = 'main.jspy'
   ): unknown {
     const ast =
@@ -81,18 +81,20 @@ export class Interpreter {
     if (!entryFunctionName || !entryFunctionName.length) {
       return result;
     } else {
-      const func = blockContext.blockScope.get(entryFunctionName);
+      const funcName = Array.isArray(entryFunctionName)? entryFunctionName[0] : entryFunctionName as string
+      const funcParams = Array.isArray(entryFunctionName)? entryFunctionName.slice(1) : []
+      const func = blockContext.blockScope.get(funcName);
       if (typeof func !== 'function') {
         throw Error(`Function ${entryFunctionName} does not exists or not a function`);
       }
-      return func();
+      return func(...funcParams);
     }
   }
 
   async evalAsync(
     codeOrAst: string | AstBlock,
     scope: Record<string, unknown> = {},
-    entryFunctionName = '',
+    entryFunctionName: string | [string, ...unknown[]] = '',
     moduleName = 'main.jspy',
     ctxInitialized?: (ctx: BlockContext) => void
   ): Promise<unknown> {
@@ -146,11 +148,14 @@ export class Interpreter {
     if (!entryFunctionName || !entryFunctionName.length) {
       return result;
     } else {
-      const func = blockContext.blockScope.get(entryFunctionName);
+      const funcName = Array.isArray(entryFunctionName)? entryFunctionName[0] : entryFunctionName as string
+      const funcParams = Array.isArray(entryFunctionName)? entryFunctionName.slice(1) : []
+
+      const func = blockContext.blockScope.get(funcName);
       if (typeof func !== 'function') {
         throw Error(`Function ${entryFunctionName} does not exists or not a function`);
       }
-      return await func();
+      return await func(...funcParams);
     }
   }
 
@@ -160,7 +165,7 @@ export class Interpreter {
   async evaluate(
     script: string,
     context: Record<string, unknown> = {},
-    entryFunctionName = '',
+    entryFunctionName: string | [string, ...unknown[]] = '',
     moduleName = 'main.jspy',
     ctxInitialized?: (ctx: BlockContext) => void
   ): Promise<unknown> {

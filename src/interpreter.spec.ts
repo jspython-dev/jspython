@@ -288,6 +288,15 @@ describe('Interpreter', () => {
     expect(e.eval(script)).toBe(5);
   });
 
+  it('funcCall with params', () => {
+    const script = `
+    def times(a, b):
+      return a * b
+    `;
+    expect(e.eval(script, {}, ['times', 2, 3])).toBe(6);
+  });
+
+
   it('long comments issue', () => {
     const script = `
     async def f2():
