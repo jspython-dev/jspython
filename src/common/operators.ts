@@ -19,38 +19,38 @@ export type Operators =
   | LogicalOperators
   | MembershipOperators;
 
-export const OperatorsMap: Record<Operators, OperationTypes> = {
-  '+': OperationTypes.Arithmetic,
-  '-': OperationTypes.Arithmetic,
-  '*': OperationTypes.Arithmetic,
-  '/': OperationTypes.Arithmetic,
-  '%': OperationTypes.Arithmetic,
-  '**': OperationTypes.Arithmetic,
-  '//': OperationTypes.Arithmetic,
+export const OperatorsMap: Map<Operators, OperationTypes> = new Map<Operators, OperationTypes>([
+  ['+', OperationTypes.Arithmetic],
+  ['-', OperationTypes.Arithmetic],
+  ['*', OperationTypes.Arithmetic],
+  ['/', OperationTypes.Arithmetic],
+  ['%', OperationTypes.Arithmetic],
+  ['**', OperationTypes.Arithmetic],
+  ['//', OperationTypes.Arithmetic],
 
-  '>': OperationTypes.Comparison,
-  '>=': OperationTypes.Comparison,
-  '==': OperationTypes.Comparison,
-  '!=': OperationTypes.Comparison,
-  '<>': OperationTypes.Comparison,
-  '<': OperationTypes.Comparison,
-  '<=': OperationTypes.Comparison,
+  ['>', OperationTypes.Comparison],
+  ['>=', OperationTypes.Comparison],
+  ['==', OperationTypes.Comparison],
+  ['!=', OperationTypes.Comparison],
+  ['<>', OperationTypes.Comparison],
+  ['<', OperationTypes.Comparison],
+  ['<=', OperationTypes.Comparison],
 
-  and: OperationTypes.Logical,
-  or: OperationTypes.Logical,
-  // "not": OperationTypes.Logical,
-  // "not in": OperationTypes.Logical,
+  ['and', OperationTypes.Logical],
+  ['or', OperationTypes.Logical],
+  // "not", OperationTypes.Logical],
+  // "not in", OperationTypes.Logical],
 
-  in: OperationTypes.Membership,
+  ['in', OperationTypes.Membership],
 
-  '=': OperationTypes.Assignment,
-  '+=': OperationTypes.Assignment,
-  '-=': OperationTypes.Assignment,
-  '*=': OperationTypes.Assignment,
-  '/=': OperationTypes.Assignment,
-  '++': OperationTypes.Assignment,
-  '--': OperationTypes.Assignment
-};
+  ['=', OperationTypes.Assignment],
+  ['+=', OperationTypes.Assignment],
+  ['-=', OperationTypes.Assignment],
+  ['*=', OperationTypes.Assignment],
+  ['/=', OperationTypes.Assignment],
+  ['++', OperationTypes.Assignment],
+  ['--', OperationTypes.Assignment]
+]);
 
 export type Primitive = string | number | boolean | null;
 
@@ -61,30 +61,48 @@ export type ExpressionOperators =
   | MembershipOperators;
 type ExpressionOperation = (l: Primitive, r: Primitive) => Primitive;
 
-export const OperationFuncs: Record<ExpressionOperators, ExpressionOperation> = {
-  '+': (l, r) => arithmeticOperation(l, r, '+'),
-  '-': (l, r) => arithmeticOperation(l, r, '-'),
-  '/': (l, r) => arithmeticOperation(l, r, '/'),
-  '*': (l, r) => arithmeticOperation(l, r, '*'),
-  '%': (l, r) => arithmeticOperation(l, r, '%'),
-  '**': (l, r) => arithmeticOperation(l, r, '**'),
-  '//': (l, r) => arithmeticOperation(l, r, '//'),
+export const OperationFuncs: Map<ExpressionOperators, ExpressionOperation> = new Map<
+  ExpressionOperators,
+  ExpressionOperation
+>([
+  ['+' as ExpressionOperators, ((l, r) => arithmeticOperation(l, r, '+')) as ExpressionOperation],
+  ['-' as ExpressionOperators, ((l, r) => arithmeticOperation(l, r, '-')) as ExpressionOperation],
+  ['/' as ExpressionOperators, ((l, r) => arithmeticOperation(l, r, '/')) as ExpressionOperation],
+  ['*' as ExpressionOperators, ((l, r) => arithmeticOperation(l, r, '*')) as ExpressionOperation],
+  ['%' as ExpressionOperators, ((l, r) => arithmeticOperation(l, r, '%')) as ExpressionOperation],
+  ['**' as ExpressionOperators, ((l, r) => arithmeticOperation(l, r, '**')) as ExpressionOperation],
+  ['//' as ExpressionOperators, ((l, r) => arithmeticOperation(l, r, '//')) as ExpressionOperation],
 
-  '>': (l, r) => comparissonOperation(l, r, '>'),
-  '>=': (l, r) => comparissonOperation(l, r, '>='),
-  '<': (l, r) => comparissonOperation(l, r, '<'),
-  '<=': (l, r) => comparissonOperation(l, r, '<='),
-  '==': (l, r) => comparissonOperation(l, r, '=='),
-  '!=': (l, r) => comparissonOperation(l, r, '!='),
-  '<>': (l, r) => comparissonOperation(l, r, '<>'),
+  ['>' as ExpressionOperators, ((l, r) => comparissonOperation(l, r, '>')) as ExpressionOperation],
+  [
+    '>=' as ExpressionOperators,
+    ((l, r) => comparissonOperation(l, r, '>=')) as ExpressionOperation
+  ],
+  ['<' as ExpressionOperators, ((l, r) => comparissonOperation(l, r, '<')) as ExpressionOperation],
+  [
+    '<=' as ExpressionOperators,
+    ((l, r) => comparissonOperation(l, r, '<=')) as ExpressionOperation
+  ],
+  [
+    '==' as ExpressionOperators,
+    ((l, r) => comparissonOperation(l, r, '==')) as ExpressionOperation
+  ],
+  [
+    '!=' as ExpressionOperators,
+    ((l, r) => comparissonOperation(l, r, '!=')) as ExpressionOperation
+  ],
+  [
+    '<>' as ExpressionOperators,
+    ((l, r) => comparissonOperation(l, r, '<>')) as ExpressionOperation
+  ],
 
-  and: (l, r) => logicalOperation(l, r, 'and'),
-  or: (l, r) => logicalOperation(l, r, 'or'),
-  // "not": (l, r) => logicalOperation(l, r, "not"),
-  // "not in": (l, r) => logicalOperation(l, r, "not in"),
+  ['and' as ExpressionOperators, ((l, r) => logicalOperation(l, r, 'and')) as ExpressionOperation],
+  ['or' as ExpressionOperators, ((l, r) => logicalOperation(l, r, 'or')) as ExpressionOperation],
+  // "not" as ExpressionOperators, ((l, r) => logicalOperation(l, r, "not")) as ExpressionOperation],
+  // "not in" as ExpressionOperators, ((l, r) => logicalOperation(l, r, "not in")) as ExpressionOperation],
 
-  in: (l, r) => membershipOperation(l, r, 'in')
-};
+  ['in' as ExpressionOperators, ((l, r) => membershipOperation(l, r, 'in')) as ExpressionOperation]
+]);
 
 function membershipOperation(l: Primitive, r: Primitive, op: MembershipOperators): Primitive {
   if (typeof l === 'string') {

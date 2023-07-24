@@ -157,6 +157,28 @@ describe('Parser => ', () => {
     expect(!!(innerNodes[3] as ChainingObjectAccessNode).nullCoelsing).toBe(true);
     expect(!!(innerNodes[4] as ChainingObjectAccessNode).nullCoelsing).toBe(true);
     expect(!!(innerNodes[5] as ChainingObjectAccessNode).nullCoelsing).toBe(false);
-  });  
+  });
+
+  it('chaining calls 1 with ? ', async () => {
+    const script = `"1,2,3".split(',')?[0]`;
+    const ast = new Parser().parse(new Tokenizer().tokenize(script));
+    expect(ast.body.length).toBe(1);
+    const innerNodes = (ast.body[0] as ChainingCallsNode).innerNodes;
+
+    expect(ast.body[0].type).toBe("chainingCalls");
+    expect(innerNodes.length).toBe(3);
+    expect(innerNodes[2].type).toBe("chainingObjectAccess");
+
+    expect(!!(innerNodes[0] as ChainingObjectAccessNode).nullCoelsing).toBe(false);
+    expect((innerNodes[1] as ChainingObjectAccessNode).nullCoelsing).toBe(true);
+    expect(!!(innerNodes[2] as ChainingObjectAccessNode).nullCoelsing).toBe(false);    
+  });
+
+  it('prototype methods call ', async () => {
+    expect(new Parser().parse(new Tokenizer().tokenize(`t.toString`)).body.length).toBe(1);
+    expect(new Parser().parse(new Tokenizer().tokenize(`t.toString()`)).body.length).toBe(1);
+    expect(new Parser().parse(new Tokenizer().tokenize(`t.valueOf`)).body.length).toBe(1);
+    expect(new Parser().parse(new Tokenizer().tokenize(`t.valueOf()`)).body.length).toBe(1);
+  });
   
 });

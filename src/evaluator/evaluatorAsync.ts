@@ -436,7 +436,10 @@ export class EvaluatorAsync {
       const binOpNode = node as BinOpNode;
       const left = await this.evalNodeAsync(binOpNode.left, blockContext);
       const right = await this.evalNodeAsync(binOpNode.right, blockContext);
-      return OperationFuncs[binOpNode.op](left as Primitive, right as Primitive);
+
+      const func = OperationFuncs.get(binOpNode.op);
+      if (typeof func === 'function') return func(left as Primitive, right as Primitive);
+      else throw new Error('Unknown binary oprastion');
     }
 
     if (node.type === 'logicalOp') {

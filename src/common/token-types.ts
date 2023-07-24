@@ -182,8 +182,11 @@ export function findOperators(
   operationType: OperationTypes | null = null
 ): number[] {
   return !operationType
-    ? findTokenValueIndexes(tokens, value => OperatorsMap[value as Operators] !== undefined)
-    : findTokenValueIndexes(tokens, value => OperatorsMap[value as Operators] === operationType);
+    ? findTokenValueIndexes(tokens, value => OperatorsMap.has(value as Operators))
+    : findTokenValueIndexes(
+        tokens,
+        value => OperatorsMap.get(value as Operators) === operationType
+      );
 }
 
 function skipInnerBrackets(
