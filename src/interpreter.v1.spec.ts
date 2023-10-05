@@ -1384,13 +1384,13 @@ describe('Interpreter', () => {
   it('JSON parsing last comma error', async () => {
     let x = '';
     try {
-      await e.evaluate(`[[12, 42],`);
+      await e.evaluate(`[[12, 42],]`);
       x = 'NO ERROR';
     } catch (error) {
       x = 'ERROR';
     }
 
-    expect(x).toBe('ERROR');
+    expect(x).toBe('NO ERROR');
 
     x = '';
     try {
@@ -1401,7 +1401,7 @@ describe('Interpreter', () => {
     } catch (error) {
       x = 'ERROR';
     }
-    expect(x).toBe('ERROR');
+    expect(x).toBe('NO ERROR');
 
     x = '';
     try {

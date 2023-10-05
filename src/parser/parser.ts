@@ -204,22 +204,24 @@ export class Parser {
           instructions.length > i + 1 &&
           getTokenValue(instructions[i + 1].tokens[0]) === 'elif'
         ) {
-
           const elifInstruction = instructions[++i];
 
           const endOfElif = findTokenValueIndex(elifInstruction.tokens, v => v === ':');
 
           const conditionTokens = elifInstruction.tokens.slice(1, endDefOfDef);
 
-          const elifConditionNode = findIndexes(conditionTokens, OperationTypes.Logical, logicOpIndexes)
+          const elifConditionNode = findIndexes(
+            conditionTokens,
+            OperationTypes.Logical,
+            logicOpIndexes
+          )
             ? this.groupLogicalOperations(logicOpIndexes, conditionTokens)
             : this.createExpressionNode(conditionTokens);
-  
-          const elifBody = getBody(elifInstruction.tokens, endOfElif+1);
+
+          const elifBody = getBody(elifInstruction.tokens, endOfElif + 1);
           elifNodes.push(
             new ElifNode(elifConditionNode, elifBody, getTokenLoc(elifInstruction.tokens[0]))
           );
-          
         }
 
         // else
@@ -690,6 +692,9 @@ export class Parser {
       const keyValueTokens = splitTokens(tokens.splice(1, tokens.length - 2), ',');
       const props = [] as ObjectPropertyInfo[];
       for (let i = 0; i < keyValueTokens.length; i++) {
+        if (!keyValueTokens[i].length) {
+          continue;
+        }
         const keyValue = splitTokens(keyValueTokens[i], ':');
         if (keyValue.length === 1) {
           const pInfo = {
@@ -731,9 +736,9 @@ export class Parser {
 
     // create Array Node
     if (getTokenValue(tokens[0]) === '[' && getTokenValue(tokens[tokens.length - 1]) === ']') {
-      const items = splitTokens(tokens.splice(1, tokens.length - 2), ',').map(tkns =>
-        this.createExpressionNode(tkns)
-      );
+      const items = splitTokens(tokens.splice(1, tokens.length - 2), ',')
+        .filter(tkns => tkns?.length)
+        .map(tkns => this.createExpressionNode(tkns));
 
       return new CreateArrayNode(items, getTokenLoc(tokens[0]));
     }

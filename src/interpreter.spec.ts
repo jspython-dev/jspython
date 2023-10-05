@@ -132,6 +132,12 @@ describe('Interpreter', () => {
     expect(e.eval("x = {['m'+1]: 1+2*3}\nx.m1")).toBe(7);
   });
 
+  it('json ignore last comma', () => {
+    expect(JSON.stringify(e.eval('[{a:1,}, {a:2},]'))).toBe(JSON.stringify([{ a: 1, }, { a: 2 },]));
+  });
+
+  [{ a: 1 }, { a: 2 }];
+
   it('json with dynamic key', () => {
     expect(e.eval("p = 'prop'\nx = {[p + '_'+1]: 1+2*3}\nx.prop_1")).toBe(7);
     expect(e.eval("p = {x:'prop'}\nx = {[p.x + '_'+1]: 1+2*3}\nx.prop_1")).toBe(7);
@@ -295,7 +301,6 @@ describe('Interpreter', () => {
     `;
     expect(e.eval(script, {}, ['times', 2, 3])).toBe(6);
   });
-
 
   it('long comments issue', () => {
     const script = `
@@ -988,7 +993,7 @@ describe('Interpreter', () => {
     `;
     expect(await interpreter.evalAsync(script)).toBe(11);
     expect(interpreter.eval(script)).toBe(11);
-  });  
+  });
 
   //
 });

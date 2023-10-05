@@ -221,7 +221,7 @@ export class Interpreter {
     return scripts.indexOf(`def ${funcName}`) > -1;
   }
 
-  private assignImportContext(
+  assignImportContext(
     ast: AstBlock,
     context: Record<string, unknown>
   ): Record<string, unknown> {
