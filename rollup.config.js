@@ -14,7 +14,8 @@ export default [{
   treeshake: true,
   plugins: [
     typescript({
-      clean: true
+      clean: true,
+      include: ["*.ts", "**/*.ts"]
     }),
     copy({
       targets: [
@@ -29,7 +30,8 @@ export default [{
   external: [],
   plugins: [
     typescript({
-      clean: true
+      clean: true,
+      include: ["*.ts", "**/*.ts"]
     })
   ]
 }];

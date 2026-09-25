@@ -15,7 +15,8 @@ export default {
   external: [],
   plugins: [
     typescript({
-      abortOnError: false
+      abortOnError: false,
+      include: ["*.ts", "**/*.ts"]
     }),
     serve({contentBase: '', open: true}),
     livereload('dist')
