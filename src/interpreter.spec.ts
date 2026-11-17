@@ -1011,4 +1011,152 @@ describe('Interpreter', () => {
     expect(interpreter.eval(script)).toBe(-3.14);
   });
   //
+
+  // chained arithmetic must follow operator precedence and associativity;
+  // '//', 'in' and augmented assignments (+= -= *= /=) must be supported
+  describe('operators precedence, associativity and augmented assignment => ', () => {
+    const cases: [string, unknown][] = [
+      // '*', '/', '%', '//' are left associative and share the same precedence
+      ['8 / 4 / 2', 1],
+      ['8 / 2 * 4', 16],
+      ['12 / 3 / 2 / 2', 1],
+      ['7 % 4 * 2', 6],
+      ['2 * 3 * 4', 24],
+      ['2 * 6 / 3 * 5', 20],
+      ['100 / 10 / 5 * 2', 4],
+      ['10 % 4 % 3', 2],
+      ['2 * 7 % 4', 2],
+      ['7%4', 3],
+      ['1 + 8 / 4 / 2', 2],
+      ['1 + 8 / 4 / 2 + 1', 3],
+      ['20 - 8 / 4 / 2 - 1', 18],
+      ['1 + 2 * 3 - 4 / 2', 5],
+      ['2 + 3 * 4 * 5 - 6', 56],
+      ['10 - 4 - 3', 3],
+      ['10 - 4 + 3', 9],
+      ['(8 / 4) / 2', 1],
+      ['8 / (4 / 2)', 4],
+      ['8 / (2 * 4)', 1],
+      ['2 * (3 + 4) / 7 * 3', 6],
+
+      // '**' binds tighter than everything else and is right associative
+      ['2 ** 3', 8],
+      ['2 ** 3 ** 2', 512],
+      ['(2 ** 3) ** 2', 64],
+      ['0 - 3 ** 2', -9],
+      ['2 * 3 ** 2', 18],
+      ['3 ** 2 * 2', 18],
+      ['18 / 3 ** 2', 2],
+      ['1 + 2 ** 3 + 1', 10],
+      ['10 - 2 * 3 ** 2 / 4', 5.5],
+      ['2 ** 2 ** 3 / 2 ** 2 ** 2', 16],
+
+      // floor division
+      ['7 // 2', 3],
+      ['8 // 2', 4],
+      ['0 - 7 // 2', -3],
+      ['-7 // 2', -4],
+      ['7.5 // 2', 3],
+      ['20 // 3 // 2', 3],
+      ['7 // 2 * 2', 6],
+      ['2 * 7 // 4', 3],
+      ['1 + 7 // 2', 4],
+      ['7//2', 3],
+
+      // membership
+      ['1 in [1, 2]', true],
+      ['3 in [1, 2]', false],
+      ['"a" in ["a", "b"]', true],
+      ['"c" in ["a", "b"]', false],
+      ['"ell" in "hello"', true],
+      ['"xyz" in "hello"', false],
+      ['"a" in {"a": 1}', true],
+      ['"b" in {"a": 1}', false],
+      ['1 + 1 in [2, 3]', true],
+      ['x = [1, 2, 3]\n2 in x', true],
+      ['x = [1, 2, 3]\ny = 5 in x\ny', false],
+
+      // logical operators bind looser than arithmetic
+      ['x = 0 or 2 * 3\nx', 6],
+      ['x = 1 and 2 + 3\nx', 5],
+      ['x = 1 or 0 and 0\nx', 1],
+
+      // augmented assignment
+      ['x = 5\nx += 2\nx', 7],
+      ['x = 5\nx -= 2\nx', 3],
+      ['x = 5\nx *= 2\nx', 10],
+      ['x = 5\nx /= 2\nx', 2.5],
+      ['x = 5\nx += 2 * 3\nx', 11],
+      ['x = 5\nx *= 2 + 3\nx', 25],
+      ['x = 20\nx -= 2 + 3\nx', 15],
+      ['x = 20\nx /= 2 + 3\nx', 4],
+      ['x = 8\nx /= 4 / 2\nx', 4],
+      ['x = "a"\nx += "b"\nx', 'ab'],
+      ['x = {a: 1}\nx.a += 2\nx.a', 3],
+      ['x = {a: {b: 4}}\nx.a.b *= 2\nx.a.b', 8],
+      ['x = [1, 2, 3]\nx[1] += 10\nx[1]', 12],
+      ['x = 0\nfor i in [1, 2, 3]:\n  x += i\nx', 6],
+      ['x = 1\ni = 0\nwhile i < 3:\n  x *= 2\n  i += 1\nx', 8],
+      ['def f(n):\n  r = 0\n  for i in range(n):\n    r += i\n  return r\nf(5)', 10],
+      ['x = 5\nif x > 1:\n  x -= 1\nx', 4]
+    ];
+
+    const range = (n: number): number[] => Array.from({ length: n }, (_, i) => i);
+
+    cases.forEach(([script, expected]) => {
+      const title = JSON.stringify(script);
+
+      it(`eval ${title}`, () => {
+        expect(e.eval(script, { range })).toStrictEqual(expected);
+      });
+
+      it(`evalAsync ${title}`, async () => {
+        expect(await e.evalAsync(script, { range })).toStrictEqual(expected);
+      });
+    });
+
+    it('evaluate() => chained arithmetic, floor division, membership and augmented assignment', async () => {
+      const expected: [string, unknown][] = [
+        ['8 / 4 / 2', 1],
+        ['8 / 2 * 4', 16],
+        ['12 / 3 / 2 / 2', 1],
+        ['7 % 4 * 2', 6],
+        ['2 ** 3 ** 2', 512],
+        ['0 - 3 ** 2', -9],
+        ['10 - 2 * 3 ** 2 / 4', 5.5],
+        ['7 // 2', 3],
+        ['1 in [1, 2]', true],
+        ['x = 5\nx += 2\nx', 7]
+      ];
+
+      for (const [script, result] of expected) {
+        expect(await Interpreter.create().evaluate(script)).toBe(result);
+      }
+    });
+
+    it('arithmetic with variables and function calls', () => {
+      const scope = { a: 8, b: 4, c: 2, half: (n: number): number => n / 2 };
+      expect(e.eval('a / b / c', scope)).toBe(1);
+      expect(e.eval('a / b * c', scope)).toBe(4);
+      expect(e.eval('a - b ** c / a', scope)).toBe(6);
+      expect(e.eval('half(a) / half(b) / c', scope)).toBe(1);
+      expect(e.eval('a // 3 + a % 3', scope)).toBe(4);
+    });
+
+    it('async augmented assignment', async () => {
+      const script = `
+        async def run():
+          total = 0
+          for i in [1, 2, 3]:
+            total += i * 2
+          total
+        run()
+      `;
+      expect(await e.evalAsync(script)).toBe(12);
+    });
+
+    it('unsupported assignment operators report a clear error', () => {
+      expect(() => e.eval('x = 1\nx++')).toThrow(/'\+\+' is not supported/);
+    });
+  });
 });

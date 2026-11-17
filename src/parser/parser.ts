@@ -35,6 +35,7 @@ import {
   ReturnNode,
   CommentNode,
   getTokenLoc,
+  getOperatorPrecedence,
   OperationTypes,
   LogicalNodeItem,
   LogicalOperators,
@@ -408,10 +409,32 @@ export class Parser {
 
         ast.body.push(new ImportNode(module, body, parts, getTokenLoc(firstToken)));
       } else if (findIndexes(instruction.tokens, OperationTypes.Assignment, assignTokenIndexes)) {
-        const assignTokens = splitTokens(instruction.tokens, '=');
-        const target = this.createExpressionNode(assignTokens[0]);
-        const source = this.createExpressionNode(assignTokens[1]);
-        ast.body.push(new AssignNode(target, source, getTokenLoc(assignTokens[0][0])));
+        const assignIndex = assignTokenIndexes[0];
+        const assignOp = getTokenValue(instruction.tokens[assignIndex]) as string;
+
+        if (assignOp === '=') {
+          const assignTokens = splitTokens(instruction.tokens, '=');
+          const target = this.createExpressionNode(assignTokens[0]);
+          const source = this.createExpressionNode(assignTokens[1]);
+          ast.body.push(new AssignNode(target, source, getTokenLoc(assignTokens[0][0])));
+        } else if (['+=', '-=', '*=', '/='].includes(assignOp)) {
+          // augmented assignment: `x += y` => `x = x + (y)`
+          const targetTokens = instruction.tokens.slice(0, assignIndex);
+          const sourceTokens = instruction.tokens.slice(assignIndex + 1);
+          if (!targetTokens.length || !sourceTokens.length) {
+            throw new Error(`Invalid '${assignOp}' assignment.`);
+          }
+          const loc = getTokenLoc(targetTokens[0]);
+          const source = new BinOpNode(
+            this.createExpressionNode(targetTokens),
+            assignOp.substring(0, assignOp.length - 1) as ExpressionOperators,
+            this.createExpressionNode(sourceTokens),
+            loc
+          );
+          ast.body.push(new AssignNode(this.createExpressionNode(targetTokens), source, loc));
+        } else {
+          throw new Error(`Operator '${assignOp}' is not supported.`);
+        }
       } else if (findIndexes(instruction.tokens, OperationTypes.Logical, logicOpIndexes)) {
         ast.body.push(this.groupLogicalOperations(logicOpIndexes, instruction.tokens));
       } else {
@@ -573,67 +596,35 @@ export class Parser {
       return this.groupComparisonOperations(comparissonIndexes, tokens);
     }
 
-    // create arithmetic expression
+    // create arithmetic (and logical / membership) expression
     const ops = findOperators(tokens);
     if (ops.length) {
-      let prevNode: AstNode | null = null;
-      for (let i = 0; i < ops.length; i++) {
-        const opIndex = ops[i];
-        const op = getTokenValue(tokens[opIndex]) as Operators;
+      // operands are the token slices in between operators
+      const operands: AstNode[] = [];
+      for (let i = 0; i <= ops.length; i++) {
+        const begin = i === 0 ? 0 : ops[i - 1] + 1;
+        const end = i < ops.length ? ops[i] : tokens.length;
+        operands.push(this.createExpressionNode(this.sliceWithBrackets(tokens, begin, end)));
+      }
+      const operators = ops.map(ind => getTokenValue(tokens[ind]) as Operators);
+      const loc = getTokenLoc(tokens[0]);
 
-        let nextOpIndex = i + 1 < ops.length ? ops[i + 1] : null;
-        let nextOp = nextOpIndex !== null ? getTokenValue(tokens[nextOpIndex]) : null;
-        if (nextOpIndex !== null && (nextOp === '*' || nextOp === '/')) {
-          let rightNode: AstNode | null = null;
-          // iterate through all continuous '*', '/' operations
-          do {
-            const nextOpIndex2 = i + 2 < ops.length ? ops[i + 2] : null;
-
-            const leftSlice2 = this.sliceWithBrackets(tokens, opIndex + 1, nextOpIndex);
-            const rightSlice2 = this.sliceWithBrackets(
-              tokens,
-              nextOpIndex + 1,
-              nextOpIndex2 || tokens.length
-            );
-
-            const left2 = this.createExpressionNode(leftSlice2);
-            const right2 = this.createExpressionNode(rightSlice2);
-            rightNode = new BinOpNode(left2, nextOp, right2, getTokenLoc(tokens[opIndex + 1]));
-
-            i++;
-            nextOpIndex = i + 1 < ops.length ? ops[i + 1] : null;
-            nextOp = nextOpIndex !== null ? getTokenValue(tokens[nextOpIndex]) : null;
-          } while (nextOpIndex !== null && (nextOp === '*' || nextOp === '/'));
-
-          // add up result
-          if (prevNode === null) {
-            const leftSlice = this.sliceWithBrackets(tokens, 0, opIndex);
-            prevNode = this.createExpressionNode(leftSlice);
-          }
-          prevNode = new BinOpNode(
-            prevNode,
-            op as ExpressionOperators,
-            rightNode,
-            getTokenLoc(tokens[0])
-          );
-        } else {
-          const leftSlice = prevNode ? [] : this.sliceWithBrackets(tokens, 0, opIndex);
-          const rightSlice = this.sliceWithBrackets(
-            tokens,
-            opIndex + 1,
-            nextOpIndex || tokens.length
-          );
-          const left: AstNode = prevNode || this.createExpressionNode(leftSlice);
-          const right = this.createExpressionNode(rightSlice);
-          prevNode = new BinOpNode(left, op as ExpressionOperators, right, getTokenLoc(tokens[0]));
+      // precedence climbing: higher precedence binds tighter,
+      // everything is left associative except '**'
+      let pos = 0;
+      const buildNode = (minPrecedence: number): AstNode => {
+        let left = operands[pos];
+        while (pos < operators.length && getOperatorPrecedence(operators[pos]) >= minPrecedence) {
+          const op = operators[pos];
+          const precedence = getOperatorPrecedence(op);
+          pos++;
+          const right = buildNode(op === '**' ? precedence : precedence + 1);
+          left = new BinOpNode(left, op as ExpressionOperators, right, loc);
         }
-      }
+        return left;
+      };
 
-      if (prevNode === null) {
-        throw Error(`Can't create node ...`);
-      }
-
-      return prevNode;
+      return buildNode(0);
     }
 
     // create chaining calls
