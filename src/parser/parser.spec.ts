@@ -180,5 +180,80 @@ describe('Parser => ', () => {
     expect(new Parser().parse(new Tokenizer().tokenize(`t.valueOf`)).body.length).toBe(1);
     expect(new Parser().parse(new Tokenizer().tokenize(`t.valueOf()`)).body.length).toBe(1);
   });
-  
+
+  describe('operator precedence and associativity => ', () => {
+    // renders binOp tree with explicit brackets
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const render = (node: any): string => {
+      if (node.type === 'binOp') {
+        return `(${render(node.left)} ${node.op} ${render(node.right)})`;
+      }
+      if (node.type === 'const') {
+        return String(node.value);
+      }
+      if (node.type === 'getSingleVar') {
+        return node.name;
+      }
+      return `<${node.type}>`;
+    };
+    const parseExpr = (script: string): string =>
+      render(new Parser().parse(new Tokenizer().tokenize(script)).body[0]);
+
+    it('* / % // are left associative', () => {
+      expect(parseExpr('8 / 4 / 2')).toBe('((8 / 4) / 2)');
+      expect(parseExpr('8 / 2 * 4')).toBe('((8 / 2) * 4)');
+      expect(parseExpr('12 / 3 / 2 / 2')).toBe('(((12 / 3) / 2) / 2)');
+      expect(parseExpr('7 % 4 * 2')).toBe('((7 % 4) * 2)');
+      expect(parseExpr('7 // 2 * 2')).toBe('((7 // 2) * 2)');
+    });
+
+    it('* / % // bind tighter than + -', () => {
+      expect(parseExpr('1 + 2 * 3')).toBe('(1 + (2 * 3))');
+      expect(parseExpr('1 + 8 / 4 / 2 - 1')).toBe('((1 + ((8 / 4) / 2)) - 1)');
+      expect(parseExpr('1 - 7 % 4')).toBe('(1 - (7 % 4))');
+      expect(parseExpr('1 - 7 // 4')).toBe('(1 - (7 // 4))');
+      expect(parseExpr('a - b + c')).toBe('((a - b) + c)');
+    });
+
+    it('** binds tightest and is right associative', () => {
+      expect(parseExpr('2 ** 3 ** 2')).toBe('(2 ** (3 ** 2))');
+      expect(parseExpr('0 - 3 ** 2')).toBe('(0 - (3 ** 2))');
+      expect(parseExpr('2 * 3 ** 2')).toBe('(2 * (3 ** 2))');
+      expect(parseExpr('10 - 2 * 3 ** 2 / 4')).toBe('(10 - ((2 * (3 ** 2)) / 4))');
+    });
+
+    it('brackets override precedence', () => {
+      expect(parseExpr('8 / (4 / 2)')).toBe('(8 / (4 / 2))');
+      expect(parseExpr('(2 ** 3) ** 2')).toBe('((2 ** 3) ** 2)');
+      expect(parseExpr('(1 + 2) * 3')).toBe('((1 + 2) * 3)');
+    });
+
+    it('in binds looser than arithmetic', () => {
+      expect(parseExpr('1 + 1 in [2, 3]')).toBe('((1 + 1) in <createArray>)');
+    });
+
+    it('augmented assignment', () => {
+      for (const op of ['+', '-', '*', '/']) {
+        const ast = new Parser().parse(new Tokenizer().tokenize(`x ${op}= 2 + 3`));
+        expect(ast.body.length).toBe(1);
+        expect(ast.body[0].type).toBe('assign');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const assign = ast.body[0] as any;
+        expect(assign.target.type).toBe('getSingleVar');
+        expect(assign.target.name).toBe('x');
+        expect(render(assign.source)).toBe(`(x ${op} (2 + 3))`);
+      }
+    });
+
+    it('augmented assignment to a property', () => {
+      const ast = new Parser().parse(new Tokenizer().tokenize(`x.a += 1`));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const assign = ast.body[0] as any;
+      expect(assign.type).toBe('assign');
+      expect(assign.target.type).toBe('chainingCalls');
+      expect(assign.source.type).toBe('binOp');
+      expect(assign.source.op).toBe('+');
+      expect(assign.source.left.type).toBe('chainingCalls');
+    });
+  });
 });

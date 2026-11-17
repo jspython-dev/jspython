@@ -52,6 +52,27 @@ export const OperatorsMap: Map<Operators, OperationTypes> = new Map<Operators, O
   ['--', OperationTypes.Assignment]
 ]);
 
+/**
+ * Binding power of binary operators inside an expression. Higher binds tighter.
+ * (comparison operators are split out by the parser before these are applied)
+ */
+const OperatorsPrecedence: Partial<Record<Operators, number>> = {
+  or: 1,
+  and: 2,
+  in: 3,
+  '+': 4,
+  '-': 4,
+  '*': 5,
+  '/': 5,
+  '%': 5,
+  '//': 5,
+  '**': 6
+};
+
+export function getOperatorPrecedence(op: Operators): number {
+  return OperatorsPrecedence[op] || 0;
+}
+
 export type Primitive = string | number | boolean | null;
 
 export type ExpressionOperators =
@@ -105,12 +126,22 @@ export const OperationFuncs: Map<ExpressionOperators, ExpressionOperation> = new
 ]);
 
 function membershipOperation(l: Primitive, r: Primitive, op: MembershipOperators): Primitive {
-  if (typeof l === 'string') {
-    return (l as string).includes(String(r));
+  // `l in r` => is `l` a member of the container `r`
+  const container = r as unknown;
+  if (typeof container === 'string') {
+    return container.includes(String(l));
   }
 
-  if (Array.isArray(l)) {
-    return (l as unknown[]).includes(r);
+  if (Array.isArray(container)) {
+    return container.includes(l);
+  }
+
+  if (container instanceof Set || container instanceof Map) {
+    return container.has(l);
+  }
+
+  if (container !== null && typeof container === 'object') {
+    return String(l) in (container as Record<string, unknown>);
   }
 
   throw new Error(`Unknown operation '${op}'`);
@@ -175,6 +206,9 @@ function arithmeticOperation(l: Primitive, r: Primitive, op: ArithmeticOperators
 
     case '**':
       return Math.pow(l as number, r as number);
+
+    case '//':
+      return Math.floor((l as number) / (r as number));
   }
 
   throw new Error(`Unknown operation '${op}'`);
