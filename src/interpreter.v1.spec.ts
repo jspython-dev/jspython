@@ -5,17 +5,14 @@ describe('Interpreter', () => {
   let e: Interpreter;
 
   beforeEach(() => {
-    e = Interpreter.create()
-      .addFunction('print', (...args) => (args.length > 0 ? args[0] : null))
-      .addFunction(
-        'returnsPromise',
-        a1 =>
-          new Promise(s => {
-            setTimeout(() => s(a1), 10);
-          })
-      )
-      .addFunction('add', (a, b, c, d): any => {
-        let r = a as any + b as any;
+    e = Interpreter.create().assignToScope({
+      print: (...args: any[]) => (args.length > 0 ? args[0] : null),
+      returnsPromise: (a1: any) =>
+        new Promise(s => {
+          setTimeout(() => s(a1), 10);
+        }),
+      add: (a: any, b: any, c: any, d: any): any => {
+        let r = a + b;
         if (c) {
           r += c;
         }
@@ -23,7 +20,8 @@ describe('Interpreter', () => {
           r += d;
         }
         return r;
-      });
+      }
+    });
   });
 
   it('print("Hello")', async () => {
@@ -128,7 +126,7 @@ describe('Interpreter', () => {
     let localResult = 0;
 
     await Interpreter.create()
-      .addFunction('setResult', r => (localResult = r as any))
+      .assignToScope({ setResult: (r: any) => (localResult = r) })
       .evaluate(
         [
           'x = 5', // this will be ignored
@@ -148,7 +146,7 @@ describe('Interpreter', () => {
     let localResult = 0;
 
     await Interpreter.create()
-      .addFunction('setResult', r => (localResult = r as any))
+      .assignToScope({ setResult: (r: any) => (localResult = r) })
       .evaluate(
         [
           'x = 5', // this will be ignored
@@ -165,7 +163,7 @@ describe('Interpreter', () => {
     expect(localResult).toBe(15);
 
     await Interpreter.create()
-      .addFunction('setResult', r => (localResult = r as any))
+      .assignToScope({ setResult: (r: any) => (localResult = r) })
       .evaluate(
         [
           'x = 5', // this will be ignored
@@ -186,7 +184,7 @@ describe('Interpreter', () => {
     let localResult = 0;
 
     await Interpreter.create()
-      .addFunction('setResult', r => (localResult = r as any))
+      .assignToScope({ setResult: (r: any) => (localResult = r) })
       .evaluate(
         [
           'def func1():',
@@ -203,7 +201,7 @@ describe('Interpreter', () => {
     expect(localResult).toBe(30);
 
     await Interpreter.create()
-      .addFunction('setResult', r => (localResult = r as number))
+      .assignToScope({ setResult: (r: number) => (localResult = r) })
       .evaluate(
         [
           'def func1():',
@@ -220,7 +218,7 @@ describe('Interpreter', () => {
     expect(localResult).toBe(10);
 
     await Interpreter.create()
-      .addFunction('setResult', r => (localResult = r as number))
+      .assignToScope({ setResult: (r: number) => (localResult = r) })
       .evaluate(
         [
           'def func1():',
@@ -294,8 +292,8 @@ describe('Interpreter', () => {
     ).toBe(5);
   });
 
-  it('assign global context', async () => {
-    const inter = Interpreter.create().assignGlobalContext({
+  it('assignToScope', async () => {
+    const inter = Interpreter.create().assignToScope({
       value1: 5,
       addNums2: (a: number, b: number): number => a + b
     });
@@ -305,7 +303,7 @@ describe('Interpreter', () => {
   it('Function with parameters', async () => {
     let res = 0;
     await Interpreter.create()
-      .addFunction('setResult', r => (res = r as any))
+      .assignToScope({ setResult: (r: any) => (res = r) })
       .evaluate(
         ['def func1():', '  x = p1 + p2', '  setResult(x)'].join('\n'),
         { p1: 5, p2: 10 },
@@ -419,7 +417,7 @@ describe('Interpreter', () => {
 
     let res = 0;
     const i = await Interpreter.create()
-      .addFunction('setResult', r => (res = r as any))
+      .assignToScope({ setResult: (r: any) => (res = r) })
       .evaluate(['x = 5', 'return x + 5', 'setResult(x + 100)'].join('\n'));
     expect(i).toBe(10);
     expect(res).toBe(0);
@@ -478,7 +476,7 @@ describe('Interpreter', () => {
   });
 
   it('function parameter as an expressions', async () => {
-    const i = Interpreter.create().addFunction('setResult', a => a);
+    const i = Interpreter.create().assignToScope({ setResult: (a: any) => a });
     expect(await i.evaluate(['setResult(5 + 5)'].join('\n'))).toBe(10);
   });
 

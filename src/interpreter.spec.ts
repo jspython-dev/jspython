@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Interpreter } from './interpreter';
+import { Interpreter, jsPython } from './interpreter';
 
 describe('Interpreter', () => {
   let e: Interpreter;
@@ -404,6 +404,85 @@ describe('Interpreter', () => {
     "5 ** 10 == " + power(5, 10) + " == " + Math.pow(5, 10)    
     `;
     expect(await e.evaluate(script)).toBe('5 ** 10 == 9765625 == 9765625');
+  });
+
+  describe('assignToScope', () => {
+    it('accumulates across calls and is chainable', async () => {
+      const interpreter = jsPython()
+        .assignToScope({ add: (a: number, b: number) => a + b })
+        .assignToScope({ appName: 'Demo', utils: { upper: (s: string) => s.toUpperCase() } });
+      interpreter.assignToScope({ limit: 3 });
+
+      expect(await interpreter.evaluate('utils.upper(appName) + add(limit, y)', { y: 2 })).toBe(
+        'DEMO5'
+      );
+    });
+
+    it('later call overrides the same name and assignment is shallow', async () => {
+      const interpreter = jsPython()
+        .assignToScope({ value: 1, cfg: { a: 1, b: 2 }, other: 'kept' })
+        .assignToScope({ value: 2, cfg: { a: 10 } });
+
+      expect(await interpreter.evaluate('[value, cfg.a, cfg.b, other]')).toEqual([
+        2,
+        10,
+        null,
+        'kept'
+      ]);
+    });
+
+    it('can override a built-in', async () => {
+      const logs: string[] = [];
+      const interpreter = jsPython().assignToScope({ print: (s: string) => logs.push(s) });
+      await interpreter.evaluate('print("hello")');
+      expect(logs).toEqual(['hello']);
+      // other built-ins are still there
+      expect(await interpreter.evaluate('range(3).length')).toBe(3);
+    });
+
+    it('evaluate context overrides assigned values', async () => {
+      const interpreter = jsPython().assignToScope({ value: 1, f: () => 'scope' });
+      expect(await interpreter.evaluate('[value, f()]', { value: 2, f: () => 'context' })).toEqual([
+        2,
+        'context'
+      ]);
+      // and it does not affect the next run
+      expect(await interpreter.evaluate('[value, f()]')).toEqual([1, 'scope']);
+    });
+
+    it('value assigned after a run is available in the next run', async () => {
+      const interpreter = jsPython().assignToScope({ a: 1 });
+      expect(await interpreter.evaluate('a')).toBe(1);
+      interpreter.assignToScope({ b: 2 });
+      expect(await interpreter.evaluate('a + b')).toBe(3);
+    });
+
+    it('script assignments do not change assigned values', async () => {
+      const interpreter = jsPython().assignToScope({ counter: 1 });
+      expect(await interpreter.evaluate('counter = 100\ncounter')).toBe(100);
+      expect(await interpreter.evaluate('counter')).toBe(1);
+    });
+
+    it('is not shared between interpreter instances', async () => {
+      jsPython().assignToScope({ onlyHere: 1 });
+      await expect(jsPython().evaluate('onlyHere')).rejects.toThrow(`'onlyHere' is not defined`);
+    });
+
+    it('is used by evaluate only, eval needs initialExecutionContext', async () => {
+      const interpreter = jsPython().assignToScope({ value: 5 });
+      expect(() => interpreter.eval('value')).toThrow(`'value' is not defined`);
+      expect(interpreter.eval('value', interpreter.initialExecutionContext)).toBe(5);
+      expect(interpreter.eval('value + x', { ...interpreter.initialExecutionContext, x: 1 })).toBe(
+        6
+      );
+    });
+
+    it('throws for a non-object argument', async () => {
+      const interpreter = jsPython() as any;
+      expect(() => interpreter.assignToScope('add', () => 1)).toThrow('assignToScope expects');
+      expect(() => interpreter.assignToScope(null)).toThrow('assignToScope expects');
+      expect(() => interpreter.assignToScope([1])).toThrow('assignToScope expects');
+    });
   });
 
   it('None is a synonym of null', async () => {

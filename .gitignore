@@ -43,4 +43,7 @@ Thumbs.db
 
 package-lock.json
 *.tgz
+
+# Claude Code project instructions (kept local only)
+/CLAUDE.md
 /*.log
