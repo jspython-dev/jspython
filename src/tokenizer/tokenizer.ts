@@ -295,6 +295,33 @@ export class Tokenizer {
       );
     } else if (symbol === '.' && this.parseNumberOrNull(this.tokenText) !== null) {
       return true;
+    } else if (symbol === '.') {
+      // number literal without a leading zero e.g. .5 or -.5
+      const next = this._script[this._cursor + 1];
+      if (!(next >= '0' && next <= '9')) {
+        return false;
+      }
+      if (this.tokenText === '-') {
+        return true;
+      }
+      if (this.tokenText.length) {
+        return false;
+      }
+
+      // '.' right after an operand is a property access
+      const prevToken = currentTokens.length !== 0 ? currentTokens[currentTokens.length - 1] : null;
+      const prevValue = getTokenValue(prevToken);
+      return (
+        prevToken === null ||
+        getTokenType(prevToken) === TokenTypes.Keyword ||
+        prevValue === 'and' ||
+        prevValue === 'or' ||
+        (getTokenType(prevToken) === TokenTypes.Operator &&
+          prevValue !== ')' &&
+          prevValue !== ']' &&
+          prevValue !== '}' &&
+          prevValue !== '?')
+      );
     }
     return false;
   }

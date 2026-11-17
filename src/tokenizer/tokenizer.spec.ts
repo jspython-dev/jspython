@@ -152,6 +152,33 @@ describe('Tokenizer => ', () => {
     expect(values('(2) -1')).toEqual(['(', 2, ')', '-', 1]);
   });
 
+  it('number literals without a leading zero', async () => {
+    const values = (script: string): unknown[] => new Tokenizer().tokenize(script).map(t => t[0]);
+
+    expect(values('.5')).toEqual([0.5]);
+    expect(values('-.5')).toEqual([-0.5]);
+    expect(values('.25 + .75')).toEqual([0.25, '+', 0.75]);
+    expect(values('1 - .5')).toEqual([1, '-', 0.5]);
+    expect(values('1-.5')).toEqual([1, '-', 0.5]);
+    expect(values('2 * -.5')).toEqual([2, '*', -0.5]);
+    expect(values('x = .5')).toEqual(['x', '=', 0.5]);
+    expect(values('x -.5')).toEqual(['x', '-', 0.5]);
+    expect(values('[.5, -.5]')).toEqual(['[', 0.5, ',', -0.5, ']']);
+    expect(values('f(.5)')).toEqual(['f', '(', 0.5, ')']);
+    expect(values('return .5')).toEqual(['return', 0.5]);
+    expect(values('return -.5')).toEqual(['return', -0.5]);
+  });
+
+  it('dot after an operand stays a property access', async () => {
+    const values = (script: string): unknown[] => new Tokenizer().tokenize(script).map(t => t[0]);
+
+    expect(values('x.y')).toEqual(['x', '.', 'y']);
+    expect(values('x[0].y')).toEqual(['x', '[', 0, ']', '.', 'y']);
+    expect(values('f().y')).toEqual(['f', '(', ')', '.', 'y']);
+    expect(values('x?.y')).toEqual(['x', '?', '.', 'y']);
+    expect(values('3.14')).toEqual([3.14]);
+  });
+
   it('% is an operator', async () => {
     const values = (script: string): unknown[] => new Tokenizer().tokenize(script).map(t => t[0]);
 

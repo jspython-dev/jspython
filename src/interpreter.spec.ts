@@ -1135,6 +1135,29 @@ describe('Interpreter', () => {
       ['-(-3)', 3],
       ['- -3', 3],
       ['-0.5 + 1', 0.5],
+      ['.5', 0.5],
+      ['-.5', -0.5],
+      ['-.5 + 1', 0.5],
+      ['.5 + .25', 0.75],
+      ['1 - .5', 0.5],
+      ['1-.5', 0.5],
+      ['2 * .5', 1],
+      ['2 * -.5', -1],
+      ['-.5 ** 2', -0.25],
+      ['(-.5) ** 2', 0.25],
+      ['4 ** .5', 2],
+      ['x = .5\nx', 0.5],
+      ['x = -.5\nx', -0.5],
+      ['x = 2\nx -.5', 1.5],
+      ['x = 2\nx *= .5\nx', 1],
+      ['[.5, -.5]', [0.5, -0.5]],
+      ['{a: .5}', { a: 0.5 }],
+      ['Math.abs(-.5)', 0.5],
+      ['.5 < 1', true],
+      ['x = 0 or .5\nx', 0.5],
+      ['def f():\n  return .5\nf()', 0.5],
+      ['def f():\n  return -.5\nf()', -0.5],
+      ['x = {a: {b: 7}}\nx.a.b', 7],
       ['5 - 3', 2],
       ['5 -3', 2],
       ['5-3', 2],
@@ -1258,6 +1281,26 @@ describe('Interpreter', () => {
     it('augmented assignment to an undefined variable fails', async () => {
       expect(() => e.eval('x += 1')).toThrow(/'x' is not defined/);
       await expect(e.evalAsync('x += 1')).rejects.toThrow(/'x' is not defined/);
+    });
+
+    it('modulo by zero fails', async () => {
+      for (const script of ['7 % 0', '0 % 0', '-7 % 0', 'x = 0\n7 % x', 'x = 7\nx % (1 - 1)']) {
+        expect(() => e.eval(script)).toThrow(/Modulo by zero/);
+        await expect(e.evalAsync(script)).rejects.toThrow(/Modulo by zero/);
+      }
+      expect(e.eval('0 % 7')).toBe(0);
+    });
+
+    it('modulo by zero can be handled in the script', () => {
+      const script = [
+        'x = 1',
+        'try:',
+        '  x = 7 % 0',
+        'except:',
+        '  x = -1',
+        'x'
+      ].join('\n');
+      expect(e.eval(script)).toBe(-1);
     });
 
     it('incomplete expressions fail', () => {

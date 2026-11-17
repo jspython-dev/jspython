@@ -208,6 +208,9 @@ function arithmeticOperation(l: Primitive, r: Primitive, op: ArithmeticOperators
       return (l as number) / (r as number);
 
     case '%': {
+      if (r === 0) {
+        throw new Error('Modulo by zero');
+      }
       // same as in Python, result takes the sign of the divisor
       const rest = (l as number) % (r as number);
       // '+ 0' normalizes negative zero
