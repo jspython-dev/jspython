@@ -19,7 +19,7 @@ roots = arr.map(i => Math.sqrt(i)).join(",")
 
 ## Try it out
 
-Interactive [Worksheet Systems JSPython editor](https://run.worksheet.systems/data-studio/app/guest/jspy-playground?file=main.jspy) with the ability to query REST APIs and display results in an Object Explorer, a configurable Excel-like data grid, or as JSON or text.
+Interactive [FALCON Data Studio JSPython editor](https://app.falcon-data.studio/data-studio/local/workspace/Script1.jspy) with the ability to query REST APIs and display results in an Object Explorer, a configurable Excel-like data grid, or as JSON or text.
 
 ## Why would you use it?
 
@@ -191,7 +191,7 @@ await interpreter.evaluate("utils.upper(appName) + add(limit, y)", { y: 7 }); //
 
 When the same name is defined in more than one place, the later one wins, in this order: built-ins, then `assignToScope`, then the `context` argument of `evaluate`, then names brought in by a JavaScript package `import`. A per-run context can therefore override an assigned value for a single run without changing it for the next.
 
-> **Migrating from earlier versions.** `addFunction` and `assignGlobalContext` were removed in v2.2.0. Replace `addFunction("name", fn)` with `assignToScope({ name: fn })`, and `assignGlobalContext(obj)` with `assignToScope(obj)`.
+> **Migrating from earlier versions.** `addFunction` and `assignGlobalContext` were removed in v2.2.1. Replace `addFunction("name", fn)` with `assignToScope({ name: fn })`, and `assignGlobalContext(obj)` with `assignToScope(obj)`.
 
 ### Using context inside a script
 
