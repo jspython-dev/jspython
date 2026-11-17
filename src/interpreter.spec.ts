@@ -1098,7 +1098,100 @@ describe('Interpreter', () => {
       ['x = 0\nfor i in [1, 2, 3]:\n  x += i\nx', 6],
       ['x = 1\ni = 0\nwhile i < 3:\n  x *= 2\n  i += 1\nx', 8],
       ['def f(n):\n  r = 0\n  for i in range(n):\n    r += i\n  return r\nf(5)', 10],
-      ['x = 5\nif x > 1:\n  x -= 1\nx', 4]
+      ['x = 5\nif x > 1:\n  x -= 1\nx', 4],
+      ['x = 3\nx -= -x\nx', 6],
+      ['x = 2\nx *= -3\nx', -6],
+      ['x = 2\nx -= 1 - 3\nx', 4],
+      ['x = 10\nx /= 2 * 5\nx', 1],
+      ['x = 1\ny = 2\nx += y * 2 ** 2\nx', 9],
+      ['x = [1]\nx[0] -= 5\nx[0]', -4],
+      ['x = [1, 2]\nx[-1 + 1] += 5\nx[0]', 6],
+      ['x = {a: 1}\nx["a"] += 1\nx.a', 2],
+      ['x = {a: [1, {b: 2}]}\nx.a[1].b += 3\nx.a[1].b', 5],
+      ['f = () => 1\nx = 1\nx += f()\nx', 2],
+
+      // unary minus / plus
+      ['-3 ** 2', -9],
+      ['(-3) ** 2', 9],
+      ['-3 ** 2 + 1', -8],
+      ['2 * -3 ** 2', -18],
+      ['2 - -3 ** 2', 11],
+      ['2 ** -1', 0.5],
+      ['2 ** -3 ** 2', 0.001953125],
+      ['-2 ** 2 ** 3', -256],
+      ['-(2) ** 2', -4],
+      ['(-2) ** 2', 4],
+      ['-2 * 3', -6],
+      ['-2 * -3', 6],
+      ['1 - -1', 2],
+      ['1--1', 2],
+      ['1 + -1', 0],
+      ['1 +-1', 0],
+      ['- 3', -3],
+      ['+3', 3],
+      ['-(1 + 2)', -3],
+      ['-(1 + 2) * 2', -6],
+      ['2 * -(1 + 2)', -6],
+      ['-(-3)', 3],
+      ['- -3', 3],
+      ['-0.5 + 1', 0.5],
+      ['5 - 3', 2],
+      ['5 -3', 2],
+      ['5-3', 2],
+      ['x = 3\n-x', -3],
+      ['x = 3\n+x', 3],
+      ['x = 3\n-x ** 2', -9],
+      ['x = 3\n2 * -x', -6],
+      ['x = 3\n2 - -x', 5],
+      ['x = 3\n2 + -x * 2', -4],
+      ['x = 3\n-x + 5', 2],
+      ['x = 3\n-x - 1', -4],
+      ['x = 2\nx ** -x', 0.25],
+      ['x = 3\ny = -x\ny', -3],
+      ['x = 3\ny = 0 or -x\ny', -3],
+      ['x = 3\n-x == -3', true],
+      ['x = 3\n-x < -2', true],
+      ['x = 3\n1 > -x', true],
+      ['x = 3\nif -x < 0:\n  x = 9\nx', 9],
+      ['x = 3\nwhile -x < 0:\n  x -= 1\nx', 0],
+      ['x = 5\nx - 1', 4],
+      ['x = 5\nx -1', 4],
+      ['x = 5\nx-1', 4],
+      ['x = {a: 2}\n-x.a', -2],
+      ['x = {a: 2}\n-x.a ** 2', -4],
+      ['x = [1, 2]\n-x[1]', -2],
+      ['x = [1, 2]\nx[1] -1', 1],
+      ['x = [1, 2]\nx[1]-1', 1],
+      ['x = [5, 6]\nx[-1 + 2]', 6],
+      ['x = 3\n[-x, -x * 2]', [-3, -6]],
+      ['x = 3\n{a: -x}', { a: -3 }],
+      ['-Math.abs(-3)', -3],
+      ['Math.abs(-3 - 2)', 5],
+      ['x = 3\nMath.max(-x, -5)', -3],
+      ['f = x => -x\nf(2)', -2],
+      ['def f(a):\n  return -a\nf(3)', -3],
+      ['def f(a):\n  return -a ** 2\nf(3)', -9],
+      ['def f(a):\n  return -1\nf(3)', -1],
+
+      // modulo result takes the sign of the divisor, floor division rounds down
+      ['7 % 3', 1],
+      ['-7 % 3', 2],
+      ['7 % -3', -2],
+      ['-7 % -3', -1],
+      ['6 % 3', 0],
+      ['-6 % 3', 0],
+      ['6 % -3', 0],
+      ['5.5 % 2', 1.5],
+      ['-5.5 % 2', 0.5],
+      ['x = -7\nx % 3', 2],
+      ['x = 7\n-x % 3', 2],
+      ['0 - 7 % 3', -1],
+      ['-7 % 3 + 1', 3],
+      ['7 // -2', -4],
+      ['-7 // -2', 3],
+      ['x = 7\n-x // 2', -4],
+      ['(-7 // 3) * 3 + -7 % 3', -7],
+      ['(7 // -3) * -3 + 7 % -3', 7]
     ];
 
     const range = (n: number): number[] => Array.from({ length: n }, (_, i) => i);
@@ -1107,12 +1200,71 @@ describe('Interpreter', () => {
       const title = JSON.stringify(script);
 
       it(`eval ${title}`, () => {
-        expect(e.eval(script, { range })).toStrictEqual(expected);
+        expect(e.eval(script, { range, Math })).toStrictEqual(expected);
       });
 
       it(`evalAsync ${title}`, async () => {
-        expect(await e.evalAsync(script, { range })).toStrictEqual(expected);
+        expect(await e.evalAsync(script, { range, Math })).toStrictEqual(expected);
       });
+    });
+
+    it('augmented assignment evaluates its target only once', async () => {
+      const createScope = (): Record<string, unknown> => {
+        const scope = {
+          indexCalls: 0,
+          objCalls: 0,
+          data: { items: [1, 2, 3], total: 10 },
+          nextIndex: (): number => scope.indexCalls++,
+          getData: (): unknown => {
+            scope.objCalls++;
+            return scope.data;
+          }
+        };
+        return scope;
+      };
+      const script = [
+        'data.items[nextIndex()] += 10',
+        'getData().total *= 2',
+        'getData().items[nextIndex()] -= 1'
+      ].join('\n');
+
+      const syncScope = createScope();
+      e.eval(script, syncScope);
+      expect(syncScope.data).toStrictEqual({ items: [11, 1, 3], total: 20 });
+      expect(syncScope.indexCalls).toBe(2);
+      expect(syncScope.objCalls).toBe(2);
+
+      const asyncScope = createScope();
+      await e.evalAsync(script, asyncScope);
+      expect(asyncScope.data).toStrictEqual({ items: [11, 1, 3], total: 20 });
+      expect(asyncScope.indexCalls).toBe(2);
+      expect(asyncScope.objCalls).toBe(2);
+    });
+
+    it('augmented assignment with awaited source', async () => {
+      const scope = { getValue: (): Promise<number> => Promise.resolve(5) };
+      const script = `
+        async def run():
+          x = {a: 1}
+          x.a += getValue()
+          y = 2
+          y *= getValue()
+          [x.a, y]
+        run()
+      `;
+      expect(await e.evalAsync(script, scope)).toStrictEqual([6, 10]);
+    });
+
+    it('augmented assignment to an undefined variable fails', async () => {
+      expect(() => e.eval('x += 1')).toThrow(/'x' is not defined/);
+      await expect(e.evalAsync('x += 1')).rejects.toThrow(/'x' is not defined/);
+    });
+
+    it('incomplete expressions fail', () => {
+      expect(() => e.eval('2 *')).toThrow();
+      expect(() => e.eval('* 2')).toThrow();
+      expect(() => e.eval('2 * / 3')).toThrow();
+      expect(() => e.eval('x = 1\nx++')).toThrow();
     });
 
     it('evaluate() => chained arithmetic, floor division, membership and augmented assignment', async () => {
@@ -1155,8 +1307,5 @@ describe('Interpreter', () => {
       expect(await e.evalAsync(script)).toBe(12);
     });
 
-    it('unsupported assignment operators report a clear error', () => {
-      expect(() => e.eval('x = 1\nx++')).toThrow(/'\+\+' is not supported/);
-    });
   });
 });

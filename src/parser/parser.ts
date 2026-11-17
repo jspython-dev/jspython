@@ -36,6 +36,7 @@ import {
   CommentNode,
   getTokenLoc,
   getOperatorPrecedence,
+  UnaryOperatorPrecedence,
   OperationTypes,
   LogicalNodeItem,
   LogicalOperators,
@@ -418,20 +419,20 @@ export class Parser {
           const source = this.createExpressionNode(assignTokens[1]);
           ast.body.push(new AssignNode(target, source, getTokenLoc(assignTokens[0][0])));
         } else if (['+=', '-=', '*=', '/='].includes(assignOp)) {
-          // augmented assignment: `x += y` => `x = x + (y)`
+          // augmented assignment: `x += y` => `x = x + (y)`, where target is evaluated only once
           const targetTokens = instruction.tokens.slice(0, assignIndex);
           const sourceTokens = instruction.tokens.slice(assignIndex + 1);
           if (!targetTokens.length || !sourceTokens.length) {
             throw new Error(`Invalid '${assignOp}' assignment.`);
           }
-          const loc = getTokenLoc(targetTokens[0]);
-          const source = new BinOpNode(
-            this.createExpressionNode(targetTokens),
-            assignOp.substring(0, assignOp.length - 1) as ExpressionOperators,
-            this.createExpressionNode(sourceTokens),
-            loc
+          ast.body.push(
+            new AssignNode(
+              this.createExpressionNode(targetTokens),
+              this.createExpressionNode(sourceTokens),
+              getTokenLoc(targetTokens[0]),
+              assignOp.substring(0, assignOp.length - 1) as ExpressionOperators
+            )
           );
-          ast.body.push(new AssignNode(this.createExpressionNode(targetTokens), source, loc));
         } else {
           throw new Error(`Operator '${assignOp}' is not supported.`);
         }
@@ -599,24 +600,89 @@ export class Parser {
     // create arithmetic (and logical / membership) expression
     const ops = findOperators(tokens);
     if (ops.length) {
-      // operands are the token slices in between operators
-      const operands: AstNode[] = [];
-      for (let i = 0; i <= ops.length; i++) {
-        const begin = i === 0 ? 0 : ops[i - 1] + 1;
-        const end = i < ops.length ? ops[i] : tokens.length;
-        operands.push(this.createExpressionNode(this.sliceWithBrackets(tokens, begin, end)));
-      }
-      const operators = ops.map(ind => getTokenValue(tokens[ind]) as Operators);
       const loc = getTokenLoc(tokens[0]);
+
+      // split tokens into a sequence of operands and operators
+      // operator with no operand in front of it is an unary operator e.g. -x or 2 * -x
+      type ExpressionItem = { node?: AstNode; op?: Operators; unary?: boolean; token?: Token };
+      const items: ExpressionItem[] = [];
+      let begin = 0;
+      for (let i = 0; i <= ops.length; i++) {
+        const end = i < ops.length ? ops[i] : tokens.length;
+
+        if (end > begin) {
+          const token = tokens[begin];
+          const value = getTokenValue(token);
+          if (
+            end - begin === 1 &&
+            getTokenType(token) === TokenTypes.LiteralNumber &&
+            ((value as number) < 0 || Object.is(value, -0)) &&
+            i < ops.length &&
+            getTokenValue(tokens[end]) === '**'
+          ) {
+            // a negative number literal followed by '**' e.g. -3 ** 2 => -(3 ** 2)
+            items.push({ op: '-', unary: true, token });
+            items.push({ node: new ConstNode([-(value as number), token[1]] as Token) });
+          } else {
+            items.push({
+              node: this.createExpressionNode(this.sliceWithBrackets(tokens, begin, end))
+            });
+          }
+        }
+
+        if (i < ops.length) {
+          const prevItem = items.length ? items[items.length - 1] : null;
+          items.push({
+            op: getTokenValue(tokens[end]) as Operators,
+            unary: !prevItem || !prevItem.node,
+            token: tokens[end]
+          });
+        }
+        begin = end + 1;
+      }
+
+      let pos = 0;
+
+      const buildOperand = (): AstNode => {
+        const item = items[pos];
+        if (!item) {
+          throw new Error(`Expression is not complete.`);
+        }
+
+        if (item.node) {
+          pos++;
+          return item.node;
+        }
+
+        if (item.op !== '-' && item.op !== '+') {
+          throw new Error(`Unexpected operator '${item.op}'.`);
+        }
+
+        // unary operator
+        this._currentToken = item.token as Token;
+        pos++;
+        const operand = buildNode(UnaryOperatorPrecedence);
+        if (item.op === '+') {
+          return operand;
+        }
+        const tokenLoc = (item.token as Token)[1];
+        const zero = new ConstNode([
+          0,
+          Uint16Array.of(TokenTypes.LiteralNumber, ...Array.from(tokenLoc.subarray(1)))
+        ] as Token);
+        return new BinOpNode(zero, '-', operand, getTokenLoc(item.token as Token));
+      };
 
       // precedence climbing: higher precedence binds tighter,
       // everything is left associative except '**'
-      let pos = 0;
       const buildNode = (minPrecedence: number): AstNode => {
-        let left = operands[pos];
-        while (pos < operators.length && getOperatorPrecedence(operators[pos]) >= minPrecedence) {
-          const op = operators[pos];
+        let left = buildOperand();
+        while (pos < items.length) {
+          const op = items[pos].op as Operators;
           const precedence = getOperatorPrecedence(op);
+          if (precedence < minPrecedence) {
+            break;
+          }
           pos++;
           const right = buildNode(op === '**' ? precedence : precedence + 1);
           left = new BinOpNode(left, op as ExpressionOperators, right, loc);

@@ -57,7 +57,16 @@ export abstract class AstNode {
 }
 
 export class AssignNode extends AstNode {
-  constructor(public target: AstNode, public source: AstNode, public loc: Uint16Array) {
+  /**
+   * @param op is defined for an augmented assignments only (+= -= *= /=)
+   * e.g. for `x += y` target is `x`, source is `y` and op is `+`
+   */
+  constructor(
+    public target: AstNode,
+    public source: AstNode,
+    public loc: Uint16Array,
+    public op?: ExpressionOperators
+  ) {
     super('assign');
     this.loc = loc;
   }

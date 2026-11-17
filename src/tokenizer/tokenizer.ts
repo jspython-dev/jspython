@@ -4,8 +4,8 @@ const SeparatorsMap: Record<string, string[]> = {
   '\n': ['\n'],
   '=': ['=', '==', '=>'],
 
-  '+': ['+', '++', '+='],
-  '-': ['-', '--', '-='],
+  '+': ['+', '+='],
+  '-': ['-', '-='],
   '*': ['*', '**', '*='],
   '/': ['/', '//', '/='],
   '%': ['%'],
@@ -275,12 +275,23 @@ export class Tokenizer {
 
   private isPartOfNumber(symbol: string, currentTokens: Token[]): boolean {
     if (symbol === '-' && !this.tokenText.length) {
-      // '-' needs to be handled e.g. -3; 2 + -2 etc
+      // '-' is a part of a number literal only when a number follows e.g. -3; 2 + -2 etc.
+      // Otherwise (e.g. -x, -(1 + 2)) it is an unary operator and parser will handle it
+      const next = this._script[this._cursor + 1];
+      const afterNext = this._script[this._cursor + 2];
+      const isDigit = (ch: string): boolean => ch >= '0' && ch <= '9';
+      if (!(isDigit(next) || (next === '.' && isDigit(afterNext)))) {
+        return false;
+      }
+
       const prevToken = currentTokens.length !== 0 ? currentTokens[currentTokens.length - 1] : null;
       return (
         prevToken === null ||
         getTokenValue(prevToken) === 'return' ||
-        (getTokenType(prevToken) === TokenTypes.Operator && getTokenValue(prevToken) !== ')')
+        (getTokenType(prevToken) === TokenTypes.Operator &&
+          getTokenValue(prevToken) !== ')' &&
+          getTokenValue(prevToken) !== ']' &&
+          getTokenValue(prevToken) !== '}')
       );
     } else if (symbol === '.' && this.parseNumberOrNull(this.tokenText) !== null) {
       return true;

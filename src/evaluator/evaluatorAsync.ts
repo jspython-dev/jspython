@@ -497,10 +497,17 @@ export class EvaluatorAsync {
 
       if (assignNode.target.type === 'getSingleVar') {
         const node = assignNode.target as SetSingleVarNode;
-        blockContext.blockScope.set(
-          node.name,
-          await this.evalNodeAsync(assignNode.source, blockContext)
-        );
+        if (assignNode.op) {
+          // augmented assignment e.g. x += 1
+          const current = await this.evalNodeAsync(assignNode.target, blockContext);
+          const source = await this.evalNodeAsync(assignNode.source, blockContext);
+          blockContext.blockScope.set(node.name, this.augmentedValue(assignNode, current, source));
+        } else {
+          blockContext.blockScope.set(
+            node.name,
+            await this.evalNodeAsync(assignNode.source, blockContext)
+          );
+        }
       } else if (assignNode.target.type === 'chainingCalls') {
         const targetNode = assignNode.target as ChainingCallsNode;
 
@@ -529,7 +536,18 @@ export class EvaluatorAsync {
           throw Error('Not implemented Assign operation with chaining calls');
         }
 
-        targetObject[lastPropertyName] = await this.evalNodeAsync(assignNode.source, blockContext);
+        if (assignNode.op) {
+          // augmented assignment e.g. obj.value += 1
+          // target object and property name are evaluated only once
+          const current = targetObject[lastPropertyName];
+          const source = await this.evalNodeAsync(assignNode.source, blockContext);
+          targetObject[lastPropertyName] = this.augmentedValue(assignNode, current, source);
+        } else {
+          targetObject[lastPropertyName] = await this.evalNodeAsync(
+            assignNode.source,
+            blockContext
+          );
+        }
       }
 
       return null;
@@ -563,6 +581,14 @@ export class EvaluatorAsync {
 
       return res;
     }
+  }
+
+  private augmentedValue(assignNode: AssignNode, current: unknown, source: unknown): unknown {
+    const func = assignNode.op && OperationFuncs.get(assignNode.op);
+    if (typeof func !== 'function') {
+      throw new Error(`Unknown assignment operation '${assignNode.op}='`);
+    }
+    return func(current as Primitive, source as Primitive);
   }
 
   private async resolveChainingCallsNode(
