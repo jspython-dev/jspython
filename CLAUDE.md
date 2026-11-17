@@ -57,6 +57,6 @@ Specs sit next to the code (`src/**/*.spec.ts`). `src/interpreter.spec.ts` cover
 ## Language notes worth remembering
 
 - Strings: `"..."` and `'...'`; `"""..."""` is treated as a comment.
-- `None`/`null` are synonyms; `?.` null-conditional chaining is supported.
+- `None`/`null` are synonyms, and so are `True`/`true` and `False`/`false`; `?.` null-conditional chaining is supported.
 - Arrow functions `x => ...` (single and multiline) exist in addition to `def`/`async def`.
 - `src/assets/mode-jspython.js` is the Ace editor syntax mode shipped in `dist/assets`; update its keyword lists when adding keywords/built-ins.

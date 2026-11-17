@@ -267,7 +267,7 @@ export class Parser {
 
           if (getTokenValue(instructions[i + 1].tokens[0]) === 'finally') {
             if (finallyBody) {
-              throw new Error(`Only one 'else' is allowed in a 'try'`);
+              throw new Error(`Only one 'finally' is allowed in a 'try'`);
             }
 
             finallyBody = getBody(instructions[i + 1].tokens, 2);
@@ -303,8 +303,12 @@ export class Parser {
           i++;
         }
 
-        if (!excepts.length) {
-          throw new Error('Except: is missing');
+        if (!excepts.length && !finallyBody) {
+          throw new Error(`'try' should be followed by 'except:' or 'finally:'`);
+        }
+
+        if (!excepts.length && elseBody) {
+          throw new Error(`'else:' in a 'try' requires 'except:'`);
         }
 
         ast.body.push(
@@ -324,21 +328,42 @@ export class Parser {
           )
         );
       } else if (getTokenValue(firstToken) === 'raise') {
-        if (instruction.tokens.length === 1) {
-          throw new Error(`Incorrect 'raise' usage. Please specify error name and message `);
+        const raiseTokens = instruction.tokens.slice(1);
+        const loc = getTokenLoc(firstToken);
+
+        if (!raiseTokens.length) {
+          // bare `raise` => re-raise an error what is being handled by `except`
+          ast.body.push(new RaiseNode(undefined, undefined, loc));
+          continue;
         }
-        const errorName = getTokenValue(instruction.tokens[1]) as string;
 
-        // const errorMessage =
-        //   instruction.tokens.length == 5 &&
-        //   getTokenValue(instruction.tokens[2]) === '(' &&
-        //   getTokenValue(instruction.tokens[4]) === ')'
-        //     ? (getTokenValue(instruction.tokens[3]) as string)
-        //     : undefined;
+        const exprAst = this.createExpressionNode(raiseTokens);
+        const isName = getTokenType(raiseTokens[0]) === TokenTypes.Identifier;
+        // `Name(...)`, where the closing bracket is the last token
+        const isNameWithArgs =
+          isName &&
+          raiseTokens.length > 2 &&
+          getTokenValue(raiseTokens[1]) === '(' &&
+          getTokenValue(raiseTokens[raiseTokens.length - 1]) === ')' &&
+          // skips the brackets and finds nothing after them
+          findTokenValueIndex(raiseTokens, () => true, 1) === -1;
 
-        const errMsg = this.createExpressionNode(instruction.tokens.slice(1));
-
-        ast.body.push(new RaiseNode(errorName, errMsg, getTokenLoc(firstToken)));
+        if (isNameWithArgs) {
+          // raise ValueError('message')
+          const args = splitTokens(raiseTokens.slice(2, raiseTokens.length - 1), ',');
+          const errMsg = args.length ? this.createExpressionNode(args[0]) : undefined;
+          ast.body.push(
+            new RaiseNode(getTokenValue(raiseTokens[0]) as string, errMsg, loc, exprAst)
+          );
+        } else if (isName && raiseTokens.length === 1) {
+          // raise ValueError
+          ast.body.push(
+            new RaiseNode(getTokenValue(raiseTokens[0]) as string, undefined, loc, exprAst)
+          );
+        } else {
+          // raise 'message' or any other expression
+          ast.body.push(new RaiseNode(undefined, exprAst, loc));
+        }
       } else if (getTokenValue(firstToken) === 'for') {
         const endDefOfDef = findTokenValueIndex(instruction.tokens, v => v === ':');
 

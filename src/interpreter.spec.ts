@@ -406,6 +406,71 @@ describe('Interpreter', () => {
     expect(await e.evaluate(script)).toBe('5 ** 10 == 9765625 == 9765625');
   });
 
+  it('None is a synonym of null', async () => {
+    const script = `
+    def f(a):
+      if a == None:
+        return None
+      return a
+
+    x = None
+    obj = { value: None }
+    [x, x == null, None == null, isNull(None), obj.value, f(None), f(1), x?.prop, None or 'default', 'None']
+    `;
+    const expected = [null, true, true, true, null, null, 1, null, 'default', 'None'];
+
+    expect(await e.evaluate(script)).toEqual(expected);
+    expect(e.eval(script, { isNull: (v: unknown) => v === null })).toEqual(expected);
+  });
+
+  it('True / False are synonyms of true / false', async () => {
+    const script = `
+    def f(flag):
+      if flag == True:
+        return 'yes'
+      return 'no'
+
+    x = True
+    y = False
+    obj = { on: True, off: False }
+    r = []
+    if x and y == False:
+      r.push('if')
+    while y == False:
+      y = True
+      r.push('while')
+    TrueValue = 1
+    isFalse = TrueValue + 1
+    [x, True == true, False == false, obj.on, obj.off, f(True), f(False), False or 'default', 'True', r, isFalse]
+    `;
+    const expected = [
+      true,
+      true,
+      true,
+      true,
+      false,
+      'yes',
+      'no',
+      'default',
+      'True',
+      ['if', 'while'],
+      2
+    ];
+
+    expect(await e.evaluate(script)).toEqual(expected);
+    expect(e.eval(script)).toEqual(expected);
+  });
+
+  it('None does not affect identifiers what contain it', async () => {
+    const script = `
+    NoneValue = 5
+    isNone = NoneValue + 1
+    isNone
+    `;
+    expect(await e.evaluate(script)).toBe(6);
+    expect(e.eval(script)).toBe(6);
+  });
+
   it('try catch error', async () => {
     const script = `
     x = []
@@ -534,6 +599,429 @@ describe('Interpreter', () => {
     };
     expect(await e.evaluate(script, obj)).toContain(jsErrorMessage);
     expect(e.eval(script, obj)).toContain(jsErrorMessage);
+  });
+
+  describe('try / except / raise', () => {
+    // runs a script with both sync and async evaluators and makes sure results are the same
+    const run = async (script: string, scope: Record<string, unknown> = {}): Promise<unknown> => {
+      const asyncResult = await e.evaluate(script, scope);
+      const syncResult = e.eval(script, scope);
+      expect(syncResult).toEqual(asyncResult);
+      return asyncResult;
+    };
+
+    const runError = async (script: string, scope: Record<string, unknown> = {}): Promise<any> => {
+      let syncError: any = null;
+      try {
+        e.eval(script, scope);
+      } catch (err) {
+        syncError = err;
+      }
+      expect(syncError).not.toBeNull();
+      await expect(e.evaluate(script, scope)).rejects.toMatchObject({ message: syncError.message });
+      return syncError;
+    };
+
+    it('raise Error(message) => name, message and location', async () => {
+      const script = `
+try:
+  raise Error('Error Message')
+except Error as err:
+  m = [err.name, err.message, err.line, err.column, err.moduleName]
+m
+`;
+      expect(await run(script)).toEqual(['Error', 'Error Message', 3, 3, 'main.jspy']);
+    });
+
+    it('raise message => error.message has no location prefix', async () => {
+      const script = `
+try:
+  raise 'My Message'
+except:
+  m = [error.name, error.message]
+m
+`;
+      expect(await run(script)).toEqual(['Error', 'My Message']);
+    });
+
+    it('raise custom error name with evaluated message', async () => {
+      const script = `
+id = 5
+try:
+  raise ValueError('Bad id: ' + id)
+except Error as err:
+  m = [err.name, err.message]
+m
+`;
+      expect(await run(script)).toEqual(['ValueError', 'Bad id: 5']);
+    });
+
+    it('raise custom error name without message', async () => {
+      const script = `
+try:
+  raise NotFoundError
+except Error as err:
+  m = [err.name, err.message]
+m
+`;
+      expect(await run(script)).toEqual(['NotFoundError', '']);
+    });
+
+    it('raise function call or variable from the scope => message', async () => {
+      const script = `
+def msg(x):
+  return 'message ' + x
+
+r = []
+text = 'from variable'
+try:
+  raise msg(1)
+except Error as err:
+  r.push(err.message)
+try:
+  raise text
+except Error as err:
+  r.push(err.message)
+r
+`;
+      expect(await run(script)).toEqual(['message 1', 'from variable']);
+    });
+
+    it('raise JS Error object', async () => {
+      const script = `
+try:
+  raise TypeError('wrong type')
+except TypeError as err:
+  m = [err.name, err.message]
+m
+`;
+      expect(await run(script, { TypeError })).toEqual(['TypeError', 'wrong type']);
+    });
+
+    it('uncaught raise is thrown to a host', async () => {
+      const err = await runError(`
+x = 1
+raise ValueError('boom')
+`);
+      expect(err.name).toBe('ValueError');
+      expect(err.rawMessage).toBe('boom');
+      expect(err.line).toBe(3);
+      expect(err.message).toBe('JspyError: main.jspy(3,1): boom');
+    });
+
+    it('except matches error by name', async () => {
+      const script = `
+r = []
+def test(name):
+  try:
+    if name == 'value':
+      raise ValueError('v')
+    if name == 'key':
+      raise KeyError('k')
+    raise 'other'
+  except ValueError:
+    r.push('ValueError')
+  except KeyError as e:
+    r.push('KeyError ' + e.message)
+  except:
+    r.push('any')
+
+test('value')
+test('key')
+test('other')
+r
+`;
+      expect(await run(script)).toEqual(['ValueError', 'KeyError k', 'any']);
+    });
+
+    it('except Error and except Exception catch everything', async () => {
+      const script = `
+r = []
+try:
+  raise ValueError('v')
+except Exception as e:
+  r.push(e.name)
+try:
+  raise KeyError('k')
+except Error e:
+  r.push(e.name)
+r
+`;
+      expect(await run(script)).toEqual(['ValueError', 'KeyError']);
+    });
+
+    it('not matched error goes further and finally runs', async () => {
+      const script = `
+r = []
+try:
+  try:
+    raise ValueError('v')
+  except KeyError:
+    r.push('wrong')
+  finally:
+    r.push('finally')
+except ValueError as e:
+  r.push('outer ' + e.message)
+r
+`;
+      expect(await run(script)).toEqual(['finally', 'outer v']);
+
+      const err = await runError(`
+try:
+  raise ValueError('v')
+except KeyError:
+  x = 1
+`);
+      expect(err.name).toBe('ValueError');
+    });
+
+    it('except matches JS errors by name', async () => {
+      const script = `
+r = []
+try:
+  jsFunc()
+except TypeError as e:
+  r.push(e.name + ': ' + e.message)
+try:
+  notDefinedFunc()
+except TypeError:
+  r.push('wrong')
+except Error as e:
+  r.push(e.name + ' at line ' + e.line)
+r
+`;
+      const jsFunc = (): void => {
+        throw new TypeError('js type error');
+      };
+      expect(await run(script, { jsFunc })).toEqual(['TypeError: js type error', 'Error at line 8']);
+    });
+
+    it('bare raise re-raises a handled error', async () => {
+      const script = `
+r = []
+try:
+  try:
+    raise ValueError('original')
+  except:
+    r.push('inner')
+    raise
+except Error as e:
+  r.push(e.name + ' ' + e.message + ' ' + e.line)
+r
+`;
+      expect(await run(script)).toEqual(['inner', 'ValueError original 5']);
+    });
+
+    it('bare raise outside of except is an error', async () => {
+      const err = await runError(`
+raise
+`);
+      expect(err.message).toContain('No active error to re-raise');
+    });
+
+    it('raise a new error inside except', async () => {
+      const script = `
+r = []
+try:
+  try:
+    raise 'inner'
+  except Error as e:
+    raise WrappedError('wrapped ' + e.message)
+  finally:
+    r.push('finally')
+except Error as e:
+  r.push(e.name + ': ' + e.message)
+r
+`;
+      expect(await run(script)).toEqual(['finally', 'WrappedError: wrapped inner']);
+    });
+
+    it('error raised in a function is caught by a caller', async () => {
+      const script = `
+def f():
+  raise ValueError('from func')
+
+try:
+  f()
+  m = 'not raised'
+except ValueError as e:
+  m = e.message + ' ' + e.line
+m
+`;
+      expect(await run(script)).toBe('from func 3');
+    });
+
+    it('try / finally without except', async () => {
+      const script = `
+r = []
+def f():
+  try:
+    r.push(1)
+    raise 'error'
+  finally:
+    r.push(2)
+
+try:
+  f()
+except Error as e:
+  r.push(e.message)
+r
+`;
+      expect(await run(script)).toEqual([1, 2, 'error']);
+    });
+
+    it('try without except and finally is a parser error', async () => {
+      expect(() => e.parse('try:\n  x = 1\nx')).toThrow(`'except:' or 'finally:'`);
+    });
+
+    it('finally runs all statements after return', async () => {
+      const script = `
+r = []
+def f():
+  try:
+    r.push(1)
+    return 10
+  except:
+    r.push(2)
+  else:
+    r.push('else')
+  finally:
+    r.push(3)
+    r.push(4)
+  r.push(5)
+  return 20
+
+[f(), r]
+`;
+      expect(await run(script)).toEqual([10, [1, 3, 4]]);
+    });
+
+    it('return inside except and finally', async () => {
+      const script = `
+r = []
+def f():
+  try:
+    raise 'e'
+  except:
+    r.push(1)
+    return 7
+  finally:
+    r.push(2)
+    r.push(3)
+  return 20
+
+def g():
+  try:
+    return 1
+  finally:
+    r.push(4)
+    return 2
+
+[f(), g(), r]
+`;
+      expect(await run(script)).toEqual([7, 2, [1, 2, 3, 4]]);
+    });
+
+    it('failed return expression is handled by except', async () => {
+      const script = `
+r = []
+def boom():
+  raise 'boom'
+
+def f():
+  try:
+    return boom()
+  except:
+    r.push(1)
+    r.push(2)
+  return 5
+
+[f(), r]
+`;
+      expect(await run(script)).toEqual([5, [1, 2]]);
+    });
+
+    it('break and continue inside try run finally', async () => {
+      const script = `
+r = []
+for i in [1, 2, 3, 4]:
+  try:
+    if i == 2:
+      continue
+    if i == 4:
+      break
+    r.push(i)
+  except:
+    r.push('error')
+  finally:
+    r.push('f')
+    r.push('g')
+  r.push('after')
+r
+`;
+      expect(await run(script)).toEqual(
+        [1, 'f', 'g', 'after', 'f', 'g', 3, 'f', 'g', 'after', 'f', 'g']
+      );
+    });
+
+    it('loop continues after a handled error', async () => {
+      const script = `
+r = []
+for i in [1, 2, 3]:
+  try:
+    if i == 2:
+      raise 'two'
+    r.push(i)
+  except Error as e:
+    r.push(e.message)
+r
+`;
+      expect(await run(script)).toEqual([1, 'two', 3]);
+    });
+
+    it('else runs only without error and its errors are not handled by except', async () => {
+      const script = `
+r = []
+try:
+  try:
+    r.push(1)
+  except:
+    r.push('wrong')
+  else:
+    r.push(2)
+    raise 'from else'
+  finally:
+    r.push(3)
+except Error as e:
+  r.push(e.message)
+r
+`;
+      expect(await run(script)).toEqual([1, 2, 3, 'from else']);
+    });
+
+    it('error in finally is thrown', async () => {
+      const err = await runError(`
+try:
+  x = 1
+finally:
+  raise FinallyError('from finally')
+`);
+      expect(err.name).toBe('FinallyError');
+    });
+
+    it('rejected promise is handled by except', async () => {
+      const script = `
+async def f():
+  try:
+    asyncFunc()
+    return 'not raised'
+  except Error as e:
+    return e.message
+f()
+`;
+      const asyncFunc = (): Promise<void> => Promise.reject(new Error('rejected'));
+      expect(await e.evaluate(script, { asyncFunc })).toBe('rejected');
+    });
   });
 
   it('if with AND', async () => {

@@ -204,12 +204,17 @@ export class Tokenizer {
     let value: string | number | boolean | null = tokenText;
 
     if (type === null) {
-      if (tokenText === 'null') {
+      if (tokenText === 'null' || tokenText === 'None') {
         type = TokenTypes.LiteralNull;
         value = null;
-      } else if (tokenText === 'true' || tokenText === 'false') {
+      } else if (
+        tokenText === 'true' ||
+        tokenText === 'false' ||
+        tokenText === 'True' ||
+        tokenText === 'False'
+      ) {
         type = TokenTypes.LiteralBool;
-        value = tokenText === 'true';
+        value = tokenText === 'true' || tokenText === 'True';
       } else if (this.parseNumberOrNull(tokenText) !== null) {
         type = TokenTypes.LiteralNumber;
         value = this.parseNumberOrNull(tokenText);

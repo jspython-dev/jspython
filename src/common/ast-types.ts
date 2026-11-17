@@ -97,7 +97,19 @@ export class ReturnNode extends AstNode {
 }
 
 export class RaiseNode extends AstNode {
-  constructor(public errorName: string, public errorMessageAst: AstNode, public loc: Uint16Array) {
+  /**
+   * @param errorName name of the error for `raise Name` and `raise Name(message)`
+   * @param errorMessageAst message for `raise Name(message)`, or a value for `raise <expression>`
+   * @param exprAst a whole expression after `raise`. Defined only along with errorName and
+   * evaluated instead, when the name turns out to be a function/variable from the scope.
+   * A bare `raise` (re-raise) has neither errorName nor errorMessageAst
+   */
+  constructor(
+    public errorName: string | undefined,
+    public errorMessageAst: AstNode | undefined,
+    public loc: Uint16Array,
+    public exprAst: AstNode | undefined = undefined
+  ) {
     super('raise');
     this.loc = loc;
   }

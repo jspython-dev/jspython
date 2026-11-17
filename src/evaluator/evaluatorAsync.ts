@@ -27,6 +27,16 @@ import {
   WhileNode
 } from '../common';
 import { JspyEvalError, JspyError, getImportType } from '../common/utils';
+import {
+  createRaisedError,
+  findExceptHandler,
+  getErrorToReRaise,
+  isControlFlowInterrupted,
+  resolveRaise,
+  resumeControlFlow,
+  suspendControlFlow,
+  toErrorInfo
+} from './errorHandling';
 import { Evaluator } from './evaluator';
 import { BlockContext, cloneContext } from './scope';
 
@@ -165,7 +175,9 @@ export class EvaluatorAsync {
             loc[0],
             loc[1],
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (err as any).message || err
+            (err as any).message || err,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (typeof (err as any)?.name === 'string' && (err as any).name) || 'Error'
           );
         }
       }
@@ -273,71 +285,62 @@ export class EvaluatorAsync {
 
     if (node.type === 'raise') {
       const raiseNode = node as RaiseNode;
-      const errorMessage = (await this.evalNodeAsync(
-        raiseNode.errorMessageAst,
-        blockContext
-      )) as string;
-      const err = new JspyError(
-        blockContext.moduleName,
-        raiseNode.loc[0],
-        raiseNode.loc[1],
-        raiseNode.errorName,
-        errorMessage
-      );
-      throw err;
+
+      if (!raiseNode.errorName && !raiseNode.errorMessageAst) {
+        // bare `raise` => re-raise an error what is being handled
+        throw getErrorToReRaise(blockContext);
+      }
+
+      const { errorName, valueAst } = resolveRaise(raiseNode, blockContext);
+      const value = valueAst ? await this.evalNodeAsync(valueAst, blockContext) : null;
+      throw createRaisedError(raiseNode, blockContext, errorName, value);
     }
 
     if (node.type === 'tryExcept') {
       const tryNode = node as TryExceptNode;
-      try {
+      const evalBody = async (body: AstNode[]): Promise<unknown> =>
         await this.evalBlockAsync(
-          { name: blockContext.moduleName, type: 'trycatch', body: tryNode.tryBody } as AstBlock,
+          { name: blockContext.moduleName, type: 'trycatch', body } as AstBlock,
           blockContext
         );
 
-        if (tryNode.elseBody?.length || 0 > 0) {
-          await this.evalBlockAsync(
-            { name: blockContext.moduleName, type: 'trycatch', body: tryNode.elseBody } as AstBlock,
-            blockContext
-          );
-        }
-      } catch (err) {
-        // catches here all exceptions. Including JSPY Eval errors
-        const name = err instanceof JspyError ? (err as JspyError).name : typeof err;
-        const message =
-          err instanceof JspyError
-            ? (err as JspyError).message
-            : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (err as any)?.message ?? String(err);
-        const moduleName = err instanceof JspyError ? (err as JspyError).module : 0;
-        const line = err instanceof JspyError ? (err as JspyError).line : 0;
-        const column = err instanceof JspyError ? (err as JspyError).column : 0;
+      try {
+        let failed = false;
+        try {
+          await evalBody(tryNode.tryBody);
+        } catch (err) {
+          // catches here all exceptions. Including JSPY Eval errors
+          failed = true;
+          const errorInfo = toErrorInfo(err);
+          const handler = findExceptHandler(tryNode.exepts, errorInfo.name);
+          if (!handler) {
+            // no matching `except`. An error goes further, after `finally`
+            throw err;
+          }
 
-        const firstExept = tryNode.exepts[0];
-        const catchBody = firstExept.body;
-        const ctx = blockContext;
-        ctx.blockScope.set(firstExept.error?.alias || 'error', {
-          name,
-          message,
-          line,
-          column,
-          moduleName
-        });
-        await this.evalBlockAsync(
-          { name: blockContext.moduleName, type: 'trycatch', body: catchBody } as AstBlock,
-          ctx
-        );
-        ctx.blockScope.set(firstExept.error?.alias || 'error', null);
+          const alias = handler.error?.alias || 'error';
+          const prevError = blockContext.currentError;
+          blockContext.currentError = err;
+          blockContext.blockScope.set(alias, errorInfo);
+          try {
+            await evalBody(handler.body);
+          } finally {
+            blockContext.currentError = prevError;
+            blockContext.blockScope.set(alias, null);
+          }
+        }
+
+        // `else` runs only when `try` finished with no error and no return/break/continue.
+        // Errors from `else` are not handled by `except`
+        if (!failed && tryNode.elseBody?.length && !isControlFlowInterrupted(blockContext)) {
+          await evalBody(tryNode.elseBody);
+        }
       } finally {
-        if (tryNode.finallyBody?.length || 0 > 0) {
-          await this.evalBlockAsync(
-            {
-              name: blockContext.moduleName,
-              type: 'trycatch',
-              body: tryNode.finallyBody
-            } as AstBlock,
-            blockContext
-          );
+        if (tryNode.finallyBody?.length) {
+          // `finally` has to run all its statements, even after return/break/continue
+          const state = suspendControlFlow(blockContext);
+          await evalBody(tryNode.finallyBody);
+          resumeControlFlow(blockContext, state);
         }
       }
 
@@ -346,10 +349,12 @@ export class EvaluatorAsync {
 
     if (node.type === 'return') {
       const returnNode = node as ReturnNode;
-      blockContext.returnCalled = true;
-      blockContext.returnObject = returnNode.returnValue
+      // evaluate first. If it throws, then return is not called
+      const returnObject = returnNode.returnValue
         ? await this.evalNodeAsync(returnNode.returnValue, blockContext)
         : null;
+      blockContext.returnCalled = true;
+      blockContext.returnObject = returnObject;
 
       return blockContext.returnObject;
     }

@@ -11,6 +11,8 @@ export interface BlockContext {
   breakCalled?: boolean;
   continueCalled?: boolean;
   returnObject?: unknown;
+  // an error what is being handled by `except`. Used by a bare `raise` to re-raise it
+  currentError?: unknown;
 }
 
 export function cloneContext(context: BlockContext): BlockContext {
@@ -18,7 +20,8 @@ export function cloneContext(context: BlockContext): BlockContext {
     moduleName: context.moduleName,
     blockScope: context.blockScope.clone(),
     // this instance should never change. Otherwise cancel won't work
-    cancellationToken: context.cancellationToken
+    cancellationToken: context.cancellationToken,
+    currentError: context.currentError
   } as BlockContext;
 }
 

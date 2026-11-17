@@ -48,13 +48,15 @@ The aim is to provide a SAFE Python experience for JavaScript and NodeJS users a
 
 * **Strings.** Double-quoted `"..."` and single-quoted `'...'` strings, with `\"`, `\'` and `\\` escapes. Triple-quoted `"""..."""` blocks are treated as comments (docstrings), not as string values. Line comments start with `#`.
 
-* **Error handling.** `try` / `except` / `else` / `finally` and `raise`. Use `except Error err:` to bind the error and read `err.message`. JavaScript errors thrown by host functions are caught the same way.
+* **Error handling.** `try` / `except` / `else` / `finally` and `raise`, including named errors (`raise ValueError("...")` / `except ValueError as err:`) and re-raise. JavaScript errors thrown by host functions are caught the same way. See [Error handling](#error-handling) below.
 
 * **Imports.** Import other JSPython modules, JSON files, and JavaScript packages. See [Imports](#imports) below.
 
 * **Date and time.** `dateTime()` returns a JavaScript `Date`, so all Date [get](https://www.w3schools.com/js/js_date_methods.asp) and [set](https://www.w3schools.com/js/js_date_methods_set.asp) methods are available.
 
 * **None / null.** `None` and `null` are synonyms and can be used interchangeably.
+
+* **Booleans.** Both Python-style `True` / `False` and JavaScript-style `true` / `false` are accepted.
 
 * **Built-ins.** `print`, `range`, `dateTime`, `isNull`, `isDate`, `isFunction`, `isString`, `deleteProperty`, plus the JavaScript globals `Math`, `Object`, `Array` and `JSON`.
 
@@ -122,6 +124,66 @@ def greet(name):
 `;
 
 await jsPython().evaluate(script, {}, ["greet", "World"]); // "Hello, World"
+```
+
+## Error handling
+
+```py
+def loadUser(id):
+  if id == null:
+    raise ValueError("id is required")
+  return api.getUser(id)        # a JS function, which may throw
+
+try:
+  user = loadUser(userId)
+except ValueError as err:
+  print("Invalid input:", err.message)
+except TypeError as err:
+  print("JS error:", err.message)
+except Error as err:
+  print(err.name, err.message, "at line", err.line)
+  raise                         # re-raise the same error
+else:
+  print("Loaded", user.name)    # runs only when `try` raised nothing
+finally:
+  print("Done")                 # always runs
+```
+
+**Raising errors**
+
+| Statement                   | Result                                                                    |
+| --------------------------- | ------------------------------------------------------------------------- |
+| `raise "message"`           | Error named `Error` with the given message. Any expression is allowed.     |
+| `raise Error("message")`    | Same as above.                                                            |
+| `raise ValueError("message")` | Error named `ValueError`. Any name works; no declaration is needed.     |
+| `raise ValueError`          | Error named `ValueError` with an empty message.                           |
+| `raise`                     | Inside `except` only: re-raises the error being handled.                  |
+
+If the name after `raise` is a function or variable in scope, it is evaluated as a normal expression: `raise buildMessage(x)` uses the returned string as the message, and raising a JavaScript `Error` object keeps its `name` and `message`.
+
+**Catching errors**
+
+* `except:`, `except Error:` and `except Exception:` catch every error.
+* `except SomeName:` catches only errors with that name. This covers errors raised by a script (`raise SomeName(...)`) and JavaScript errors thrown by host functions (matched by their `name`, e.g. `TypeError`). Errors produced by the interpreter itself, such as an undefined variable, are named `Error`.
+* Several `except` clauses are checked top to bottom and the first match wins. If nothing matches, the error propagates to the caller (after `finally` has run).
+* `except Name as err:` binds the error to `err`; the short form `except Name err:` also works. A clause without an alias binds it to `error`. The variable is reset to `null` when the clause finishes.
+* The bound error is an object with `name`, `message`, `line`, `column` and `moduleName`.
+* `finally` always runs in full, including after `return`, `break` or `continue` inside `try` or `except`. A `try` may have `finally` without any `except`.
+* `else` runs only when the `try` block completed without an error (and without `return` / `break` / `continue`). Errors raised in `else` are not handled by the `except` clauses of the same `try`.
+
+**Errors in the host application**
+
+An error that is not handled by the script rejects the `evaluate` / `evalAsync` promise (or is thrown by `eval`). Errors created by `raise` are `JspyError` instances; other runtime errors are `JspyEvalError`. Both carry `module`, `line` and `column`; `message` is prefixed with the location, and `rawMessage` holds the original text. The error name is in `name` for `JspyError` and in `errorName` for `JspyEvalError`.
+
+```js
+try {
+  await jsPython().evaluate('raise ValueError("boom")');
+} catch (e) {
+  e.message;    // 'JspyError: main.jspy(1,1): boom'
+  e.name;       // 'ValueError'
+  e.rawMessage; // 'boom'
+  e.line;       // 1
+}
 ```
 
 ## Imports
