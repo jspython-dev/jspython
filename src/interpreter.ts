@@ -204,15 +204,26 @@ export class Interpreter {
     return this;
   }
 
-  addFunction(
-    funcName: string,
-    fn: (...args: unknown[]) => void | unknown | Promise<unknown>
-  ): Interpreter {
-    this.initialScope[funcName] = fn;
-    return this;
-  }
+  /**
+   * Makes functions, objects and values available to every script evaluated with `evaluate`
+   * by this interpreter instance. Each property of `obj` becomes a variable in a script.
+   *
+   * Works the same way as `Object.assign`, so it can be called many times:
+   *  - properties are accumulated across calls
+   *  - a property with the same name overrides the previous one (including built-ins)
+   *  - assignment is shallow: a nested object is replaced, not merged
+   * @example
+   * jsPython()
+   *   .assignToScope({ add: (a, b) => a + b })
+   *   .assignToScope({ appName: 'Demo', utils })
+   */
+  assignToScope(obj: Record<string, unknown>): Interpreter {
+    if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+      throw new Error(
+        `assignToScope expects an object, e.g. assignToScope({ myFunc: () => 1, myValue: 5 })`
+      );
+    }
 
-  assignGlobalContext(obj: Record<string, unknown>): Interpreter {
     Object.assign(this.initialScope, obj);
     return this;
   }

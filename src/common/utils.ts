@@ -179,19 +179,33 @@ export class JspyParserError extends Error {
 }
 
 export class JspyEvalError extends Error {
+  /** original message, without the `JspyEvalError: module(line,column):` prefix */
+  public rawMessage: string;
+
+  /**
+   * @param errorName name of the original error (e.g. `TypeError`), used to match `except <Name>:`
+   */
   constructor(
     public module: string,
     public line: number,
     public column: number,
-    public message: string
+    public message: string,
+    public errorName = 'Error'
   ) {
     super();
+    this.rawMessage = message;
     this.message = jspyErrorMessage('JspyEvalError', module, line, column, message);
     Object.setPrototypeOf(this, JspyEvalError.prototype);
   }
 }
 
+/**
+ * An error raised by a script with the `raise` statement
+ */
 export class JspyError extends Error {
+  /** original message, without the `JspyError: module(line,column):` prefix */
+  public rawMessage: string;
+
   constructor(
     public module: string,
     public line: number,
@@ -200,6 +214,7 @@ export class JspyError extends Error {
     public message: string
   ) {
     super();
+    this.rawMessage = message;
     this.message = jspyErrorMessage('JspyError', module || 'name.jspy', line, column, message);
     Object.setPrototypeOf(this, JspyError.prototype);
   }

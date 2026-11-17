@@ -241,7 +241,8 @@ describe('Parser => ', () => {
         const assign = ast.body[0] as any;
         expect(assign.target.type).toBe('getSingleVar');
         expect(assign.target.name).toBe('x');
-        expect(render(assign.source)).toBe(`(x ${op} (2 + 3))`);
+        expect(assign.op).toBe(op);
+        expect(render(assign.source)).toBe('(2 + 3)');
       }
     });
 
@@ -251,9 +252,50 @@ describe('Parser => ', () => {
       const assign = ast.body[0] as any;
       expect(assign.type).toBe('assign');
       expect(assign.target.type).toBe('chainingCalls');
-      expect(assign.source.type).toBe('binOp');
-      expect(assign.source.op).toBe('+');
-      expect(assign.source.left.type).toBe('chainingCalls');
+      expect(assign.op).toBe('+');
+      expect(assign.source.type).toBe('const');
+    });
+
+    it('simple assignment has no operation', () => {
+      const ast = new Parser().parse(new Tokenizer().tokenize(`x = 1`));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((ast.body[0] as any).op).toBeUndefined();
+    });
+
+    it('unary minus binds tighter than * / but looser than **', () => {
+      expect(parseExpr('-x')).toBe('(0 - x)');
+      expect(parseExpr('-x * 2')).toBe('((0 - x) * 2)');
+      expect(parseExpr('-x + 2')).toBe('((0 - x) + 2)');
+      expect(parseExpr('2 * -x')).toBe('(2 * (0 - x))');
+      expect(parseExpr('2 - -x')).toBe('(2 - (0 - x))');
+      expect(parseExpr('-x ** 2')).toBe('(0 - (x ** 2))');
+      expect(parseExpr('2 ** -x')).toBe('(2 ** (0 - x))');
+      expect(parseExpr('2 ** -x ** 2')).toBe('(2 ** (0 - (x ** 2)))');
+      expect(parseExpr('-(1 + 2) * 3')).toBe('((0 - (1 + 2)) * 3)');
+      expect(parseExpr('- -x')).toBe('(0 - (0 - x))');
+    });
+
+    it('negative number literal in front of **', () => {
+      expect(parseExpr('-3 ** 2')).toBe('(0 - (3 ** 2))');
+      expect(parseExpr('2 - -3 ** 2')).toBe('(2 - (0 - (3 ** 2)))');
+      expect(parseExpr('2 * -3 ** 2')).toBe('(2 * (0 - (3 ** 2)))');
+      expect(parseExpr('(-3) ** 2')).toBe('(-3 ** 2)');
+      expect(parseExpr('2 ** -3')).toBe('(2 ** -3)');
+      expect(parseExpr('-3 * 2')).toBe('(-3 * 2)');
+    });
+
+    it('unary plus', () => {
+      expect(parseExpr('+x')).toBe('x');
+      expect(parseExpr('2 * +x')).toBe('(2 * x)');
+    });
+
+    it('incomplete expressions are rejected', () => {
+      const parse = (script: string) => (): unknown => new Parser().parse(new Tokenizer().tokenize(script));
+      expect(parse('2 *')).toThrow();
+      expect(parse('* 2')).toThrow();
+      expect(parse('2 * / 3')).toThrow();
+      expect(parse('2 -')).toThrow();
+      expect(parse('x++')).toThrow();
     });
   });
 });

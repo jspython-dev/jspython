@@ -66,8 +66,14 @@ const OperatorsPrecedence: Partial<Record<Operators, number>> = {
   '/': 5,
   '%': 5,
   '//': 5,
-  '**': 6
+  '**': 7
 };
+
+/**
+ * Unary '-' and '+' bind tighter than multiplication, but looser than '**'
+ * e.g. -3 ** 2 => -(3 ** 2) and -2 * 3 => (-2) * 3
+ */
+export const UnaryOperatorPrecedence = 6;
 
 export function getOperatorPrecedence(op: Operators): number {
   return OperatorsPrecedence[op] || 0;
@@ -201,8 +207,15 @@ function arithmeticOperation(l: Primitive, r: Primitive, op: ArithmeticOperators
     case '/':
       return (l as number) / (r as number);
 
-    case '%':
-      return (l as number) % (r as number);
+    case '%': {
+      if (r === 0) {
+        throw new Error('Modulo by zero');
+      }
+      // same as in Python, result takes the sign of the divisor
+      const rest = (l as number) % (r as number);
+      // '+ 0' normalizes negative zero
+      return rest !== 0 && rest < 0 !== (r as number) < 0 ? rest + (r as number) : rest + 0;
+    }
 
     case '**':
       return Math.pow(l as number, r as number);

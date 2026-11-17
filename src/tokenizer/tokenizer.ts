@@ -4,8 +4,8 @@ const SeparatorsMap: Record<string, string[]> = {
   '\n': ['\n'],
   '=': ['=', '==', '=>'],
 
-  '+': ['+', '++', '+='],
-  '-': ['-', '--', '-='],
+  '+': ['+', '+='],
+  '-': ['-', '-='],
   '*': ['*', '**', '*='],
   '/': ['/', '//', '/='],
   '%': ['%'],
@@ -204,12 +204,17 @@ export class Tokenizer {
     let value: string | number | boolean | null = tokenText;
 
     if (type === null) {
-      if (tokenText === 'null') {
+      if (tokenText === 'null' || tokenText === 'None') {
         type = TokenTypes.LiteralNull;
         value = null;
-      } else if (tokenText === 'true' || tokenText === 'false') {
+      } else if (
+        tokenText === 'true' ||
+        tokenText === 'false' ||
+        tokenText === 'True' ||
+        tokenText === 'False'
+      ) {
         type = TokenTypes.LiteralBool;
-        value = tokenText === 'true';
+        value = tokenText === 'true' || tokenText === 'True';
       } else if (this.parseNumberOrNull(tokenText) !== null) {
         type = TokenTypes.LiteralNumber;
         value = this.parseNumberOrNull(tokenText);
@@ -275,15 +280,53 @@ export class Tokenizer {
 
   private isPartOfNumber(symbol: string, currentTokens: Token[]): boolean {
     if (symbol === '-' && !this.tokenText.length) {
-      // '-' needs to be handled e.g. -3; 2 + -2 etc
+      // '-' is a part of a number literal only when a number follows e.g. -3; 2 + -2 etc.
+      // Otherwise (e.g. -x, -(1 + 2)) it is an unary operator and parser will handle it
+      const next = this._script[this._cursor + 1];
+      const afterNext = this._script[this._cursor + 2];
+      const isDigit = (ch: string): boolean => ch >= '0' && ch <= '9';
+      if (!(isDigit(next) || (next === '.' && isDigit(afterNext)))) {
+        return false;
+      }
+
       const prevToken = currentTokens.length !== 0 ? currentTokens[currentTokens.length - 1] : null;
       return (
         prevToken === null ||
         getTokenValue(prevToken) === 'return' ||
-        (getTokenType(prevToken) === TokenTypes.Operator && getTokenValue(prevToken) !== ')')
+        (getTokenType(prevToken) === TokenTypes.Operator &&
+          getTokenValue(prevToken) !== ')' &&
+          getTokenValue(prevToken) !== ']' &&
+          getTokenValue(prevToken) !== '}')
       );
     } else if (symbol === '.' && this.parseNumberOrNull(this.tokenText) !== null) {
       return true;
+    } else if (symbol === '.') {
+      // number literal without a leading zero e.g. .5 or -.5
+      const next = this._script[this._cursor + 1];
+      if (!(next >= '0' && next <= '9')) {
+        return false;
+      }
+      if (this.tokenText === '-') {
+        return true;
+      }
+      if (this.tokenText.length) {
+        return false;
+      }
+
+      // '.' right after an operand is a property access
+      const prevToken = currentTokens.length !== 0 ? currentTokens[currentTokens.length - 1] : null;
+      const prevValue = getTokenValue(prevToken);
+      return (
+        prevToken === null ||
+        getTokenType(prevToken) === TokenTypes.Keyword ||
+        prevValue === 'and' ||
+        prevValue === 'or' ||
+        (getTokenType(prevToken) === TokenTypes.Operator &&
+          prevValue !== ')' &&
+          prevValue !== ']' &&
+          prevValue !== '}' &&
+          prevValue !== '?')
+      );
     }
     return false;
   }
