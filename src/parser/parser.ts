@@ -37,6 +37,9 @@ import {
   getTokenLoc,
   getOperatorPrecedence,
   UnaryOperatorPrecedence,
+  NotOperatorPrecedence,
+  NotOpNode,
+  findTokenValueIndexes,
   OperationTypes,
   LogicalNodeItem,
   LogicalOperators,
@@ -210,7 +213,7 @@ export class Parser {
 
           const endOfElif = findTokenValueIndex(elifInstruction.tokens, v => v === ':');
 
-          const conditionTokens = elifInstruction.tokens.slice(1, endDefOfDef);
+          const conditionTokens = elifInstruction.tokens.slice(1, endOfElif);
 
           const elifConditionNode = findIndexes(
             conditionTokens,
@@ -479,6 +482,19 @@ export class Parser {
     return a.slice(begin, end);
   }
 
+  /** removes brackets, but only when they enclose a whole expression e.g. (a or b), but not (a) + (b) */
+  private unwrapBrackets(tokens: Token[]): Token[] {
+    const isBracket = (token: Token, bracket: string): boolean =>
+      getTokenValue(token) === bracket && getTokenType(token) !== TokenTypes.LiteralString;
+
+    return tokens.length > 2 &&
+      isBracket(tokens[0], '(') &&
+      isBracket(tokens[tokens.length - 1], ')') &&
+      !findTokenValueIndexes(tokens, () => true).length
+      ? tokens.slice(1, tokens.length - 1)
+      : tokens;
+  }
+
   private groupComparisonOperations(indexes: number[], tokens: Token[]): AstNode {
     const start = 0;
 
@@ -616,6 +632,21 @@ export class Parser {
       return new ArrowFuncDefNode(funcAst, params, getTokenLoc(tokens[0]));
     }
 
+    // `not` binds looser than comparison and membership, but tighter than `and` / `or`
+    // e.g. not a == b => not (a == b)
+    if (
+      getTokenValue(tokens[0]) === 'not' &&
+      getTokenType(tokens[0]) !== TokenTypes.LiteralString &&
+      !findOperators(tokens, OperationTypes.Logical).length
+    ) {
+      const operandTokens = this.unwrapBrackets(tokens.slice(1));
+      const logicOpIndexes = findOperators(operandTokens, OperationTypes.Logical);
+      const operand = logicOpIndexes.length
+        ? this.groupLogicalOperations(logicOpIndexes, operandTokens)
+        : this.createExpressionNode(operandTokens);
+      return new NotOpNode(operand, getTokenLoc(tokens[0]));
+    }
+
     // comparison operations
     const comparissonIndexes = findOperators(tokens, OperationTypes.Comparison);
     if (comparissonIndexes.length) {
@@ -655,15 +686,24 @@ export class Parser {
           }
         }
 
+        begin = end + 1;
         if (i < ops.length) {
           const prevItem = items.length ? items[items.length - 1] : null;
-          items.push({
-            op: getTokenValue(tokens[end]) as Operators,
-            unary: !prevItem || !prevItem.node,
-            token: tokens[end]
-          });
+          const unary = !prevItem || !prevItem.node;
+          let op = getTokenValue(tokens[end]) as Operators;
+          if (
+            op === 'not' &&
+            !unary &&
+            ops[i + 1] === end + 1 &&
+            getTokenValue(tokens[end + 1]) === 'in'
+          ) {
+            // `not in` is a single binary operator
+            op = 'not in';
+            i++;
+            begin++;
+          }
+          items.push({ op, unary, token: tokens[end] });
         }
-        begin = end + 1;
       }
 
       let pos = 0;
@@ -677,6 +717,12 @@ export class Parser {
         if (item.node) {
           pos++;
           return item.node;
+        }
+
+        if (item.op === 'not') {
+          this._currentToken = item.token as Token;
+          pos++;
+          return new NotOpNode(buildNode(NotOperatorPrecedence), getTokenLoc(item.token as Token));
         }
 
         if (item.op !== '-' && item.op !== '+') {
@@ -704,6 +750,9 @@ export class Parser {
         let left = buildOperand();
         while (pos < items.length) {
           const op = items[pos].op as Operators;
+          if (op === 'not') {
+            throw new Error(`Unexpected operator 'not'.`);
+          }
           const precedence = getOperatorPrecedence(op);
           if (precedence < minPrecedence) {
             break;

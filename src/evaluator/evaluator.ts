@@ -17,6 +17,7 @@ import {
   IfNode,
   IsNullCoelsing,
   LogicalOpNode,
+  NotOpNode,
   OperationFuncs,
   Primitive,
   RaiseNode,
@@ -344,6 +345,10 @@ export class Evaluator {
       const func = OperationFuncs.get(binOpNode.op);
       if (typeof func === 'function') return func(left as Primitive, right as Primitive);
       else throw new Error('Unknown binary oprastion');
+    }
+
+    if (node.type === 'notOp') {
+      return !this.evalNode((node as NotOpNode).operand, blockContext);
     }
 
     if (node.type === 'logicalOp') {
