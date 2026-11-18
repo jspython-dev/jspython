@@ -1692,6 +1692,36 @@ f()
       ['x = [1, 2, 3]\ny = 1\nif 5 not in x:\n  y = 2\ny', 2],
       ['x = [1, 2, 3]\ny = 1\nif 5 not in x and not 1 not in x:\n  y = 2\ny', 2],
 
+      // logical operators bind looser than comparison, not only in conditions
+      ['x = 1 == 1 and 2 == 2\nx', true],
+      ['x = 1 == 2 or 2 == 2\nx', true],
+      ['x = 2\ny = 1 < x and x < 3\ny', true],
+      ['x = 1\ny = not x == 2 and x\ny', 1],
+      ['x = 3\ny = 1 in [1] and x not in [3]\ny', false],
+      ['f = (a, b) => a\nf(1 == 1 and 2 == 3, 0)', false],
+      ['def f():\n  return 1 == 1 and 2 == 2\nf()', true],
+      ['x = [1 == 1 and 2 == 2]\nx[0]', true],
+      ['x = {a: 1 == 1 and 2 == 2}\nx.a', true],
+      // and binds tighter than or
+      ['x = 0 and 1 or 5\nx', 5],
+      ['x = 5\nif 0 and 1 or 1:\n  x = 6\nx', 6],
+      ['x = 5\nif 1 or 1 and 0:\n  x = 6\nx', 6],
+      ['x = 5\nif (1 or 1) and 0:\n  x = 6\nx', 5],
+      // and / or return an operand and do not evaluate the rest
+      ['0 and 1', 0],
+      ['None and 1', null],
+      ['1 and 2', 2],
+      ['0 or None', null],
+      ['x = None\ny = x and x.ok\ny', null],
+      ['x = {ok: 1}\ny = x or x.missing.prop\ny.ok', 1],
+      // brackets
+      ['x = (1 + 2)\nx', 3],
+      ['x = ((1 + 2))\nx', 3],
+      ['(1 + 2) * 3 == 9', true],
+      ['(1 + 2) == (3)', true],
+      ['x = 5\nif (1) == (1) and x:\n  x = 6\nx', 6],
+      ['x = (1 + 2) * (3 + 4)\nx', 21],
+
       // logical operators bind looser than arithmetic
       ['x = 0 or 2 * 3\nx', 6],
       ['x = 1 and 2 + 3\nx', 5],

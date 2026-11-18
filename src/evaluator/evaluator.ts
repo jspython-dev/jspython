@@ -361,8 +361,9 @@ export class Evaluator {
 
         gResult = this.evalNode(eg.node, blockContext);
 
+        // same as in Python, `and` / `or` return the operand what defined a result
         if (eg.op === 'and' && !gResult) {
-          return false;
+          return gResult;
         }
         if (eg.op === 'or' && gResult) {
           return gResult;
