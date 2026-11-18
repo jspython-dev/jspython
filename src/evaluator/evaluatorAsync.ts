@@ -18,6 +18,7 @@ import {
   ImportNode,
   IsNullCoelsing,
   LogicalOpNode,
+  NotOpNode,
   OperationFuncs,
   Primitive,
   RaiseNode,
@@ -447,6 +448,10 @@ export class EvaluatorAsync {
       else throw new Error('Unknown binary oprastion');
     }
 
+    if (node.type === 'notOp') {
+      return !(await this.evalNodeAsync((node as NotOpNode).operand, blockContext));
+    }
+
     if (node.type === 'logicalOp') {
       const logicalGroups = node as LogicalOpNode;
       let ind = 0;
@@ -457,8 +462,9 @@ export class EvaluatorAsync {
 
         gResult = await this.evalNodeAsync(eg.node, blockContext);
 
+        // same as in Python, `and` / `or` return the operand what defined a result
         if (eg.op === 'and' && !gResult) {
-          return false;
+          return gResult;
         }
         if (eg.op === 'or' && gResult) {
           return gResult;

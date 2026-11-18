@@ -6,6 +6,7 @@ export type AstNodeType =
   | 'binOp'
   | 'const'
   | 'logicalOp'
+  | 'notOp'
   | 'getSingleVar'
   | 'setSingleVar'
   | 'chainingCalls'
@@ -285,6 +286,13 @@ export interface LogicalNodeItem {
 export class LogicalOpNode extends AstNode {
   constructor(public items: LogicalNodeItem[], public loc: Uint16Array) {
     super('logicalOp');
+    this.loc = loc;
+  }
+}
+
+export class NotOpNode extends AstNode {
+  constructor(public operand: AstNode, public loc: Uint16Array) {
+    super('notOp');
     this.loc = loc;
   }
 }

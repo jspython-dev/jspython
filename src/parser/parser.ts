@@ -37,6 +37,8 @@ import {
   getTokenLoc,
   getOperatorPrecedence,
   UnaryOperatorPrecedence,
+  NotOperatorPrecedence,
+  NotOpNode,
   OperationTypes,
   LogicalNodeItem,
   LogicalOperators,
@@ -210,7 +212,7 @@ export class Parser {
 
           const endOfElif = findTokenValueIndex(elifInstruction.tokens, v => v === ':');
 
-          const conditionTokens = elifInstruction.tokens.slice(1, endDefOfDef);
+          const conditionTokens = elifInstruction.tokens.slice(1, endOfElif);
 
           const elifConditionNode = findIndexes(
             conditionTokens,
@@ -471,12 +473,29 @@ export class Parser {
 
   private sliceWithBrackets(a: Token[], begin: number, end: number): Token[] {
     // if expression is in brackets, then we need clean brackets
-    if (getTokenValue(a[begin]) === '(' && getTokenType(a[begin]) !== TokenTypes.LiteralString) {
-      begin++;
-      end--;
+    return this.unwrapBrackets(a.slice(begin, end));
+  }
+
+  /** removes brackets, but only when they enclose a whole expression e.g. (a or b), but not (a) + (b) */
+  private unwrapBrackets(tokens: Token[]): Token[] {
+    const isBracket = (token: Token, bracket: string): boolean =>
+      getTokenValue(token) === bracket && getTokenType(token) !== TokenTypes.LiteralString;
+
+    if (tokens.length < 3 || !isBracket(tokens[0], '(')) {
+      return tokens;
     }
 
-    return a.slice(begin, end);
+    // the opening bracket has to be closed by the very last token
+    let depth = 0;
+    for (let i = 0; i < tokens.length; i++) {
+      if (isBracket(tokens[i], '(')) {
+        depth++;
+      } else if (isBracket(tokens[i], ')') && --depth === 0) {
+        return i === tokens.length - 1 ? tokens.slice(1, i) : tokens;
+      }
+    }
+
+    return tokens;
   }
 
   private groupComparisonOperations(indexes: number[], tokens: Token[]): AstNode {
@@ -500,26 +519,33 @@ export class Parser {
     return leftNode as AstNode;
   }
 
+  /**
+   * Groups operands of `and` / `or`. A node holds operators of one kind only:
+   * `or` binds looser, so the expression is split by `or` first and
+   * the `and` groups become nested nodes e.g. a and b or c => (a and b) or c
+   */
   private groupLogicalOperations(logicOp: number[], tokens: Token[]): LogicalOpNode {
-    let start = 0;
-    const logicItems: LogicalNodeItem[] = [];
-    for (let i = 0; i < logicOp.length; i++) {
-      const opToken = tokens[logicOp[i]];
-      const logicalSlice = this.sliceWithBrackets(tokens, start, logicOp[i]);
-      logicItems.push({
-        node: this.createExpressionNode(logicalSlice),
-        op: getTokenValue(opToken) as LogicalOperators
-      });
+    const orIndexes = logicOp.filter(ind => getTokenValue(tokens[ind]) === 'or');
+    const op: LogicalOperators = orIndexes.length ? 'or' : 'and';
+    const indexes = orIndexes.length ? orIndexes : logicOp;
 
-      start = logicOp[i] + 1;
+    const logicItems: LogicalNodeItem[] = [];
+    let start = 0;
+    for (let i = 0; i <= indexes.length; i++) {
+      const end = i < indexes.length ? indexes[i] : tokens.length;
+      if (end <= start) {
+        this._currentToken = tokens[Math.min(end, tokens.length - 1)];
+        throw new Error(`Expression is not complete.`);
+      }
+
+      logicItems.push({
+        node: this.createExpressionNode(tokens.slice(start, end)),
+        op: i < indexes.length ? op : undefined
+      });
+      start = end + 1;
     }
 
-    logicItems.push({
-      node: this.createExpressionNode(this.sliceWithBrackets(tokens, start, tokens.length))
-    } as LogicalNodeItem);
-
-    const lop = new LogicalOpNode(logicItems, getTokenLoc(tokens[0]));
-    return lop;
+    return new LogicalOpNode(logicItems, getTokenLoc(tokens[0]));
   }
 
   private tokensToInstructionLines(tokens: Token[], startLine: number): InstructionLine[] {
@@ -577,6 +603,13 @@ export class Parser {
       throw new Error(`Unexpected symbol ';' in the end`);
     }
 
+    // an expression enclosed in brackets e.g. (a + b) or ((a or b))
+    let unwrapped = this.unwrapBrackets(tokens);
+    while (unwrapped !== tokens) {
+      tokens = unwrapped;
+      unwrapped = this.unwrapBrackets(tokens);
+    }
+
     this._currentToken = tokens[0];
 
     // const or variable
@@ -614,6 +647,18 @@ export class Parser {
       this.instructionsToNodes(instructionLines, funcAst);
 
       return new ArrowFuncDefNode(funcAst, params, getTokenLoc(tokens[0]));
+    }
+
+    // `and` / `or` bind looser than anything else e.g. a == 1 and not b => (a == 1) and (not b)
+    const logicalIndexes = findOperators(tokens, OperationTypes.Logical);
+    if (logicalIndexes.length) {
+      return this.groupLogicalOperations(logicalIndexes, tokens);
+    }
+
+    // `not` binds looser than comparison and membership, but tighter than `and` / `or`
+    // e.g. not a == b => not (a == b)
+    if (getTokenValue(tokens[0]) === 'not' && getTokenType(tokens[0]) !== TokenTypes.LiteralString) {
+      return new NotOpNode(this.createExpressionNode(tokens.slice(1)), getTokenLoc(tokens[0]));
     }
 
     // comparison operations
@@ -655,15 +700,24 @@ export class Parser {
           }
         }
 
+        begin = end + 1;
         if (i < ops.length) {
           const prevItem = items.length ? items[items.length - 1] : null;
-          items.push({
-            op: getTokenValue(tokens[end]) as Operators,
-            unary: !prevItem || !prevItem.node,
-            token: tokens[end]
-          });
+          const unary = !prevItem || !prevItem.node;
+          let op = getTokenValue(tokens[end]) as Operators;
+          if (
+            op === 'not' &&
+            !unary &&
+            ops[i + 1] === end + 1 &&
+            getTokenValue(tokens[end + 1]) === 'in'
+          ) {
+            // `not in` is a single binary operator
+            op = 'not in';
+            i++;
+            begin++;
+          }
+          items.push({ op, unary, token: tokens[end] });
         }
-        begin = end + 1;
       }
 
       let pos = 0;
@@ -677,6 +731,12 @@ export class Parser {
         if (item.node) {
           pos++;
           return item.node;
+        }
+
+        if (item.op === 'not') {
+          this._currentToken = item.token as Token;
+          pos++;
+          return new NotOpNode(buildNode(NotOperatorPrecedence), getTokenLoc(item.token as Token));
         }
 
         if (item.op !== '-' && item.op !== '+') {
@@ -704,6 +764,9 @@ export class Parser {
         let left = buildOperand();
         while (pos < items.length) {
           const op = items[pos].op as Operators;
+          if (op === 'not') {
+            throw new Error(`Unexpected operator 'not'.`);
+          }
           const precedence = getOperatorPrecedence(op);
           if (precedence < minPrecedence) {
             break;

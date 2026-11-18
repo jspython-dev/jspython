@@ -17,6 +17,7 @@ import {
   IfNode,
   IsNullCoelsing,
   LogicalOpNode,
+  NotOpNode,
   OperationFuncs,
   Primitive,
   RaiseNode,
@@ -346,6 +347,10 @@ export class Evaluator {
       else throw new Error('Unknown binary oprastion');
     }
 
+    if (node.type === 'notOp') {
+      return !this.evalNode((node as NotOpNode).operand, blockContext);
+    }
+
     if (node.type === 'logicalOp') {
       const logicalGroups = node as LogicalOpNode;
       let ind = 0;
@@ -356,8 +361,9 @@ export class Evaluator {
 
         gResult = this.evalNode(eg.node, blockContext);
 
+        // same as in Python, `and` / `or` return the operand what defined a result
         if (eg.op === 'and' && !gResult) {
-          return false;
+          return gResult;
         }
         if (eg.op === 'or' && gResult) {
           return gResult;

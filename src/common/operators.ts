@@ -3,21 +3,24 @@ export enum OperationTypes {
   Assignment,
   Comparison,
   Logical,
-  Membership
+  Membership,
+  Unary
 }
 
 export type AssignmentOperators = '=' | '+=' | '-=' | '*=' | '/=' | '++' | '--';
 export type ArithmeticOperators = '+' | '-' | '*' | '/' | '%' | '**' | '//';
 export type ComparisonOperators = '>' | '>=' | '==' | '!=' | '<>' | '<' | '<=';
-export type LogicalOperators = 'and' | 'or'; // | "not" | "not in";
-export type MembershipOperators = 'in';
+export type LogicalOperators = 'and' | 'or';
+export type MembershipOperators = 'in' | 'not in';
+export type UnaryOperators = 'not';
 
 export type Operators =
   | AssignmentOperators
   | ArithmeticOperators
   | ComparisonOperators
   | LogicalOperators
-  | MembershipOperators;
+  | MembershipOperators
+  | UnaryOperators;
 
 export const OperatorsMap: Map<Operators, OperationTypes> = new Map<Operators, OperationTypes>([
   ['+', OperationTypes.Arithmetic],
@@ -38,8 +41,9 @@ export const OperatorsMap: Map<Operators, OperationTypes> = new Map<Operators, O
 
   ['and', OperationTypes.Logical],
   ['or', OperationTypes.Logical],
-  // "not", OperationTypes.Logical],
-  // "not in", OperationTypes.Logical],
+
+  // `not in` consists of two tokens, parser combines them into a single operator
+  ['not', OperationTypes.Unary],
 
   ['in', OperationTypes.Membership],
 
@@ -59,21 +63,28 @@ export const OperatorsMap: Map<Operators, OperationTypes> = new Map<Operators, O
 const OperatorsPrecedence: Partial<Record<Operators, number>> = {
   or: 1,
   and: 2,
-  in: 3,
-  '+': 4,
-  '-': 4,
-  '*': 5,
-  '/': 5,
-  '%': 5,
-  '//': 5,
-  '**': 7
+  in: 4,
+  'not in': 4,
+  '+': 5,
+  '-': 5,
+  '*': 6,
+  '/': 6,
+  '%': 6,
+  '//': 6,
+  '**': 8
 };
+
+/**
+ * Unary 'not' binds tighter than 'and' / 'or', but looser than everything else
+ * e.g. not a in b => not (a in b) and not a and b => (not a) and b
+ */
+export const NotOperatorPrecedence = 3;
 
 /**
  * Unary '-' and '+' bind tighter than multiplication, but looser than '**'
  * e.g. -3 ** 2 => -(3 ** 2) and -2 * 3 => (-2) * 3
  */
-export const UnaryOperatorPrecedence = 6;
+export const UnaryOperatorPrecedence = 7;
 
 export function getOperatorPrecedence(op: Operators): number {
   return OperatorsPrecedence[op] || 0;
@@ -125,10 +136,12 @@ export const OperationFuncs: Map<ExpressionOperators, ExpressionOperation> = new
 
   ['and' as ExpressionOperators, ((l, r) => logicalOperation(l, r, 'and')) as ExpressionOperation],
   ['or' as ExpressionOperators, ((l, r) => logicalOperation(l, r, 'or')) as ExpressionOperation],
-  // "not" as ExpressionOperators, ((l, r) => logicalOperation(l, r, "not")) as ExpressionOperation],
-  // "not in" as ExpressionOperators, ((l, r) => logicalOperation(l, r, "not in")) as ExpressionOperation],
 
-  ['in' as ExpressionOperators, ((l, r) => membershipOperation(l, r, 'in')) as ExpressionOperation]
+  ['in' as ExpressionOperators, ((l, r) => membershipOperation(l, r, 'in')) as ExpressionOperation],
+  [
+    'not in' as ExpressionOperators,
+    ((l, r) => !membershipOperation(l, r, 'not in')) as ExpressionOperation
+  ]
 ]);
 
 function membershipOperation(l: Primitive, r: Primitive, op: MembershipOperators): Primitive {

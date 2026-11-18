@@ -321,6 +321,7 @@ export class Tokenizer {
         getTokenType(prevToken) === TokenTypes.Keyword ||
         prevValue === 'and' ||
         prevValue === 'or' ||
+        prevValue === 'not' ||
         (getTokenType(prevToken) === TokenTypes.Operator &&
           prevValue !== ')' &&
           prevValue !== ']' &&
